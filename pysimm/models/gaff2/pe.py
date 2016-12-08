@@ -22,11 +22,13 @@ def monomer():
     h2 = s.add_particle_bonded_to(system.Particle(type=gaff_hc, charge=0, molecule=m), c1, f)
     h3 = s.add_particle_bonded_to(system.Particle(type=gaff_hc, charge=0, molecule=m), c2, f)
     h4 = s.add_particle_bonded_to(system.Particle(type=gaff_hc, charge=0, molecule=m), c2, f)
-
+    
     s.set_box(padding=10)
     
     c1.linker = 'head'
     c2.linker = 'tail'
+    
+    s.pair_style = 'lj'
     
     lmps.quick_min(s, min_style='fire')
     
@@ -34,5 +36,5 @@ def monomer():
     
 def polymer_chain(length):
     mon = monomer()
-    polym = random_walk(mon, length, forcefield=forcefield.Dreiding())
+    polym = random_walk(mon, length, forcefield=forcefield.Gaff2())
     return polym
