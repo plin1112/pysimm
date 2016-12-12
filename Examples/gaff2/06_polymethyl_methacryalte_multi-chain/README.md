@@ -59,17 +59,13 @@ The **random_walk** application requires a reference monomer, the number of repe
 
 `polymer = random_walk(pmma , nmon=5, forcefield=f, density=0.3/4)`
 
-Now we build three more polymer chains, and indicate we want these chains to be build in our already existing polymer system **polymer**, by using the keyword argument **s_**.
+Now we build three more polymer chains, and indicate we want these chains to be built in our already existing polymer system **polymer**, by using the keyword argument **s_**.
 
 ```
 polymer = random_walk(pmma , nmon=5, s_=polymer, forcefield=f)
 polymer = random_walk(pmma , nmon=5, s_=polymer, forcefield=f)
 polymer = random_walk(pmma , nmon=5, s_=polymer, forcefield=f)
 ```
-
-The **copolymer** method requires a list of reference monomers, the total number of repeat units in the desired chain, and the force field from which new force field types will be acquired. By default the pattern the monomers added to the chain will iterate through the list of reference monomers. This is equivalent to setting the pattern to a list of 1s with the same length as the list of reference monomers. During polymerization, new force field terms will be determined automatically, and LAMMPS simulations will be performed to relax new polymer bonds. To change the number of processors used during simulation, the the **settings** keyword can be used to provide a dictionary of simulation settings. The random_walk function returns the newly created polymer **system.System** object.
-
-`polymer = copolymer([pe, ps], 10, pattern=[1, 1], forcefield=f, settings={'np': 2})`
 
 ### Writing the polymer system to various file formats
 
