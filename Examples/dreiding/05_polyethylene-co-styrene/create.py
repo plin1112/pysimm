@@ -1,35 +1,22 @@
 from pysimm import system, lmps, forcefield
 from pysimm.apps.random_walk import copolymer
+from pysimm.models.monomers.dreiding.pe import monomer as pe_monomer
+from pysimm.models.monomers.dreiding.ps import monomer as ps_monomer
 
-# use a smiles string to query the pubchem search database and read the mol file returned from the http request
-pe = system.read_pubchem_smiles('cc')
+# get a pe monomer from the pysimm.models database
+pe = pe_monomer()
 
-# particles 1 and 2 in the monomer are going to be the head and tail linkers
-pe.particles[1].linker='head'
-pe.particles[2].linker='tail'
-
-# use a smiles string to query the pubchem search database and read the mol file returned from the http request
-ps = system.read_pubchem_smiles('cc(C1=CC=CC=C1)')
-
-# particles 8 and 7 in the monomer are going to be the head and tail linkers
-ps.particles[8].linker='head'
-ps.particles[7].linker='tail'
-
-# like in example 3, we need to identify the bonds in the ring as aromatic
-for b in ps.bonds:
-  if (not b.a.linker and not b.b.linker) and b.a.elem=='C' and b.b.elem=='C':
-    b.order='A'
+# get a ps monomer from the pysimm.models database
+ps = ps_monomer()
 
 # we'll instantiate a Dreiding forcefield object for use later
 f = forcefield.Dreiding()
 
-# the resulting system has sufficient information to type with the forcefield object we made earlier
-# we will also determine partial charges using the gasteiger algorithm
-pe.apply_forcefield(f, charges='gasteiger')
+# we will determine partial charges using the gasteiger algorithm
+pe.apply_charges(f, charges='gasteiger')
 
-# the resulting system has sufficient information to type with the forcefield object we made earlier
-# we will also determine partial charges using the gasteiger algorithm
-ps.apply_forcefield(f, charges='gasteiger')
+# we will determine partial charges using the gasteiger algorithm
+ps.apply_charges(f, charges='gasteiger')
 
 # do a quick minimization of the monomer
 lmps.quick_min(pe, min_style='fire')

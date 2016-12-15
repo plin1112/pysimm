@@ -1,19 +1,35 @@
 from pysimm import system, lmps, forcefield
 from pysimm.apps.random_walk import random_walk
 
-# use a smiles string to query the pubchem search database and read the mol file returned from the http request
-s = system.read_pubchem_smiles('cc')
-
-# particles 1 and 2 in the monomer are going to be the head and tail linkers
-s.particles[1].linker='head'
-s.particles[2].linker='tail'
-
-# we'll instantiate a Dreiding forcefield object for use later
+s = system.System()
+m = s.molecules.add(system.Molecule())
 f = forcefield.Dreiding()
 
-# the resulting system has sufficient information to type with the forcefield object we made earlier
-# we will also determine partial charges using the gasteiger algorithm
-s.apply_forcefield(f, charges='gasteiger')
+s.pair_style = f.pair_style
+s.bond_style = f.bond_style
+s.angle_style = f.angle_style
+s.dihedral_style = f.dihedral_style
+s.improper_style = f.improper_style
+
+dreiding_C_3 = s.particle_types.add(f.particle_types.get('C_3')[0].copy())
+dreiding_H_ = s.particle_types.add(f.particle_types.get('H_')[0].copy())
+
+c1 = s.particles.add(system.Particle(type=dreiding_C_3, x=0, y=0, z=0, charge=0, molecule=m))
+c2 = s.add_particle_bonded_to(system.Particle(type=dreiding_C_3, charge=0, molecule=m), c1, f)
+
+h1 = s.add_particle_bonded_to(system.Particle(type=dreiding_H_, charge=0, molecule=m), c1, f)
+h2 = s.add_particle_bonded_to(system.Particle(type=dreiding_H_, charge=0, molecule=m), c1, f)
+h3 = s.add_particle_bonded_to(system.Particle(type=dreiding_H_, charge=0, molecule=m), c2, f)
+h4 = s.add_particle_bonded_to(system.Particle(type=dreiding_H_, charge=0, molecule=m), c2, f)
+
+s.apply_charges(f, charges='gasteiger')
+
+s.set_box(padding=10)
+
+c1.linker = 'head'
+c2.linker = 'tail'
+
+s.pair_style = 'lj'
 
 # do a quick minimization of the monomer
 lmps.quick_min(s, min_style='fire')

@@ -14,34 +14,53 @@ If you encounter an error **"ImportError: No module named pysimm"** make sure th
 
 ### Creating a polyethylene monomer
 
-[PubChem](https://pubchem.ncbi.nlm.nih.gov/search/#collection=compounds) offers a database of compounds accessible through a RESTful API. pysimm utilizes this API and allows users to create **system.System** objects from a puchem SMILES query. In this example, we will use the SMILES string "cc" to generate a polyethylene monomer using the **system.read_puchem_smiles()** method. The smiles format supports radicals, which we will exploit here so that each carbon only has two hydrogens and can participate in new polymer bonds. The function makes an http request to the PubChem server, which returns a mol file. This mol file is interpreted and the function returns a **system.System** object that we store in variable **s**. This system now contains elemental composition bond connectivity, and bond orders.
-
-`s = system.read_pubchem_smiles('cc')`
-
-Additionally, we need to identify the two carbon atoms as linker atoms for polymerization. In this case, the atoms can be accessed by their tag. Visualization software can be very helpful if the tags of certain atoms are not known ahead of time. In this case we know that the carbon atoms are the first two atoms in our system, and we assign 'head' and 'tail' to their **linker** attributes.
+Following similar steps as Example 1, we'll build our polyethylene monomer starting from scratch. First we build an empty system and add a molecule.
 
 ```
-s.particles[1].linker='head'
-s.particles[2].linker='tail'
+s = system.System()
+m = s.molecules.add(system.Molecule())
 ```
 
-### Creating a reference to a forcefield object
+Then we'll create a reference to a Gaff2 forcefield object, and set all of the interaction styles in our system to those in the force field.
 
-We will need to use a force field object more than once, so we create a reference to it by instantiating the object and storing a reference to it in variable **f**.
+```
+f = forcefield.Gaff2()
+s.pair_style = f.pair_style
+s.bond_style = f.bond_style
+s.angle_style = f.angle_style
+s.dihedral_style = f.dihedral_style
+s.improper_style = f.improper_style
+```
 
-`f = forcefield.Gaff2()`
+Next we'll need references to ParticleType objects for the c3 and hc atom types in Gaff2.
 
-### Automatically applying force field parameters
+```
+gaff_c3 = s.particle_types.add(f.particle_types.get('c3')[0].copy())
+gaff_hc = s.particle_types.add(f.particle_types.get('hc')[0].copy())
+```
 
-Our **system.System** object **s** contains a class method **s.apply_forcefield()** that accepts a **forcefield.Forcefield** object and automatically assigns force field parameters to our system. In this example we use our previously created **forcefield.Gaff2** object and pass it to the **s.apply_forcefield()** function, as well as specify we would like to derive Gasteiger charges.
+Then we'll build our monomer one atom at a time, starting with the carbon atoms.
 
-`s.apply_forcefield(f, charges='gasteiger')`
+```
+c1 = s.particles.add(system.Particle(type=gaff_c3, x=0, y=0, z=0, charge=0, molecule=m))
+c2 = s.add_particle_bonded_to(system.Particle(type=gaff_c3, charge=0, molecule=m), c1, f)
 
-### Optimizing the monomer structure using LAMMPS
+h1 = s.add_particle_bonded_to(system.Particle(type=gaff_hc, charge=0, molecule=m), c1, f)
+h2 = s.add_particle_bonded_to(system.Particle(type=gaff_hc, charge=0, molecule=m), c1, f)
+h3 = s.add_particle_bonded_to(system.Particle(type=gaff_hc, charge=0, molecule=m), c2, f)
+h4 = s.add_particle_bonded_to(system.Particle(type=gaff_hc, charge=0, molecule=m), c2, f)
+```
 
-We'll use the fire algorithm to perofrm energy minimization of our system. The **lmps** module in pysimm contains convenience methods to configure and execute a simulation. In this case we will use **lmps.quick_min()** passing our system object **s** and the min_style we want to use.
+Lastly, we'll derive Gasteiger charges, set the simulation box, identify linker atoms, and optimize our structure using the Lennard-Jones potential.
 
-`lmps.quick_min(s, min_style='fire')`
+```
+s.apply_charges(f, charges='gasteiger')
+s.set_box(padding=10)
+c1.linker = 'head'
+c2.linker = 'tail'
+s.pair_style = 'lj'
+lmps.quick_min(s, min_style='fire')
+```
 
 ### Writing the monomer system to various file formats
 
