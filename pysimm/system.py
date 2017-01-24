@@ -895,15 +895,13 @@ class System(object):
         
     def unite_atoms(self):
         for p in self.particles:
+            p.implicit_h = 0
             if p.elem != 'C':
                 continue
             for b in p.bonds:
                 pb = b.a if b.b is p else b.b
                 if pb.elem =='H':
-                    if p.implicit_h is not None:
-                        p.implicit_h += 1
-                    else:
-                        p.implicit_h = 1
+                    p.implicit_h += 1
                     self.particles.remove(pb.tag, update=False)
         self.remove_spare_bonding()
 
