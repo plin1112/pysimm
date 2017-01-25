@@ -394,7 +394,6 @@ class Gaff2(Forcefield):
         """pysimm.forcefield.Gaff2.assign_itypes
 
         Gaff2 specific improper typing rules.
-        There are none.
 
         Args:
             s: pysimm.system.System
