@@ -30,10 +30,9 @@
 import os
 from itertools import permutations, combinations
 
-import gasteiger
 from pysimm import error_print
 from pysimm.system import Angle, Dihedral, Improper
-from forcefield import Forcefield
+from pysimm.forcefield import Forcefield
 
 
 class Trappe(Forcefield):
