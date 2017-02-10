@@ -2,11 +2,6 @@
 # pysimm.utils module
 # ******************************************************************************
 #
-# Container class definition
-# Item class definition
-# ItemContainer(Sequence) class deinition
-# comma separated string compare
-#
 # ******************************************************************************
 # License
 # ******************************************************************************
@@ -41,17 +36,23 @@ from pysimm import debug_print
 
 
 class PysimmError(Exception):
-    def __init__(self, *args, **kwargs):
-        Exception.__init__(self, *args, **kwargs)
+    pass
 
 
 class Container(object):
+    """pysimm.utils.Container
 
+    Abitrary container object that returns None if trying to access an attribute that does not exist
+    """
     def __getattr__(self, name):
         return None
 
 
 class ItemContainer(Sequence):
+    """pysimm.utils.ItemContainer
+
+    Container object intended to organize Item objects. Arbitrary attributes can be set using keyword arguments. Underlying data structure is a dictionary where the key is referred to as a tag, and the value should be an Item object. Item.tag should equal the key for the object in the dictionary.
+    """
     def __init__(self, _dict=None, **kwargs):
         self._dict = _dict or {}
         self.count = len(_dict) if _dict else 0

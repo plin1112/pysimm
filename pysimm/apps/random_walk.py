@@ -295,6 +295,10 @@ def copolymer(m, nmon, s_=None, **kwargs):
     
         if unwrap:
             s.wrap()
+            
+    for p in s.particles:
+        if p not in s.molecules[p.molecule.tag].particles:
+            s.molecules[p.molecule.tag].particles.add(p)
 
     s.write_lammps('polymer.lmps')
     s.unwrap()
@@ -437,6 +441,10 @@ def random_walk(m, nmon, s_=None, **kwargs):
 
         if unwrap:
             s.wrap()
+            
+    for p in s.particles:
+        if p not in s.molecules[p.molecule.tag].particles:
+            s.molecules[p.molecule.tag].particles.add(p)
 
     s.write_lammps('polymer.lmps')
     s.unwrap()

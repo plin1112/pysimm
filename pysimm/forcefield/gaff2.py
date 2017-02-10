@@ -276,7 +276,7 @@ class Gaff2(Forcefield):
     def assign_atypes(self, s):
         """pysimm.forcefield.Gaff2.assign_atypes
 
-        Gaff2 specific boanglend typing rules.
+        Gaff2 specific angle typing rules.
         Requires System object Particle objects have Particle.bonds, Particle.type
         and Particle.type.name defined.
         *** use after assign_ptypes ***
