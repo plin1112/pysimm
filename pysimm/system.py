@@ -625,11 +625,6 @@ class System(object):
                                                   is not None) else True
         update_properties = kwargs.get('update_properties') if kwargs.get('update_properties') is not None else True
 
-        if self.ff_class is not None and self.ff_class != other.ff_class:
-            warning_print('warning: mixing forcefield classes is highly '
-                          'unadvised. only continue if you know what you '
-                          'are doing')
-
         for pt in other.particle_types:
             if unique_types:
                 if pt.name not in [x.name for x in self.particle_types]:
@@ -1792,7 +1787,20 @@ class System(object):
         Returns:
             None
         """
+        
         self.add_particle_bonding()
+        
+        if p1.molecule is not p2.molecule:
+            if p1.molecule.particles.count < p2.molecule.particles.count:
+                old_molecule_tag = p1.molecule.tag
+                for p_ in p1.molecule.particles:
+                    p_.molecule = p2.molecule
+            else:
+                old_molecule_tag = p2.molecule.tag
+                for p_ in p2.molecule.particles:
+                    p_.molecule = p1.molecule
+            self.molecules.remove(old_molecule_tag)
+        
         self.add_bond(p1, p2, f)
         if angles or dihedrals or impropers:
             for p in p1.bonded_to:
@@ -3024,8 +3032,6 @@ class System(object):
         Returns:
             None
         """
-        if center:
-            self.center_at_origin()
         xmin = ymin = zmin = sys.float_info.max
         xmax = ymax = zmax = sys.float_info.min
         for p in self.particles:
@@ -3051,6 +3057,9 @@ class System(object):
         self.dim.dx = self.dim.xhi - self.dim.xlo
         self.dim.dy = self.dim.yhi - self.dim.ylo
         self.dim.dz = self.dim.zhi - self.dim.zlo
+        
+        if center:
+            self.center_at_origin()
         
     def set_mm_dist(self, molecules=None):
         """pysimm.system.System.set_mm_dist
