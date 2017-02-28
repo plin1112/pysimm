@@ -30,6 +30,8 @@
 from __future__ import print_function
 import os
 
+__version__ = '0.2.dev'
+
 error = True
 warning = True
 verbose = True
