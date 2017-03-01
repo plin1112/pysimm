@@ -2331,7 +2331,7 @@ class System(object):
             for dt in self.dihedral_types:
                 if self.dihedral_style == 'fourier':
                     dt_str = '{:4d}\t{}'.format(dt.tag, dt.m)
-                    for k, d, n in zip(dt.k, dt.d, dt.n):
+                    for k, d, n in zip(dt.k, dt.n, dt.d):
                         dt_str += '\t{}\t{}\t{}'.format(k, d, n)
                     dt_str += '\t# {}\n'.format(dt.name)
                     out_file.write(dt_str)
@@ -3771,8 +3771,8 @@ def read_lammps(data_file, **kwargs):
                     n=[]
                     for i in range(m):
                         k.append(data.pop(0))
-                        d.append(data.pop(0))
                         n.append(data.pop(0))
+                        d.append(data.pop(0))
                     s.dihedral_types.add(DihedralType(tag=tag, name=name,
                                                       m=m,
                                                       k=map(float, k),
@@ -3917,15 +3917,28 @@ def read_lammps(data_file, **kwargs):
                     s.improper_types.add(ImproperType(tag=tag, name=name,
                                                       k=float(line[1]),
                                                       x0=float(line[2])))
+                elif (improper_style and
+                      improper_style.lower().startswith('cvff')):
+                    s.improper_types.add(ImproperType(tag=tag, name=name,
+                                                      k=float(line[1]),
+                                                      d=int(line[2]),
+                                                      n=int(line[3])))
                 elif not improper_style:
                     if not quiet and i == 0:
                             warning_print('cannot guess improper_style '
                                           'from number of parameters - '
                                           'will try to determine style later '
                                           'based on other types')
-                    s.improper_types.add(ImproperType(tag=tag, name=name,
-                                                      k=float(line[1]),
-                                                      x0=float(line[2])))
+                    if len(line) == 3:
+                        s.improper_types.add(ImproperType(tag=tag, name=name,
+                                                          k=float(line[1]),
+                                                          x0=float(line[2])))
+                    elif len(line) == 4:
+                        improper_style = 'cvff'
+                        s.improper_types.add(ImproperType(tag=tag, name=name,
+                                                          k=float(line[1]),
+                                                          d=int(line[2]),
+                                                          n=int(line[3])))
 
             if not quiet and improper_style:
                 verbose_print('read "%s" improper parameters '
