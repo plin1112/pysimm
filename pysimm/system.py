@@ -2287,7 +2287,12 @@ class System(object):
         if self.angle_types.count > 0:
             out_file.write('Angle Coeffs\n\n')
             for a in self.angle_types:
-                if self.angle_style == 'harmonic' or self.ff_class == '1':
+                if self.angle_style == 'charmm':
+                    out_file.write('%4d\t%s\t%s\t%s\t%s\t# %s\n'
+                                   % (a.tag,
+                                      a.k, a.theta0,
+                                      a.kub, a.rub, a.name))
+                elif self.angle_style == 'harmonic' or self.ff_class == '1':
                     out_file.write('%4d\t%s\t'
                                    '%s\t# %s\n'
                                    % (a.tag, a.k,
