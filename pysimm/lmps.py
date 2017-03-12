@@ -136,6 +136,7 @@ class MolecularDynamics(object):
         limit: numerical value to use with nve when limiting particle displacement
         temp: temperature for use with 'nvt' and 'npt' or new_v
         pressure: pressure for use with 'npt'
+        pressure_iso: True to require box dimensions change isotropically, False to allow dimensions to change independently (False by default)
         new_v: True to have LAMMPS generate new velocities
         seed: seed value for RNG (random by default)
         scale_v: True to scale velocities to given temperature default=False
@@ -153,6 +154,7 @@ class MolecularDynamics(object):
         self.limit = kwargs.get('limit')
         self.temp = kwargs.get('temp')
         self.pressure = kwargs.get('pressure') or 1.
+        sel.pressure_iso = kwargs.get('pressure_iso')
         self.new_v = kwargs.get('new_v')
         self.seed = kwargs.get('seed') or randint(10000, 99999)
         self.scale_v = kwargs.get('scale_v')
@@ -184,6 +186,11 @@ class MolecularDynamics(object):
         else:
             self.p_start = self.pressure
             self.p_stop = self.pressure
+            
+        if self.pressure_iso:
+            p_iso = 'iso'
+        else:
+            p_iso = 'aniso'
 
         self.input = ''
 
@@ -209,8 +216,8 @@ class MolecularDynamics(object):
         if self.ensemble == 'nvt':
             self.input += 'fix 1 all %s temp %s %s 100\n' % (self.ensemble, self.t_start, self.t_stop)
         elif self.ensemble == 'npt':
-            self.input += ('fix 1 all %s temp %s %s 100 iso %s %s 100\n'
-                           % (self.ensemble, self.t_start, self.t_stop, self.p_start, self.p_stop))
+            self.input += ('fix 1 all %s temp %s %s 100 %s %s %s 100\n'
+                           % (self.ensemble, self.t_start, self.t_stop, p_iso, self.p_start, self.p_stop))
         elif self.ensemble == 'nve' and self.limit:
             self.input += 'fix 1 all %s/limit %s\n' % (self.ensemble, self.limit)
         elif self.ensemble == 'nve':
