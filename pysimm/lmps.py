@@ -217,7 +217,7 @@ class MolecularDynamics(object):
             self.input += 'fix 1 all %s temp %s %s 100\n' % (self.ensemble, self.t_start, self.t_stop)
         elif self.ensemble == 'npt':
             self.input += ('fix 1 all %s temp %s %s 100 %s %s %s 100\n'
-                           % (self.ensemble, self.t_start, self.t_stop, p_iso, self.p_start, self.p_stop))
+                           % (self.ensemble, self.t_start, self.t_stop, self.p_iso, self.p_start, self.p_stop))
         elif self.ensemble == 'nve' and self.limit:
             self.input += 'fix 1 all %s/limit %s\n' % (self.ensemble, self.limit)
         elif self.ensemble == 'nve':
