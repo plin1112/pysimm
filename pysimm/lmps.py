@@ -188,9 +188,9 @@ class MolecularDynamics(object):
             self.p_stop = self.pressure
             
         if self.pressure_iso:
-            p_iso = 'iso'
+            self.p_iso = 'iso'
         else:
-            p_iso = 'aniso'
+            self.p_iso = 'aniso'
 
         self.input = ''
 
