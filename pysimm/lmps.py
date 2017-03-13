@@ -50,6 +50,11 @@ try:
 except ImportError:
     pass
 
+try:
+    from matplotlib import pyplot as plt
+except ImportError:
+    pass
+
 LAMMPS_EXEC = os.environ.get('LAMMPS_EXEC')
 verbose = False
 templates = {}
@@ -477,6 +482,8 @@ class Simulation(object):
 
         self.sim = kwargs.get('sim') if kwargs.get('sim') is not None else []
         
+        self.results = []
+        
     def add_qeq(self, template=None, **kwargs):
         """pysimm.lmps.Simulation.add_qeq
 
@@ -601,6 +608,36 @@ class Simulation(object):
                 raise PysimmError('There was a problem running LAMMPS. The process started but did not finish successfully. Check the log file, or rerun the simulation with print_to_screen=True to debug issue from LAMMPS output'), None, sys.exc_info()[2]
             else:
                 raise PysimmError('There was a problem running LAMMPS. LAMMPS is not configured properly. Make sure the LAMMPS_EXEC environment variable is set to the correct LAMMPS executable path. The current path is set to:\n\n{}'.format(LAMMPS_EXEC)), None, sys.exc_info()[2]
+                
+        try:
+            if self.log:
+                log_name = self.log
+            elif self.name:
+                log_name = '{}.log'.format('_'.join(self.name.split()))
+            else:
+                log_name = 'log.lammps'
+            r = read_log(log_name)
+            self.results.extend(r)
+        except Exception as e:
+            print('Failed reading log file')
+            print(e)
+            
+    def plot_results(self):
+        steps = []
+        last_step = 0
+        for sim in self.results:
+            sts = sim['Step']
+            for st in sts:
+                steps.append(st+last_step)
+            last_step += sts[-1]
+        for k in self.results[-1]:
+            if k != 'Step':
+                data = [sm[k] for sm in self.results]
+                data = [d for sublist in data for d in sublist]
+                plt.plot(steps, data)
+                plt.xlabel('Step')
+                plt.ylabel(k)
+                plt.show()
 
 
 def enqueue_output(out, queue):
