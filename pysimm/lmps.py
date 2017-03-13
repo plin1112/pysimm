@@ -651,7 +651,7 @@ def call_lammps(simulation, np, nanohub):
                        LAMMPS_EXEC, '-e', 'both', '-l', 'none'],
                       stdin=PIPE, stdout=PIPE, stderr=PIPE)
         else:
-            p = Popen(['mpiexec', LAMMPS_EXEC, '-e', 'both', '-l', 'none'],
+            p = Popen([LAMMPS_EXEC, '-e', 'both', '-l', 'none'],
                       stdin=PIPE, stdout=PIPE, stderr=PIPE)
         simulation.write_input()
         p.stdin.write(simulation.input)
@@ -790,6 +790,23 @@ def energy(s, all=False, np=None, **kwargs):
                }
     else:
         return etotal
+        
+        
+def read_log(fname):
+    sims = []
+    with open(fname) as f:
+        for line in f:
+            if 'Step' in line:
+                sims.append({})
+                headers = line.split()
+                for h in headers:
+                    sims[-1][h] = []
+                line = f.next()
+                while 'Loop' not in line:
+                    for d, h in zip(map(float, line.split()), headers):
+                        sims[-1][h].append(d)
+                    line = f.next()
+    return sims
 
 
 def md(s, template=None, **kwargs):
