@@ -154,7 +154,7 @@ class MolecularDynamics(object):
         self.limit = kwargs.get('limit')
         self.temp = kwargs.get('temp')
         self.pressure = kwargs.get('pressure') or 1.
-        sel.pressure_iso = kwargs.get('pressure_iso')
+        self.pressure_iso = kwargs.get('pressure_iso')
         self.new_v = kwargs.get('new_v')
         self.seed = kwargs.get('seed') or randint(10000, 99999)
         self.scale_v = kwargs.get('scale_v')
