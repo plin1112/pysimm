@@ -577,7 +577,7 @@ class Simulation(object):
 
         self.input += 'quit\n'
 
-    def run(self, np=None, nanohub=None, rewrite=True, init=True, write_input=False):
+    def run(self, np=None, kokkos=None, nanohub=None, rewrite=True, init=True, write_input=False):
         """pysimm.lmps.Simulation.run
 
         Begin LAMMPS simulation.
@@ -600,7 +600,7 @@ class Simulation(object):
             with file('pysimm.sim.in', 'w') as f:
                 f.write(self.input)
         try:
-            call_lammps(self, np, nanohub)
+            call_lammps(self, np, kokkos, nanohub)
         except OSError as ose:
             raise PysimmError('There was a problem calling LAMMPS with mpiexec'), None, sys.exc_info()[2]
         except IOError as ioe:
@@ -617,7 +617,7 @@ class Simulation(object):
             else:
                 log_name = 'log.lammps'
             r = read_log(log_name)
-            self.results.extend(r)
+            self.results = r
         except Exception as e:
             print('Failed reading log file')
             print(e)
@@ -650,7 +650,7 @@ def enqueue_output(out, queue):
     out.close()
 
 
-def call_lammps(simulation, np, nanohub):
+def call_lammps(simulation, np, kokkos, nanohub):
     """pysimm.lmps.call_lammps
 
     Wrapper to call LAMMPS using executable name defined in pysimm.lmps module.
@@ -683,7 +683,12 @@ def call_lammps(simulation, np, nanohub):
         else:
             print('%s: starting LAMMPS simulation'
                   % strftime('%H:%M:%S'))
-        if np:
+        if kokkos:
+            p = Popen(['mpiexec',
+                       LAMMPS_EXEC, '-e', 'both', '-l', 'none',
+                       '-k' 'on', '-sf' 'kk', '-pk', 'kokkos'],
+                      stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        elif np:
             p = Popen(['mpiexec', '-np', str(np),
                        LAMMPS_EXEC, '-e', 'both', '-l', 'none'],
                       stdin=PIPE, stdout=PIPE, stderr=PIPE)
