@@ -1908,19 +1908,31 @@ class System(object):
         a_name = a.type.eq_angle or a.type.name
         b_name = b.type.eq_angle or b.type.name
         c_name = c.type.eq_angle or c.type.name
-        atype = self.angle_types.get('%s,%s,%s'
-                                     % (a_name, b_name, c_name))
+        atype = self.angle_types.get(
+            '%s,%s,%s' % (a_name, b_name, c_name),
+            item_wildcard=None
+        )
         if not atype and f:
-            atype = f.angle_types.get('%s,%s,%s'
-                                      % (a_name, b_name, c_name))
+            atype = self.angle_types.get(
+                '%s,%s,%s' % (a_name, b_name, c_name)
+            )
+            atype.extend(
+                f.angle_types.get(
+                    '%s,%s,%s' % (a_name, b_name, c_name)
+                )
+            )
+            
+            atype = sorted(atype, key=lambda x: x.name.count('X'))
+            
             if atype:
-                at = atype[0].copy()
-                self.angle_types.add(at)
-            atype = self.angle_types.get('%s,%s,%s'
-                                         % (a_name, b_name,
-                                            c_name))
+                if not self.angle_types.get(atype[0].name, item_query=None):
+                    atype = self.angle_types.add(atype[0].copy())
+                else:
+                    atype = self.angle_types.get(atype[0].name, item_query=None)[0]
+        elif atype:
+            atype = atype[0]
         if atype:
-            self.angles.add(Angle(type=atype[0], a=a, b=b, c=c))
+            self.angles.add(Angle(type=atype, a=a, b=b, c=c))
         else:
             error_print('error: system does not contain angle type named '
                         '%s,%s,%s or could not find type in forcefield supplied'
@@ -1948,21 +1960,32 @@ class System(object):
         b_name = b.type.eq_dihedral or b.type.name
         c_name = c.type.eq_dihedral or c.type.name
         d_name = d.type.eq_dihedral or d.type.name
-        dtype = self.dihedral_types.get('%s,%s,%s,%s'
-                                        % (a_name, b_name,
-                                           c_name, d_name))
+        dtype = self.dihedral_types.get(
+            '%s,%s,%s,%s' % (a_name, b_name, c_name, d_name),
+            item_wildcard=None
+        )
         if not dtype and f:
-            dtype = f.dihedral_types.get('%s,%s,%s,%s'
-                                         % (a_name, b_name,
-                                            c_name, d_name))
+            dtype = self.dihedral_types.get(
+                '%s,%s,%s,%s' % (a_name, b_name, c_name, d_name)
+            )
+            dtype.extend(
+                f.dihedral_types.get(
+                    '%s,%s,%s,%s' % (a_name, b_name, c_name, d_name)
+                )
+            )
+            
+            dtype = sorted(dtype, key=lambda x: x.name.count('X'))
+            
             if dtype:
-                dt = dtype[0].copy()
-                self.dihedral_types.add(dt)
-            dtype = self.dihedral_types.get('%s,%s,%s,%s'
-                                            % (a_name, b_name,
-                                               c_name, d_name))
+                if not self.dihedral_types.get(dtype[0].name, item_query=None):
+                    dtype = self.dihedral_types.add(dtype[0].copy())
+                else:
+                    dtype = self.dihedral_types.get(dtype[0].name, item_query=None)[0]
+            
+        elif dtype:
+            dtype = dtype[0]
         if dtype:
-            self.dihedrals.add(Dihedral(type=dtype[0], a=a, b=b, c=c, d=d))
+            self.dihedrals.add(Dihedral(type=dtype, a=a, b=b, c=c, d=d))
         else:
             error_print('error: system does not contain dihedral type named '
                         '%s,%s,%s,%s or could not find type in forcefield '
