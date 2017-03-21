@@ -2011,6 +2011,8 @@ class System(object):
         Returns:
             None
         """
+        if a is b or a is c or a is d:
+            return
         a_name = a.type.eq_improper or a.type.name
         b_name = b.type.eq_improper or b.type.name
         c_name = c.type.eq_improper or c.type.name
