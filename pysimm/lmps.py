@@ -469,7 +469,7 @@ class Simulation(object):
         self.kspace_style = kwargs.get('kspace_style') or 'pppm 1e-4'
         self.units = kwargs.get('units') or 'real'
         self.special_bonds = kwargs.get('special_bonds')
-        self.nonbond_mixing = kwargs.get('nonbond_mixing') or 'arithmetic'
+        self.nonbond_mixing = kwargs.get('nonbond_mixing')
         self.cutoff = kwargs.get('cutoff') or 12.0
 
         self.print_to_screen = kwargs.get('print_to_screen') if kwargs.get('print_to_screen') is not None else False
@@ -771,6 +771,8 @@ def quick_md(s, np=None, nanohub=None, **kwargs):
     sim = Simulation(s, **kwargs)
     sim.add_md(**kwargs)
     sim.run(np, nanohub)
+    
+    return sim
 
 
 def quick_min(s, np=None, nanohub=None, **kwargs):
@@ -789,6 +791,8 @@ def quick_min(s, np=None, nanohub=None, **kwargs):
     sim = Simulation(s, **kwargs)
     sim.add_min(**kwargs)
     sim.run(np, nanohub)
+    
+    return sim
     
     
 def energy(s, all=False, np=None, **kwargs):
@@ -1449,7 +1453,7 @@ def write_init(l, **kwargs):
     units = kwargs.get('units') or 'real'
     nb_cut = kwargs.get('nb_cut') or 12.0
     special_bonds = kwargs.get('special_bonds')
-    nonbond_mixing = kwargs.get('nonbond_mixing') or 'arithmetic'
+    nonbond_mixing = kwargs.get('nonbond_mixing')
 
     output = ''
 
@@ -1522,9 +1526,10 @@ def write_init(l, **kwargs):
         elif nonbond_mixing == 'geometric':
             output += 'pair_modify shift yes mix geometric\n'
         else:
-            output += 'pair_modify shift yes mix arithmetic\n'
-            print('%s mixing rule not supported; defaulting to arithmetic'
-                  % nonbond_mixing)
+            if l.ff_class == '2':
+                output += 'pair_modify shift yes mix sixthpower\n'
+            else:
+                output += 'pair_modify shift yes mix arithmetic\n'
 
     if l.bond_style:
         output += 'bond_style %s\n' % l.bond_style
