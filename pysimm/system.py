@@ -2013,42 +2013,36 @@ class System(object):
         b_name = b.type.eq_improper or b.type.name
         c_name = c.type.eq_improper or c.type.name
         d_name = d.type.eq_improper or d.type.name
-        if self.ff_class == '2' or self.improper_style == 'class2':
-            itype = self.improper_types.get('%s,%s,%s,%s'
-                                            % (b_name, a_name,
-                                               c_name, d_name),
-                                            improper_type=True)
-        else:
-            itype = self.improper_types.get('%s,%s,%s,%s'
-                                            % (a_name, b_name,
-                                               c_name, d_name),
-                                            improper_type=True)
+        itype = self.improper_types.get('%s,%s,%s,%s'
+                                        % (a_name, b_name,
+                                           c_name, d_name),
+                                        improper_type=True,
+                                        item_wildcard=None)
         if not itype and f:
-            if f.ff_class == '2':
-                itype = f.improper_types.get('%s,%s,%s,%s'
-                                             % (b_name, a_name,
-                                                c_name, d_name),
-                                             improper_type=True)
-            else:
-                itype = f.improper_types.get('%s,%s,%s,%s'
-                                             % (a_name, b_name,
-                                                c_name, d_name),
-                                             improper_type=True)
+            itype = self.improper_types.get(
+                '%s,%s,%s,%s' % (a_name, b_name, c_name, d_name),
+                improper_type=True
+            )
+            itype.extend(
+                f.improper_types.get(
+                    '%s,%s,%s,%s' % (a_name, b_name, c_name, d_name),
+                    improper_type=True
+                )
+            )
+                
+            itype = sorted(itype, key=lambda x: x.name.count('X'))
+            
             if itype:
-                it = itype[0].copy()
-                self.improper_types.add(it)
-            if f.ff_class == '2':
-                itype = self.improper_types.get('%s,%s,%s,%s'
-                                                % (b_name, a_name,
-                                                   c_name, d_name),
-                                                improper_type=True)
-            else:
-                itype = self.improper_types.get('%s,%s,%s,%s'
-                                                % (a_name, b_name,
-                                                   c_name, d_name),
-                                                improper_type=True)
+                if not self.improper_types.get(itype[0].name, item_query=None, improper_type=True):
+                    itype = self.improper_types.add(itype[0].copy())
+                else:
+                    itype = self.improper_types.get(itype[0].name, item_query=None, improper_type=True)[0]
+            
+        elif itype:
+            itype = itype[0]
+                
         if itype:
-            self.impropers.add(Improper(type=itype[0], a=a, b=b, c=c, d=d))
+            self.impropers.add(Improper(type=itype, a=a, b=b, c=c, d=d))
         else:
             return
 
