@@ -1925,10 +1925,10 @@ class System(object):
             atype = sorted(atype, key=lambda x: x.name.count('X'))
             
             if atype:
-                if not self.angle_types.get(atype[0].name, item_query=None):
+                if not self.angle_types.get(atype[0].name, item_wildcard=None):
                     atype = self.angle_types.add(atype[0].copy())
                 else:
-                    atype = self.angle_types.get(atype[0].name, item_query=None)[0]
+                    atype = self.angle_types.get(atype[0].name, item_wildcard=None)[0]
         elif atype:
             atype = atype[0]
         if atype:
@@ -1977,10 +1977,12 @@ class System(object):
             dtype = sorted(dtype, key=lambda x: x.name.count('X'))
             
             if dtype:
-                if not self.dihedral_types.get(dtype[0].name, item_query=None):
+                if not self.dihedral_types.get(dtype[0].name, item_wildcard=None):
                     dtype = self.dihedral_types.add(dtype[0].copy())
+                    print('adding type {} to system'.format(dtype.name))
                 else:
-                    dtype = self.dihedral_types.get(dtype[0].name, item_query=None)[0]
+                    dtype = self.dihedral_types.get(dtype[0].name, item_wildcard=None)[0]
+                    print('using type {} from system'.format(dtype.name))
             
         elif dtype:
             dtype = dtype[0]
@@ -2033,10 +2035,10 @@ class System(object):
             itype = sorted(itype, key=lambda x: x.name.count('X'))
             
             if itype:
-                if not self.improper_types.get(itype[0].name, item_query=None, improper_type=True):
+                if not self.improper_types.get(itype[0].name, item_wildcard=None, improper_type=True):
                     itype = self.improper_types.add(itype[0].copy())
                 else:
-                    itype = self.improper_types.get(itype[0].name, item_query=None, improper_type=True)[0]
+                    itype = self.improper_types.get(itype[0].name, item_wildcard=None, improper_type=True)[0]
             
         elif itype:
             itype = itype[0]
