@@ -74,8 +74,8 @@ class ItemContainer(Sequence):
                 return self._dict.get(self.count + slice_ + 1)
         elif isinstance(slice_, slice):
             data = []
-            start, stop, step = slice_.indices(len(self._dict))
-            for i in xrange(start+1, stop+1, step):
+            start, stop, step = slice_.indices(len(self._dict)+1)
+            for i in xrange(start, stop+1, step):
                 item = self._dict.get(i)
                 if item:
                     data.append(item)
