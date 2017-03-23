@@ -1526,7 +1526,7 @@ def write_init(l, **kwargs):
         elif nonbond_mixing == 'geometric':
             output += 'pair_modify shift yes mix geometric\n'
         else:
-            if l.pair_style == 'class2':
+            if l.ff_class == '2':
                 output += 'pair_modify shift yes mix sixthpower\n'
             else:
                 output += 'pair_modify shift yes mix arithmetic\n'
@@ -1569,7 +1569,10 @@ def write_init(l, **kwargs):
     if special_bonds:
         output += 'special_bonds %s\n' % special_bonds
     else:
-        output += 'special_bonds amber\n'
+        if l.ff_class == '2':
+            output += 'special_bonds    lj 0 0 1 coul 0 0 1\n'
+        else:
+            output += 'special_bonds amber\n'
 
     l.write_lammps('temp.lmps')
     output += 'read_data temp.lmps\n'
