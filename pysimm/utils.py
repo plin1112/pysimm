@@ -95,6 +95,28 @@ class ItemContainer(Sequence):
             debug_print('cannot add at index %s' % (self.count+1))
             return None
         return _item
+        
+    def all(self):
+        return self._dict.values()
+        
+    def by_item_name(self, name, exact=False, order=False, wildcard='X', improper_type=False):
+        found = []
+        for item in self:
+            if item.name == name or (not order and item.rname == name):
+                found.append(item)
+            elif not exact:
+                if compare(name, item.name, query_wildcard=wildcard, order=order, improper_type=improper_type):
+                    found.append(item)
+        if exact:
+            if found and len(found) == 1:
+                return found[0]
+            elif len(found) > 1:
+                print('error: found multiple items with name {}'.format(name))
+            else:
+                print('error: found no items with name {}'.format(name))
+                return None
+        else:
+            return sorted(found, key=lambda x: x.name.count(wildcard))
 
     def get(self, *args, **kwargs):
         name = None
