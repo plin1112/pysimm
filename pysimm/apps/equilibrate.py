@@ -63,6 +63,9 @@ def equil(s, **kwargs):
     pmax = kwargs.get('pmax') or 50000
     tfinal = kwargs.get('tfinal') or 300
     pfinal = kwargs.get('pfinal') or 1
+    
+    thermo = kwargs.get('thermo') if 'thermo' in kwargs else 1000
+    thermo_style = kwargs.get('thermo_style') if 'thermo_style' in kwargs else 'custom step time temp density vol press etotal emol epair'
 
     nanohub = kwargs.get('nanohub')
     np = kwargs.get('np')
@@ -82,19 +85,22 @@ def equil(s, **kwargs):
 
     scale_v = kwargs.get('scale_v') if kwargs.get('scale_v') is not None else True
 
-    settings = {'dump': dump, 'cutoff': nb_cutoff, 'dump_append': dump_append, 'scale_v': scale_v}
+    settings = {
+        'dump': dump, 'cutoff': nb_cutoff, 'dump_append': dump_append,
+        'scale_v': scale_v, 'thermo': thermo, 'thermo_style': thermo_style
+    }
 
     sim = lmps.Simulation(s, name='equil')
-    sim.add_min(nanohub=nanohub, cutoff=nb_cutoff, np=np)
-    sim.add_md(new_v=True, temp=tfinal, nanohub=nanohub, cutoff=nb_cutoff, np=np)
+    sim.add_min(nanohub=nanohub, cutoff=nb_cutoff, np=np, **settings)
+    sim.add_md(new_v=True, temp=tfinal, nanohub=nanohub, cutoff=nb_cutoff, np=np, **settings)
 
     step = 0
     for p, l in izip(p_list, length_list):
         step += 1
         if l:
-            sim.add_md(length=l/2, temp=tmax, **settings)
+            sim.add_md(length=l, temp=tmax, **settings)
             sim.add_md(length=l, temp=tfinal, **settings)
-            sim.add_md(length=l/2, ensemble='npt', temp=tfinal, pressure=p, **settings)
+            sim.add_md(length=l, ensemble='npt', temp=tfinal, pressure=p, **settings)
 
     sim.run(np=np, nanohub=nanohub)
 
