@@ -45,6 +45,7 @@ try:
     from subprocess import call
 except ImportError:
     call = None
+    
 try:
     import numpy as np
 except ImportError:
@@ -57,6 +58,7 @@ from pysimm import verbose_print
 from pysimm import debug_print
 from pysimm import PysimmError
 from pysimm.calc import rotate_vector
+import pysimm.utils as utils
 from pysimm.utils import PysimmError, Item, ItemContainer
 
 
@@ -183,6 +185,21 @@ class ParticleType(Item):
         Item.__init__(self, **kwargs)
         
         
+class ParticleTypeContainer(ItemContainer):
+    def __init__(self, **kwargs):
+        ItemContainer.__init__(self, **kwargs)
+        
+    def by_name(self, name):
+        return self.by_item_name(name, exact=True)
+    
+    def by_elem(self, elem):
+        found = []
+        for item in self:
+            if item.elem == elem:
+                found.append(item)
+        return found
+        
+        
 class Bond(Item):
     """pysimm.system.Bond
     
@@ -207,6 +224,12 @@ class Bond(Item):
             return None
         else:
             return self.a if p is self.b else self.b
+            
+    def ptype_name(self):
+        if self.a.type is None or self.b.type is None:
+            return None
+        else:
+            return '{},{}'.format(self.a.type.name, self.b.type.name)
 
     def distance(self):
         """pysimm.system.Bond.distance
@@ -243,6 +266,14 @@ class BondType(Item):
         Item.__init__(self, **kwargs)
         if self.name:
             self.rname = ','.join(reversed(self.name.split(',')))
+        
+        
+class BondTypeContainer(ItemContainer):
+    def __init__(self, **kwargs):
+        ItemContainer.__init__(self, **kwargs)
+        
+    def by_name(self, name, **kwargs):
+        return self.by_item_name(name, **kwargs)
 
 
 class Angle(Item):
@@ -264,6 +295,12 @@ class Angle(Item):
     """
     def __init__(self, **kwargs):
         Item.__init__(self, **kwargs)
+        
+    def ptype_name(self):
+        if self.a.type is None or self.b.type is None or self.c.type is None:
+            return None
+        else:
+            return '{},{},{}'.format(self.a.type.name, self.b.type.name, self.c.type.name)
 
     def angle(self, radians=False):
         """pysimm.system.Angle.angle
@@ -296,6 +333,14 @@ class AngleType(Item):
         Item.__init__(self, **kwargs)
         if self.name:
             self.rname = ','.join(reversed(self.name.split(',')))
+        
+        
+class AngleTypeContainer(ItemContainer):
+    def __init__(self, **kwargs):
+        ItemContainer.__init__(self, **kwargs)
+        
+    def by_name(self, name, **kwargs):
+        return self.by_item_name(name, **kwargs)
 
 
 class Dihedral(Item):
@@ -318,6 +363,12 @@ class Dihedral(Item):
     """
     def __init__(self, **kwargs):
         Item.__init__(self, **kwargs)
+        
+    def ptype_name(self):
+        if self.a.type is None or self.b.type is None or self.c.type is None or self.d.type is None:
+            return None
+        else:
+            return '{},{},{},{}'.format(self.a.type.name, self.b.type.name, self.c.type.name, self.d.type.name)
 
 
 class DihedralType(Item):
@@ -337,6 +388,14 @@ class DihedralType(Item):
         Item.__init__(self, **kwargs)
         if self.name:
             self.rname = ','.join(reversed(self.name.split(',')))
+            
+            
+class DihedralTypeContainer(ItemContainer):
+    def __init__(self, **kwargs):
+        ItemContainer.__init__(self, **kwargs)
+        
+    def by_name(self, name, **kwargs):
+        return self.by_item_name(name, **kwargs)
 
 
 class Improper(Item):
@@ -363,6 +422,12 @@ class Improper(Item):
     """
     def __init__(self, **kwargs):
         Item.__init__(self, **kwargs)
+        
+    def ptype_name(self):
+        if self.a.type is None or self.b.type is None or self.c.type is None or self.d.type is None:
+            return None
+        else:
+            return '{},{},{},{}'.format(self.a.type.name, self.b.type.name, self.c.type.name, self.d.type.name)
 
 
 class ImproperType(Item):
@@ -381,6 +446,14 @@ class ImproperType(Item):
         Item.__init__(self, **kwargs)
         if self.name:
             self.rname = ','.join(reversed(self.name.split(',')))
+            
+            
+class ImproperTypeContainer(ItemContainer):
+    def __init__(self, **kwargs):
+        ItemContainer.__init__(self, **kwargs)
+        
+    def by_name(self, name, **kwargs):
+        return self.by_item_name(name, improper_type=True **kwargs)
 
 
 class Dimension(Item):
@@ -450,13 +523,13 @@ class System(object):
     Attributes:
         dim: Dimension object reference
         particles: pysimm.utils.ItemContainer for Particle organization
-        particle_types: pysimm.utils.ItemContainer for ParticleType organization
+        particle_types: pysimm.utils.ParticleTypeContainer for ParticleType organization
         bonds: pysimm.utils.ItemContainer for Bond organization
-        bond_types: pysimm.utils.ItemContainer for BondType organization
+        bond_types: pysimm.utils.BondTypeContainer for BondType organization
         angles: pysimm.utils.ItemContainer for Angle organization
-        angle_types: pysimm.utils.ItemContainer for AngleType organization
+        angle_types: pysimm.utils.AngleTypeContainer for AngleType organization
         dihedrals: pysimm.utils.ItemContainer for Dihedral organization
-        dihedral_types: pysimm.utils.ItemContainer for DihedralType organization
+        dihedral_types: pysimm.utils.DihedralTypeContainer for DihedralType organization
         impropers: pysimm.utils.ItemContainer for Improper organization
         improper_types: pysimm.utils.ItemContainer for ImproperType organization
         molecules: pysimm.utils.ItemContainer for Molecule organization
@@ -476,11 +549,11 @@ class System(object):
                              dz=kwargs.get('dz'), center=kwargs.get('center'))
         self.dim_check = self.dim.check()
         self.mass = kwargs.get('mass') or 0.0
-        self.particle_types = kwargs.get('particle_types') or ItemContainer()
-        self.bond_types = kwargs.get('bond_types') or ItemContainer()
-        self.angle_types = kwargs.get('angle_types') or ItemContainer()
-        self.dihedral_types = kwargs.get('dihedral_types') or ItemContainer()
-        self.improper_types = kwargs.get('improper_types') or ItemContainer()
+        self.particle_types = kwargs.get('particle_types') or ParticleTypeContainer()
+        self.bond_types = kwargs.get('bond_types') or BondTypeContainer()
+        self.angle_types = kwargs.get('angle_types') or AngleTypeContainer()
+        self.dihedral_types = kwargs.get('dihedral_types') or DihedralTypeContainer()
+        self.improper_types = kwargs.get('improper_types') or ImproperTypeContainer()
         self.molecule_types = kwargs.get('molecule_types') or ItemContainer()
         self.particles = kwargs.get('particles') or ItemContainer()
         self.bonds = kwargs.get('bonds') or ItemContainer()
