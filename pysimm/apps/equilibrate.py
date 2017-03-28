@@ -91,8 +91,11 @@ def equil(s, **kwargs):
     }
 
     sim = lmps.Simulation(s, name='equil')
-    sim.add_min(nanohub=nanohub, np=np, **settings)
-    sim.add_md(new_v=True, temp=tfinal, nanohub=nanohub, np=np, **settings)
+    sim.add_min(
+        nanohub=nanohub, np=np, dump=dump, dump_append=dump_append, 
+        thermo=thermo, thermo_style=thermo_style
+    )
+    sim.add_md(temp=tfinal, nanohub=nanohub, np=np, **settings)
 
     step = 0
     for p, l in izip(p_list, length_list):
