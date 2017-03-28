@@ -69,6 +69,7 @@ def equil(s, **kwargs):
 
     nanohub = kwargs.get('nanohub')
     np = kwargs.get('np')
+    kokkos = kwargs.get('kokkos')
 
     p_list = kwargs.get('p_steps')
 
@@ -105,7 +106,7 @@ def equil(s, **kwargs):
             sim.add_md(length=l, temp=tfinal, **settings)
             sim.add_md(length=l, ensemble='npt', temp=tfinal, pressure=p, **settings)
 
-    sim.run(np=np, nanohub=nanohub)
+    sim.run(np=np, nanohub=nanohub, kokkos=kokkos)
 
     s.write_lammps('equil.lmps')
     s.write_xyz('equil.xyz')
