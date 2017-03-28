@@ -184,6 +184,24 @@ class ParticleType(Item):
     def __init__(self, **kwargs):
         Item.__init__(self, **kwargs)
         
+    def write_lammps(self, style='lj'):
+        if style.startswith('lj'):
+            return '{:4}\t{}\t{}\t# {}\n'.format(
+                self.tag, self.epsilon, self.sigma, self.name
+            )
+        elif style.startswith('class2'):
+            return '{:4}\t{}\t{}\t# {}\n'.format(
+                self.tag, self.epsilon, self.sigma, self.name
+            )
+        elif style.startswith('mass'):
+            return '{:4}\t{}\t# {}\n'.format(
+                self.tag, self.mass, self.name
+            )
+        elif style.startswith('buck'):
+            return '{:4}\t{}\t{}\t{}\t# {}\n'.format(
+                self.tag, self.a, self.rho, self.c, self.name
+            )
+        
         
 class ParticleTypeContainer(ItemContainer):
     def __init__(self, **kwargs):
@@ -266,6 +284,16 @@ class BondType(Item):
         Item.__init__(self, **kwargs)
         if self.name:
             self.rname = ','.join(reversed(self.name.split(',')))
+            
+    def write_lammps(self, style='harmonic'):
+        if style.startswith('harm'):
+            return '{:4}\t{}\t{}\t# {}\n'.format(
+                self.tag, self.k, self.r0, self.name
+            )
+        elif style.startswith('class2'):
+            return '{:4}\t{}\t{}\t{}\t{}\t# {}\n'.format(
+                self.tag, self.r0, self.k2, self.k3, self.k4, self.name
+            )
         
         
 class BondTypeContainer(ItemContainer):
@@ -333,6 +361,30 @@ class AngleType(Item):
         Item.__init__(self, **kwargs)
         if self.name:
             self.rname = ','.join(reversed(self.name.split(',')))
+            
+    def write_lammps(self, style='harmonic', cross_term=None):
+        if style.startswith('harm'):
+            return '{:4}\t{}\t{}\t# {}\n'.format(
+                self.tag, self.k, self.theta0, self.name
+            )
+        elif style.startswith('class2'):
+            if not cross_term:
+                return '{:4}\t{}\t{}\t{}\t{}\t# {}\n'.format(
+                    self.tag, self.theta0, self.k2, self.k3, self.k4, self.name
+                )
+            elif cross_term == 'BondBond':
+                return '{:4}\t{}\t{}\t{}\t# {}\n'.format(
+                    self.tag, self.m, self.r1, self.r2, self.name
+                )
+            elif cross_term == 'BondAngle':
+                return '{:4}\t{}\t{}\t{}\t{}\t# {}\n'.format(
+                    self.tag, self.n1, self.n2, self.r1, self.r2, self.name
+                )
+        
+        elif style.startswith('charmm'):
+            return '{:4}\t{}\t{}\t{}\t{}\t# {}\n'.format(
+                self.tag, self.k, self.theta0, self.kub, self.rub, self.name
+            )
         
         
 class AngleTypeContainer(ItemContainer):
@@ -388,6 +440,63 @@ class DihedralType(Item):
         Item.__init__(self, **kwargs)
         if self.name:
             self.rname = ','.join(reversed(self.name.split(',')))
+            
+    def write_lammps(self, style='harmonic', cross_term=None):
+        if style.startswith('harm'):
+            return '{:4}\t{}\t{}\t{}\t# {}\n'.format(
+                self.tag, self.k, self.d, self.n, self.name
+            )
+        elif style.startswith('fourier'):
+            st = '{:4}\t{}'.format(self.tag, self.m)
+            for k, n, d in zip(self.k, self.n, self.d):
+                st += '\t{}\t{}\t{}'.format(k, n, d)
+            st += '\t# {}\n'.format(self.name)
+            return st
+        elif style.startswith('class2'):
+            if not cross_term:
+                return '{:4}\t{}\t{}\t{}\t{}\t{}\t{}\t# {}\n'.format(
+                    self.tag, 
+                    self.k1, self.phi1, 
+                    self.k2, self.phi2, 
+                    self.k3, self.phi3, 
+                    self.name
+                )
+            elif cross_term == 'MiddleBond':
+                return '{:4}\t{}\t{}\t{}\t{}\t# {}\n'.format(
+                    self.tag, 
+                    self.a1, self.a2, self.a3, self.r2,
+                    self.name
+                )
+            elif cross_term == 'EndBond':
+                return '{:4}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t# {}\n'.format(
+                    self.tag, 
+                    self.b1, self.b2, self.b3,
+                    self.c1, self.c2, self.c3,
+                    self.r1, self.r3,
+                    self.name
+                )
+            elif cross_term == 'Angle':
+                return '{:4}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t# {}\n'.format(
+                    self.tag, 
+                    self.d1, self.d2, self.d3,
+                    self.e1, self.e2, self.e3,
+                    self.theta1, self.theta2,
+                    self.name
+                )
+            elif cross_term == 'AngleAngle':
+                return '{:4}\t{}\t{}\t{}\t# {}\n'.format(
+                    self.tag, 
+                    self.m,
+                    self.theta1, self.theta2,
+                    self.name
+                )
+            elif cross_term == 'BondBond13':
+                return '{:4}\t{}\t{}\t{}\t# {}\n'.format(
+                    self.tag, 
+                    self.n_class2,
+                    self.r1, self.r3,
+                    self.name
+                )
             
             
 class DihedralTypeContainer(ItemContainer):
@@ -446,6 +555,28 @@ class ImproperType(Item):
         Item.__init__(self, **kwargs)
         if self.name:
             self.rname = ','.join(reversed(self.name.split(',')))
+            
+    def write_lammps(self, style='harmonic', cross_term=None):
+        if style.startswith('harmonic'):
+            return '{:4}\t{}\t{}\t# {}\n'.format(
+                self.tag, self.k, self.x0, self.name
+            )
+        elif style.startswith('cvff'):
+            return '{:4}\t{}\t{}\t{}\t# {}\n'.format(
+                self.tag, self.k, self.d, self.n, self.name
+            )
+        elif style.startswith('class2'):
+            if not cross_term:
+                return '{:4}\t{}\t{}\t# {}\n'.format(
+                    self.tag, self.k, self.x0, self.name
+                )
+            elif cross_term == 'AngleAngle':
+                return '{:4}\t{}\t{}\t{}\t{}\t{}\t{}\t# {}\n'.format(
+                    self.tag,
+                    self.m1, self.m2, self.m3,
+                    self.theta1, self.theta2, self.theta3,
+                    self.name
+                )
             
             
 class ImproperTypeContainer(ItemContainer):
@@ -2337,21 +2468,14 @@ class System(object):
                 if not pt.mass:
                     error_print('error: some particle types do not have masses')
                     return
-                out_file.write('%4d\t%s\t# %s\n' % (pt.tag, pt.mass, pt.name))
+                out_file.write(pt.write_lammps('mass'))
             out_file.write('\n')
 
         if self.particle_types.count > 0:
             out_file.write('Pair Coeffs\n\n')
             for pt in self.particle_types:
-                if (self.pair_style and (self.pair_style.startswith('lj') or
-                        self.pair_style.startswith('class2')) and
-                        pt.sigma is not None and pt.epsilon is not None):
-                    out_file.write('%4d\t%s\t%s\t# %s\n'
-                                   % (pt.tag, pt.epsilon, pt.sigma, pt.name))
-                elif (self.pair_style and self.pair_style.startswith('buck') and
-                        pt.a is not None and pt.rho is not None and pt.c is not None):
-                    out_file.write('%4d\t%s\t%s\t%s\t# %s\n'
-                                   % (pt.tag, pt.a, pt.rho, pt.c, pt.name))
+                if self.pair_style:
+                    out_file.write(pt.write_lammps(self.pair_style))
                 elif not self.pair_style and pt.sigma is not None and pt.epsilon is not None:
                     out_file.write('%4d\t%s\t%s\t# %s\n'
                                    % (pt.tag, pt.epsilon, pt.sigma, pt.name))
@@ -2366,12 +2490,8 @@ class System(object):
         if self.bond_types.count > 0:
             out_file.write('Bond Coeffs\n\n')
             for b in self.bond_types:
-                if self.bond_style == 'harmonic' or self.ff_class == '1':
-                    out_file.write('%4d\t%s\t%s\t# %s\n'
-                                   % (b.tag, b.k, b.r0, b.name))
-                elif self.bond_style == 'class2' or self.ff_class == '2':
-                    out_file.write('%4d\t%s\t%s\t%s\t%s\t# %s\n'
-                                   % (b.tag, b.r0, b.k2, b.k3, b.k4, b.name))
+                if self.bond_style:
+                    out_file.write(b.write_lammps(self.bond_style))
                 else:
                     error_print('error: cannot understand your bond style')
             out_file.write('\n')
@@ -2379,264 +2499,74 @@ class System(object):
         if self.angle_types.count > 0:
             out_file.write('Angle Coeffs\n\n')
             for a in self.angle_types:
-                if self.angle_style == 'charmm':
-                    out_file.write('%4d\t%s\t%s\t%s\t%s\t# %s\n'
-                                   % (a.tag,
-                                      a.k, a.theta0,
-                                      a.kub, a.rub, a.name))
-                elif self.angle_style == 'harmonic' or self.ff_class == '1':
-                    out_file.write('%4d\t%s\t'
-                                   '%s\t# %s\n'
-                                   % (a.tag, a.k,
-                                      a.theta0, a.name))
-                elif self.angle_style == 'class2' or self.ff_class == '2':
-                    out_file.write('%4d\t%s\t'
-                                   '%s\t%s\t%s\t# %s\n'
-                                   % (a.tag, a.theta0,
-                                      a.k2, a.k3, a.k4, a.name))
+                if self.angle_style:
+                    out_file.write(a.write_lammps(self.angle_style))
+                else:
+                    error_print('error: cannot understand your angle style')
             out_file.write('\n')
 
-        if (self.angle_types.count > 0 and (self.ff_class == '2' or
-                                            self.angle_style == 'class2')):
+        if (self.angle_types.count > 0 and self.angle_style == 'class2'):
             out_file.write('BondBond Coeffs\n\n')
             for a in self.angle_types:
-                if not a.m:
-                    a.m = 0.0
-                    if not a.r1:
-                        a.r1 = 0.0
-                    if not a.r2:
-                        a.r2 = 0.0
-                out_file.write('%4d\t%s\t%s\t%s\t# %s\n'
-                               % (a.tag, a.m, a.r1, a.r2, a.name))
+                out_file.write(a.write_lammps(self.angle_style, cross_term='BondBond'))
             out_file.write('\n')
             out_file.write('BondAngle Coeffs\n\n')
             for a in self.angle_types:
-                if not a.n1:
-                    a.n1 = 0.0
-                    if not a.r1:
-                        a.r1 = 0.0
-                    if not a.r2:
-                        a.r2 = 0.0
-                if not a.n2:
-                    a.n2 = 0.0
-                out_file.write('%4d\t%s\t%s\t%s\t%s\t# %s\n'
-                               % (a.tag, a.n1, a.n2, a.r1, a.r2, a.name))
+                out_file.write(a.write_lammps(self.angle_style, cross_term='BondAngle'))
             out_file.write('\n')
 
         if self.dihedral_types.count > 0:
             out_file.write('Dihedral Coeffs\n\n')
             for dt in self.dihedral_types:
-                if self.dihedral_style == 'fourier':
-                    dt_str = '{:4d}\t{}'.format(dt.tag, dt.m)
-                    for k, d, n in zip(dt.k, dt.n, dt.d):
-                        dt_str += '\t{}\t{}\t{}'.format(k, d, n)
-                    dt_str += '\t# {}\n'.format(dt.name)
-                    out_file.write(dt_str)
-                elif self.dihedral_style == 'harmonic' or self.ff_class == '1':
-                    out_file.write('%4d\t%s\t%2s\t%s\t# %s\n'
-                                   % (dt.tag, dt.k, dt.d, dt.n, dt.name))
-                elif self.dihedral_style == 'class2' or self.ff_class == '2':
-                    out_file.write('%4d\t%s\t%s\t%s\t%s\t%s\t%s\t# %s\n'
-                                   % (dt.tag, dt.k1, dt.phi1, dt.k2, dt.phi2, dt.k3,
-                                      dt.phi3, dt.name))
+                if self.dihedral_style:
+                    out_file.write(dt.write_lammps(self.dihedral_style))
+                else:
+                    error_print('error: cannot understand your dihedral style')
             out_file.write('\n')
 
-        if self.dihedral_types.count > 0 and (self.ff_class == '2' or
-                                        self.dihedral_style == 'class2'):
+        if self.dihedral_types.count > 0 and self.dihedral_style == 'class2':
             out_file.write('MiddleBondTorsion Coeffs\n\n')
             for d in self.dihedral_types:
-                if not d.a1:
-                    d.a1 = 0.0
-                    if not d.r2:
-                        d.r2 = 0.0
-                if not d.a2:
-                    d.a2 = 0.0
-                    if not d.r2:
-                        d.r2 = 0.0
-                if not d.a3:
-                    d.a3 = 0.0
-                    if not d.r2:
-                        d.r2 = 0.0
-                out_file.write('%4d\t%s\t%s\t%s\t%s\t# %s\n'
-                               % (d.tag, d.a1, d.a2, d.a3, d.r2, d.name))
+                out_file.write(d.write_lammps(self.dihedral_style, cross_term='MiddleBond'))
             out_file.write('\n')
             out_file.write('EndBondTorsion Coeffs\n\n')
             for d in self.dihedral_types:
-                if not d.b1:
-                    d.b1 = 0.0
-                    if not d.r1:
-                        d.r1 = 0.0
-                    if not d.r3:
-                        d.r3 = 0.0
-                if not d.b2:
-                    d.b2 = 0.0
-                    if not d.r1:
-                        d.r1 = 0.0
-                    if not d.r3:
-                        d.r3 = 0.0
-                if not d.b3:
-                    d.b3 = 0.0
-                    if not d.r1:
-                        d.r1 = 0.0
-                    if not d.r3:
-                        d.r3 = 0.0
-                if not d.c1:
-                    d.c1 = 0.0
-                    if not d.r1:
-                        d.r1 = 0.0
-                    if not d.r3:
-                        d.r3 = 0.0
-                if not d.c2:
-                    d.c2 = 0.0
-                    if not d.r1:
-                        d.r1 = 0.0
-                    if not d.r3:
-                        d.r3 = 0.0
-                if not d.c3:
-                    d.c3 = 0.0
-                    if not d.r1:
-                        d.r1 = 0.0
-                    if not d.r3:
-                        d.r3 = 0.0
-                out_file.write('%4d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t# %s\n'
-                               % (d.tag,
-                                  d.b1, d.b2, d.b3,
-                                  d.c1, d.c2, d.c3,
-                                  d.r1, d.r3,
-                                  d.name))
+                out_file.write(d.write_lammps(self.dihedral_style, cross_term='EndBond'))
             out_file.write('\n')
             out_file.write('AngleTorsion Coeffs\n\n')
             for d in self.dihedral_types:
-                if not d.d1:
-                    d.d1 = 0.0
-                    if not d.theta1:
-                        d.theta1 = 0.0
-                    if not d.theta2:
-                        d.theta2 = 0.0
-                if not d.d2:
-                    d.d2 = 0.0
-                    if not d.theta1:
-                        d.theta1 = 0.0
-                    if not d.theta2:
-                        d.theta2 = 0.0
-                if not d.d3:
-                    d.d3 = 0.0
-                    if not d.theta1:
-                        d.theta1 = 0.0
-                    if not d.theta2:
-                        d.theta2 = 0.0
-                if not d.e1:
-                    d.e1 = 0.0
-                    if not d.theta1:
-                        d.theta1 = 0.0
-                    if not d.theta2:
-                        d.theta2 = 0.0
-                if not d.e2:
-                    d.e2 = 0.0
-                    if not d.theta1:
-                        d.theta1 = 0.0
-                    if not d.theta2:
-                        d.theta2 = 0.0
-                if not d.e3:
-                    d.e3 = 0.0
-                    if not d.theta1:
-                        d.theta1 = 0.0
-                    if not d.theta2:
-                        d.theta2 = 0.0
-                out_file.write('%4d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t# %s\n'
-                               % (d.tag,
-                                  d.d1, d.d2, d.d3,
-                                  d.e1, d.e2, d.e3,
-                                  d.theta1, d.theta2,
-                                  d.name))
+                out_file.write(d.write_lammps(self.dihedral_style, cross_term='Angle'))
             out_file.write('\n')
             out_file.write('AngleAngleTorsion Coeffs\n\n')
             for d in self.dihedral_types:
-                if not d.m:
-                    d.m = 0.0
-                    if not d.theta1:
-                        d.theta1 = 0.0
-                    if not d.theta2:
-                        d.theta2 = 0.0
-                out_file.write('%4d\t%s\t%s\t%s\t# %s\n'
-                               % (d.tag,
-                                  d.m,
-                                  d.theta1, d.theta2,
-                                  d.name))
+                out_file.write(d.write_lammps(self.dihedral_style, cross_term='AngleAngle'))
             out_file.write('\n')
             out_file.write('BondBond13 Coeffs\n\n')
             for d in self.dihedral_types:
-                if not d.n_class2:
-                    d.n_class2 = 0.0
-                    if not d.r1:
-                        d.r1 = 0.0
-                    if not d.r3:
-                        d.r3 = 0.0
-                out_file.write('%4d\t%s\t%s\t%s\t# %s\n'
-                               % (d.tag,
-                                  d.n_class2,
-                                  d.r1, d.r3,
-                                  d.name))
+                out_file.write(d.write_lammps(self.dihedral_style, cross_term='BondBond13'))
             out_file.write('\n')
 
         if self.improper_types.count > 0:
             out_file.write('Improper Coeffs\n\n')
             for i in self.improper_types:
-                if self.improper_style == 'harmonic' or self.improper_style =='class2':
-                    if not i.k:
-                        i.k = 0.0
-                    if not i.x0:
-                        i.x0 = 0.0
-                    out_file.write('%4d\t%s\t%s\t# %s\n'
-                                   % (i.tag, i.k, i.x0, i.name))
-                elif self.improper_style == 'cvff':
-                    out_file.write('%4d\t%s\t%s\t%s\t# %s\n'
-                                   % (i.tag, i.k, i.d, i.n, i.name))
+                if self.improper_style:
+                    out_file.write(i.write_lammps(self.improper_style))
             out_file.write('\n')
 
-        if self.improper_types.count > 0 and (self.ff_class == '2' or
-                                              self.improper_style == 'class2'):
+        if self.improper_types.count > 0 and self.improper_style == 'class2':
             out_file.write('AngleAngle Coeffs\n\n')
             for i in self.improper_types:
-                if not i.m1:
-                    i.m1 = 0.0
-                    if not i.theta1:
-                        i.theta1 = 0.0
-                    if not i.theta2:
-                        i.theta2 = 0.0
-                    if not i.theta3:
-                        i.theta3 = 0.0
-                if not i.m2:
-                    i.m2 = 0.0
-                    if not i.theta1:
-                        i.theta1 = 0.0
-                    if not i.theta2:
-                        i.theta2 = 0.0
-                    if not i.theta3:
-                        i.theta3 = 0.0
-                if not i.m3:
-                    i.m3 = 0.0
-                    if not i.theta1:
-                        i.theta1 = 0.0
-                    if not i.theta2:
-                        i.theta2 = 0.0
-                    if not i.theta3:
-                        i.theta3 = 0.0
-                out_file.write('%4d\t%s\t%s\t%s\t%s\t%s\t%s\t# %s\n'
-                               % (i.tag,
-                                  i.m1, i.m2, i.m3,
-                                  i.theta1, i.theta2, i.theta3,
-                                  i.name))
+                out_file.write(i.write_lammps(self.improper_style, cross_term='AngleAngle'))
             out_file.write('\n')
 
         if self.particles.count > 0 and not empty:
             out_file.write('Atoms\n\n')
             for p in self.particles:
                 if not p.molecule:
-                    p.molecule = Item()
+                    p.molecule = Molecule()
                     p.molecule.tag = 1
                 if not p.charge:
-                    p.charge = 0
+                    p.charge = 0.
                 if isinstance(p.molecule, int):
                     out_file.write('%4d\t%d\t%d\t%s\t%s\t%s\t%s\n'
                                    % (p.tag, p.molecule, p.type.tag, p.charge,
@@ -3873,7 +3803,7 @@ def read_lammps(data_file, **kwargs):
                     s.dihedral_types.add(DihedralType(tag=tag, name=name,
                                                       m=m,
                                                       k=map(float, k),
-                                                      d=map(int, d),
+                                                      d=map(float, d),
                                                       n=map(int, n)))
                 elif not dihedral_style:
                     if not quiet and i == 0:
@@ -3900,16 +3830,16 @@ def read_lammps(data_file, **kwargs):
                         data = line[1:]
                         m = int(data.pop(0))
                         k=[]
-                        d=[]
                         n=[]
+                        d=[]
                         for i in range(m):
                             k.append(data.pop(0))
-                            d.append(data.pop(0))
                             n.append(data.pop(0))
+                            d.append(data.pop(0))
                         s.dihedral_types.add(DihedralType(tag=tag, name=name,
                                                           m=m,
                                                           k=map(float, k),
-                                                          d=map(int, d),
+                                                          d=map(float, d),
                                                           n=map(int, n)))
             if not quiet and dihedral_style:
                 verbose_print('read "%s" dihedral parameters '
@@ -4027,6 +3957,7 @@ def read_lammps(data_file, **kwargs):
                                           'will try to determine style later '
                                           'based on other types')
                     if len(line) == 3:
+                        improper_style = 'harmonic'
                         s.improper_types.add(ImproperType(tag=tag, name=name,
                                                           k=float(line[1]),
                                                           x0=float(line[2])))
