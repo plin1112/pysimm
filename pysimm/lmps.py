@@ -686,7 +686,7 @@ def call_lammps(simulation, np, kokkos, nanohub):
         if kokkos:
             p = Popen(['mpiexec',
                        LAMMPS_EXEC, '-e', 'both', '-l', 'none',
-                       '-k' 'on', '-sf' 'kk', '-pk', 'kokkos'],
+                       '-k' 'on g 1', '-sf' 'kk', '-pk', 'kokkos'],
                       stdin=PIPE, stdout=PIPE, stderr=PIPE)
         elif np:
             p = Popen(['mpiexec', '-np', str(np),
