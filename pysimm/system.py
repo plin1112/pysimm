@@ -493,7 +493,7 @@ class DihedralType(Item):
             elif cross_term == 'BondBond13':
                 return '{:4}\t{}\t{}\t{}\t# {}\n'.format(
                     self.tag, 
-                    self.n_class2,
+                    self.n,
                     self.r1, self.r3,
                     self.name
                 )
@@ -3914,7 +3914,7 @@ def read_lammps(data_file, **kwargs):
             for i in range(ndihedral_types):
                 line = f.next().strip().split()
                 tag = int(line[0])
-                s.dihedral_types[tag].n_class2 = float(line[1])
+                s.dihedral_types[tag].n = float(line[1])
             if not quiet and dihedral_style:
                 verbose_print('read "%s" dihedral '
                               '(bond-bond-1-3 parameters for '
@@ -3957,7 +3957,6 @@ def read_lammps(data_file, **kwargs):
                                           'will try to determine style later '
                                           'based on other types')
                     if len(line) == 3:
-                        improper_style = 'harmonic'
                         s.improper_types.add(ImproperType(tag=tag, name=name,
                                                           k=float(line[1]),
                                                           x0=float(line[2])))
@@ -3973,6 +3972,7 @@ def read_lammps(data_file, **kwargs):
                               'for %s ImproperTypes'
                               % (improper_style, nimproper_types))
         elif len(line) > 0 and line[0] == 'AngleAngle':
+            improper_style = 'class2'
             f.next()
             for i in range(nimproper_types):
                 line = f.next().strip().split()
