@@ -339,3 +339,18 @@ def pbc_distance(s, p1, p2):
     dz = frac_d[2] * s.dim.dz
 
     return np.linalg.norm([dx, dy, dz])
+
+def LJ_12_6(pt, d):
+    return 4*pt.epsilon*(pow(pt.sigma/d,12)-pow(pt.sigma/d, 6))
+    
+def LJ_9_6(pt, d):
+    return pt.epsilon*(2*pow(pt.sigma/d,12)-3*pow(pt.sigma/d, 6))
+    
+def buckingham(pt, d):
+    return pt.a*np.exp(-d/pt.rho)-(pt.c/pow(d, 6))
+    
+def harmonic_bond(bt, d):
+    return bt.k*pow(d-bt.r0, 2)
+    
+def harmonic_angle(at, d):
+    return at.k*pow(d-at.theta0, 2)
