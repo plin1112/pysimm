@@ -64,6 +64,8 @@ def equil(s, **kwargs):
     tfinal = kwargs.get('tfinal') or 300
     pfinal = kwargs.get('pfinal') or 1
     
+    sim_settings = kwargs.get('sim_settings') if 'sim_settings' in kwargs else {}
+    
     thermo = kwargs.get('thermo') if 'thermo' in kwargs else 1000
     thermo_style = kwargs.get('thermo_style') if 'thermo_style' in kwargs else 'custom step time temp density vol press etotal emol epair'
 
@@ -91,7 +93,7 @@ def equil(s, **kwargs):
         'scale_v': scale_v, 'thermo': thermo, 'thermo_style': thermo_style
     }
 
-    sim = lmps.Simulation(s, name='equil')
+    sim = lmps.Simulation(s, name='equil', **sim_settings)
 
     step = 0
     for p, l in izip(p_list, length_list):
