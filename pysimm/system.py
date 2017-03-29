@@ -201,6 +201,20 @@ class ParticleType(Item):
             return '{:4}\t{}\t{}\t{}\t# {}\n'.format(
                 self.tag, self.a, self.rho, self.c, self.name
             )
+            
+    def form(self, style='lj_12-6', d_range=None):
+        if not d_range:
+            d_range = np.linspace(0.1, 8, 79)
+        if style == 'lj_12-6':
+            e = np.array([calc.LJ_12_6(self, d) for d in d_range])
+            return d_range, e
+        elif style == 'lj_9-6':
+            e = np.array([calc.LJ_9_6(self, d) for d in d_range])
+            return d_range, e
+        elif style.startswith('buck'):
+            e = np.array([calc.buckingham(self, d) for d in d_range])
+            return d_range, e
+        
         
         
 class ParticleTypeContainer(ItemContainer):
