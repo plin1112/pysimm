@@ -185,6 +185,17 @@ class ParticleType(Item):
         Item.__init__(self, **kwargs)
         
     def write_lammps(self, style='lj'):
+        """pysimm.system.ParticleType.write_lammps
+
+        Formats a string to define particle type coefficients for a LAMMPS 
+        data file given the provided style.
+
+        Args:
+            style: string for pair style of ParticleType (lj, class2, mass, buck)
+
+        Returns:
+            LAMMPS formatted string with pair coefficients
+        """
         if style.startswith('lj'):
             return '{:4}\t{}\t{}\t# {}\n'.format(
                 self.tag, self.epsilon, self.sigma, self.name
@@ -203,6 +214,17 @@ class ParticleType(Item):
             )
             
     def form(self, style='lj_12-6', d_range=None):
+        """pysimm.system.ParticleType.form
+
+        Returns data to plot functional form for the potential energy with 
+        the given style.
+
+        Args:
+            style: string for pair style of ParticleType (lj_12-6, lj_9-6, buck)
+
+        Returns:
+            x, y for plotting functional form (energy vs distance)
+        """
         if not d_range:
             d_range = np.linspace(0.1, 8, 79)
         if style == 'lj_12-6':
@@ -218,13 +240,42 @@ class ParticleType(Item):
         
         
 class ParticleTypeContainer(ItemContainer):
+    """pysimm.system.ParticleTypeContainer
+
+    This class inherits from pysimm.utils.ItemContainer and defines custom 
+    behavior for methods to retrieve ParticleType objects from the container.
+    """
     def __init__(self, **kwargs):
         ItemContainer.__init__(self, **kwargs)
-        
+    
+    
     def by_name(self, name):
+        """pysimm.system.ParticleTypeContainer.by_name
+
+        Retrieves a ParticleType object from the container with the given name. 
+        Only one ParticleType is returned, since names should be unique within 
+        a container.
+
+        Args:
+            name: string for particle type name
+
+        Returns:
+            ParticleType object in the container with the given name
+        """
         return self.by_item_name(name, exact=True)
     
     def by_elem(self, elem):
+        """pysimm.system.ParticleTypeContainer.by_elem
+
+        Retrieves ParticleType objects from the container with the given elem
+        attribute. A list of ParticleType objects is returned.
+
+        Args:
+            elem: string for particle type elem attribute
+
+        Returns:
+            List of ParticleType objects in the container with the given elem
+        """
         found = []
         for item in self:
             if item.elem == elem:
@@ -300,6 +351,17 @@ class BondType(Item):
             self.rname = ','.join(reversed(self.name.split(',')))
             
     def write_lammps(self, style='harmonic'):
+        """pysimm.system.BondType.write_lammps
+
+        Formats a string to define bond type coefficients for a LAMMPS 
+        data file given the provided style.
+
+        Args:
+            style: string for pair style of BondType (harmonic, class2)
+
+        Returns:
+            LAMMPS formatted string with bond coefficients
+        """
         if style.startswith('harm'):
             return '{:4}\t{}\t{}\t# {}\n'.format(
                 self.tag, self.k, self.r0, self.name
@@ -308,13 +370,53 @@ class BondType(Item):
             return '{:4}\t{}\t{}\t{}\t{}\t# {}\n'.format(
                 self.tag, self.r0, self.k2, self.k3, self.k4, self.name
             )
-        
-        
+
+    def form(self, style='harmonic', d_range=None):
+        """pysimm.system.BondType.form
+
+        Returns data to plot functional form for the potential energy with 
+        the given style.
+
+        Args:
+            style: string for pair style of BondType (harmonic, class2)
+
+        Returns:
+            x, y for plotting functional form (energy vs distance)
+        """
+        if not d_range:
+            d_range = np.linspace(self.r0-0.5, self.r0+0.5, 100)
+        if style == 'harmonic':
+            e = np.array([calc.harmonic_bond(self, d) for d in d_range])
+            return d_range, e
+        elif style == 'class2':
+            e = np.array([calc.class2_bond(self, d) for d in d_range])
+            return d_range, e
+
+
 class BondTypeContainer(ItemContainer):
+    """pysimm.system.BondTypeContainer
+
+    This class inherits from pysimm.utils.ItemContainer and defines custom 
+    behavior for methods to retrieve BondType objects from the container.
+    """
     def __init__(self, **kwargs):
         ItemContainer.__init__(self, **kwargs)
         
     def by_name(self, name, **kwargs):
+        """pysimm.system.BondTypeContainer.by_name
+
+        Retrieves a BondType object from the container with the given name. 
+        By default, wildcards are supported using 'X', and therefore the 
+        default behavior is to return a list of BondType objects that satisfy 
+        the query. If looking for one specific type, use the keyword exact=True
+        to have only one item returned.
+
+        Args:
+            name: string for bond type name
+
+        Returns:
+            BondType object in the container with the given name
+        """
         return self.by_item_name(name, **kwargs)
 
 
@@ -377,6 +479,20 @@ class AngleType(Item):
             self.rname = ','.join(reversed(self.name.split(',')))
             
     def write_lammps(self, style='harmonic', cross_term=None):
+        """pysimm.system.AngleType.write_lammps
+
+        Formats a string to define angle type coefficients for a LAMMPS 
+        data file given the provided style.
+
+        Args:
+            style: string for pair style of AngleType (harmonic, class2, charmm)
+            cross_term: type of class2 cross term to write (default=None)
+              -  BondBond
+              -  BondAngle
+
+        Returns:
+            LAMMPS formatted string with angle coefficients
+        """
         if style.startswith('harm'):
             return '{:4}\t{}\t{}\t# {}\n'.format(
                 self.tag, self.k, self.theta0, self.name
@@ -400,12 +516,54 @@ class AngleType(Item):
                 self.tag, self.k, self.theta0, self.kub, self.rub, self.name
             )
         
+    def form(self, style='harmonic', d_range=None):
+        """pysimm.system.AngleType.form
+
+        Returns data to plot functional form for the potential energy with 
+        the given style.
+
+        Args:
+            style: string for pair style of AngleType (harmonic, class2, charmm)
+
+        Returns:
+            x, y for plotting functional form (energy vs angle)
+        """
+        if not d_range:
+            d_range = np.linspace(self.theta0-1, self.theta0+1, 100)
+        if style == 'harmonic':
+            e = np.array([calc.harmonic_angle(self, d) for d in d_range])
+            return d_range, e
+        elif style == 'charmm':
+            e = np.array([calc.harmonic_angle(self, d) for d in d_range])
+            return d_range, e
+        elif style == 'class2':
+            e = np.array([calc.class2_angle(self, d) for d in d_range])
+            return d_range, e
         
 class AngleTypeContainer(ItemContainer):
+    """pysimm.system.AngleTypeContainer
+
+    This class inherits from pysimm.utils.ItemContainer and defines custom 
+    behavior for methods to retrieve AngleType objects from the container.
+    """
     def __init__(self, **kwargs):
         ItemContainer.__init__(self, **kwargs)
         
     def by_name(self, name, **kwargs):
+        """pysimm.system.AngleTypeContainer.by_name
+
+        Retrieves a AngleType object from the container with the given name. 
+        By default, wildcards are supported using 'X', and therefore the 
+        default behavior is to return a list of AngleType objects that satisfy 
+        the query. If looking for one specific type, use the keyword exact=True
+        to have only one item returned.
+
+        Args:
+            name: string for angle type name
+
+        Returns:
+            AngleType object in the container with the given name
+        """
         return self.by_item_name(name, **kwargs)
 
 
@@ -456,6 +614,23 @@ class DihedralType(Item):
             self.rname = ','.join(reversed(self.name.split(',')))
             
     def write_lammps(self, style='harmonic', cross_term=None):
+        """pysimm.system.DihedralType.write_lammps
+
+        Formats a string to define dihedral type coefficients for a LAMMPS 
+        data file given the provided style.
+
+        Args:
+            style: string for pair style of DihedralType (harmonic, class2, fourier)
+            cross_term: type of class2 cross term to write (default=None)
+              -  MiddleBond
+              -  EndBond
+              -  Angle
+              -  AngleAngle
+              -  BondBond13
+
+        Returns:
+            LAMMPS formatted string with dihedral coefficients
+        """
         if style.startswith('harm'):
             return '{:4}\t{}\t{}\t{}\t# {}\n'.format(
                 self.tag, self.k, self.d, self.n, self.name
@@ -511,13 +686,56 @@ class DihedralType(Item):
                     self.r1, self.r3,
                     self.name
                 )
+
+    def form(self, style='harmonic', d_range=None):
+        """pysimm.system.DihedralType.form
+
+        Returns data to plot functional form for the potential energy with 
+        the given style.
+
+        Args:
+            style: string for pair style of DihedralType (harmonic, class2, fourier)
+
+        Returns:
+            x, y for plotting functional form (energy vs angle)
+        """
+        if not d_range:
+            d_range = np.linspace(-180, 180, 100)
+        if style == 'harmonic':
+            e = np.array([calc.harmonic_dihedral(self, d) for d in d_range])
+            return d_range, e
+        elif style == 'fourier':
+            e = np.array([calc.fourier_dihedral(self, d) for d in d_range])
+            return d_range, e
+        elif style == 'class2':
+            e = np.array([calc.class2_dihedral(self, d) for d in d_range])
+            return d_range, e
             
             
 class DihedralTypeContainer(ItemContainer):
+    """pysimm.system.DihedralTypeContainer
+
+    This class inherits from pysimm.utils.ItemContainer and defines custom 
+    behavior for methods to retrieve DihedralType objects from the container.
+    """
     def __init__(self, **kwargs):
         ItemContainer.__init__(self, **kwargs)
         
     def by_name(self, name, **kwargs):
+        """pysimm.system.DihedralTypeContainer.by_name
+
+        Retrieves a DihedralType object from the container with the given name. 
+        By default, wildcards are supported using 'X', and therefore the 
+        default behavior is to return a list of DihedralType objects that satisfy 
+        the query. If looking for one specific type, use the keyword exact=True
+        to have only one item returned.
+
+        Args:
+            name: string for dihedral type name
+
+        Returns:
+            DihedralType object in the container with the given name
+        """
         return self.by_item_name(name, **kwargs)
 
 
@@ -571,6 +789,19 @@ class ImproperType(Item):
             self.rname = ','.join(reversed(self.name.split(',')))
             
     def write_lammps(self, style='harmonic', cross_term=None):
+        """pysimm.system.ImproperType.write_lammps
+
+        Formats a string to define improper type coefficients for a LAMMPS 
+        data file given the provided style.
+
+        Args:
+            style: string for pair style of ImproperType (harmonic, class2, cvff)
+            cross_term: type of class2 cross term to write (default=None)
+              -  AngleAngle
+
+        Returns:
+            LAMMPS formatted string with dihedral coefficients
+        """
         if style.startswith('harmonic'):
             return '{:4}\t{}\t{}\t# {}\n'.format(
                 self.tag, self.k, self.x0, self.name
@@ -591,14 +822,53 @@ class ImproperType(Item):
                     self.theta1, self.theta2, self.theta3,
                     self.name
                 )
+    def form(self, style='harmonic', d_range=None):
+        """pysimm.system.ImproperType.form
+
+        Returns data to plot functional form for the potential energy with 
+        the given style.
+
+        Args:
+            style: string for pair style of ImproperType (harmonic, cvff)
+
+        Returns:
+            x, y for plotting functional form (energy vs angle)
+        """
+        if not d_range:
+            d_range = np.linspace(-2, 2, 100)
+        if style == 'harmonic':
+            e = np.array([calc.harmonic_improper(self, d) for d in d_range])
+            return d_range, e
+        elif style == 'cvff':
+            e = np.array([calc.cvff_improper(self, d) for d in d_range])
+            return d_range, e
             
             
 class ImproperTypeContainer(ItemContainer):
+    """pysimm.system.ImproperTypeContainer
+
+    This class inherits from pysimm.utils.ItemContainer and defines custom 
+    behavior for methods to retrieve ImproperType objects from the container.
+    """
     def __init__(self, **kwargs):
         ItemContainer.__init__(self, **kwargs)
         
     def by_name(self, name, **kwargs):
-        return self.by_item_name(name, improper_type=True **kwargs)
+        """pysimm.system.ImproperTypeContainer.by_name
+
+        Retrieves a ImproperType object from the container with the given name. 
+        By default, wildcards are supported using 'X', and therefore the 
+        default behavior is to return a list of ImproperType objects that satisfy 
+        the query. Additionally, the order of type names is assumed to be 
+        insignificant. To retain order use keyword order=True.
+
+        Args:
+            name: string for improper type name
+
+        Returns:
+            ImproperType object in the container with the given name
+        """
+        return self.by_item_name(name, improper_type=True, **kwargs)
 
 
 class Dimension(Item):
