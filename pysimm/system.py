@@ -2561,7 +2561,7 @@ class System(object):
             p.nbonds = len(p.bond_elements)
             print(p.tag, p.type.name, p.type.elem, p.type.desc, p.bond_elements)
 
-    def apply_forcefield(self, f, charges='default', set_box=True, box_padding=10,
+    def apply_forcefield(self, f, charges='default', set_box=False, box_padding=10,
                          update_ptypes=False, skip_ptypes=False):
         """pysimm.system.System.apply_forcefield
 

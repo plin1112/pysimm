@@ -5,7 +5,7 @@ def monomer():
     s = system.read_pubchem_smiles('CC(C)C(=O)OC')
     f = forcefield.Dreiding()
     
-    s.apply_forcefield(f)
+    s.apply_forcefield(f, set_box=True)
     
     c3 = s.particles[3]
     c4 = s.particles[4]

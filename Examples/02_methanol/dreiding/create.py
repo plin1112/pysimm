@@ -4,7 +4,7 @@ from pysimm import system, lmps, forcefield
 s = system.read_pubchem_smiles('CO')
 
 # the resulting system has sufficient information to type with a forcefield, here we will use the Dreiding force field
-s.apply_forcefield(forcefield.Dreiding())
+s.apply_forcefield(forcefield.Dreiding(), set_box=True)
 
 # we'll perform energy minimization using the fire algorithm in LAMMPS
 lmps.quick_min(s, min_style='fire')

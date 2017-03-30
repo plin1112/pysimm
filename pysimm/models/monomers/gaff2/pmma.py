@@ -6,7 +6,7 @@ def monomer():
     m = s.molecules[1]
     f = forcefield.Gaff2()
     
-    s.apply_forcefield(f)
+    s.apply_forcefield(f, set_box=True)
     
     c3 = s.particles[3]
     c4 = s.particles[4]

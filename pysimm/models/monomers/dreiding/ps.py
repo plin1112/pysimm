@@ -10,7 +10,7 @@ def monomer():
         if b.a.bonds.count == 3 and b.b.bonds.count == 3:
             b.order = 4
     
-    s.apply_forcefield(f)
+    s.apply_forcefield(f, set_box=True)
     
     c1 = s.particles[1]
     c5 = s.particles[5]

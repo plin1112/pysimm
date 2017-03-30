@@ -11,7 +11,7 @@ for b in s.bonds:
 
 # the resulting system has sufficient information to type with a forcefield, here we will use the GAFF2 force field
 # we will also determine partial charges using the gasteiger algorithm
-s.apply_forcefield(forcefield.Gaff2(), charges='gasteiger')
+s.apply_forcefield(forcefield.Gaff2(), charges='gasteiger', set_box=True)
 
 # we'll perform a 2 step energy minimization using the steepest decent and conjugate gradient algorithms in LAMMPS
 lmps.quick_min(s, min_style='sd', name='min_sd')

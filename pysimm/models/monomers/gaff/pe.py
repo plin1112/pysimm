@@ -4,7 +4,7 @@ from pysimm.apps.random_walk import random_walk
 def monomer():
     s = system.read_pubchem_smiles('CC')
     f = forcefield.Gaff()
-    s.apply_forcefield(f)
+    s.apply_forcefield(f, set_box=True)
     
     c1 = s.particles[1]
     c2 = s.particles[2]
