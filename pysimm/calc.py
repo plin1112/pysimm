@@ -352,5 +352,32 @@ def buckingham(pt, d):
 def harmonic_bond(bt, d):
     return bt.k*pow(d-bt.r0, 2)
     
+def class2_bond(bt, d):
+    return bt.k2*pow(d-bt.r0, 2) + bt.k3*pow(d-bt.r0, 3) + bt.k4*pow(d-bt.r0, 4)
+    
 def harmonic_angle(at, d):
     return at.k*pow(d-at.theta0, 2)
+    
+def class2_angle(at, d):
+    return at.k2*pow(d-at.theta0, 2) + at.k3*pow(d-at.theta0, 3) + at.k4*pow(d-at.theta0, 4)
+    
+def harmonic_dihedral(dt, d):
+    return dt.k*(1+dt.d*np.cos(dt.n*np.radians(d)))
+    
+def class2_dihedral(dt, d):
+    return (
+        dt.k1*(1-np.cos(np.radians(d)-np.radians(dt.phi1))) +
+        dt.k2*(1-np.cos(np.radians(d)-np.radians(dt.phi2))) +
+        dt.k3*(1-np.cos(np.radians(d)-np.radians(dt.phi3)))
+    )
+    
+def fourier_dihedral(dt, d):
+    return np.sum(
+        [k*(1 + np.cos(n*np.radians(d)-d_)) for k, n, d_ in zip(dt.k, dt.n, dt.d)]
+    )
+    
+def harmonic_improper(it, d):
+    return it.k*pow(d-it.x0, 2)
+    
+def cvff_improper(it, d):
+    return it.k*(1+it.d*np.cos(it.n*np.radians(d)))
