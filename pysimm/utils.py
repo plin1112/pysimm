@@ -113,7 +113,6 @@ class ItemContainer(Sequence):
             elif len(found) > 1:
                 print('error: found multiple items with name {}'.format(name))
             else:
-                print('error: found no items with name {}'.format(name))
                 return None
         else:
             return sorted(found, key=lambda x: x.name.count(wildcard))
