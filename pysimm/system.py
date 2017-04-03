@@ -33,13 +33,12 @@ import os
 import re
 import sys
 import json
-from xml.etree import ElementTree as Et
 from random import random
 from StringIO import StringIO
-from urllib2 import urlopen, HTTPError, URLError
 from itertools import permutations
+from xml.etree import ElementTree as Et
+from urllib2 import urlopen, HTTPError, URLError
 from math import sin, cos, sqrt, pi, acos, floor, ceil
-
 
 try:
     from subprocess import call
@@ -52,11 +51,11 @@ except ImportError:
     np = None
 
 from pysimm import calc
+from pysimm import debug_print
+from pysimm import PysimmError
 from pysimm import error_print
 from pysimm import warning_print
 from pysimm import verbose_print
-from pysimm import debug_print
-from pysimm import PysimmError
 from pysimm.calc import rotate_vector
 import pysimm.utils as utils
 from pysimm.utils import PysimmError, Item, ItemContainer
@@ -236,9 +235,8 @@ class ParticleType(Item):
         elif style.startswith('buck'):
             e = np.array([calc.buckingham(self, d) for d in d_range])
             return d_range, e
-        
-        
-        
+
+
 class ParticleTypeContainer(ItemContainer):
     """pysimm.system.ParticleTypeContainer
 
@@ -281,8 +279,8 @@ class ParticleTypeContainer(ItemContainer):
             if item.elem == elem:
                 found.append(item)
         return found
-        
-        
+
+
 class Bond(Item):
     """pysimm.system.Bond
     
@@ -539,7 +537,8 @@ class AngleType(Item):
         elif style == 'class2':
             e = np.array([calc.class2_angle(self, d) for d in d_range])
             return d_range, e
-        
+
+
 class AngleTypeContainer(ItemContainer):
     """pysimm.system.AngleTypeContainer
 
@@ -710,8 +709,8 @@ class DihedralType(Item):
         elif style == 'class2':
             e = np.array([calc.class2_dihedral(self, d) for d in d_range])
             return d_range, e
-            
-            
+
+
 class DihedralTypeContainer(ItemContainer):
     """pysimm.system.DihedralTypeContainer
 
@@ -842,8 +841,8 @@ class ImproperType(Item):
         elif style == 'cvff':
             e = np.array([calc.cvff_improper(self, d) for d in d_range])
             return d_range, e
-            
-            
+
+
 class ImproperTypeContainer(ItemContainer):
     """pysimm.system.ImproperTypeContainer
 
@@ -1546,6 +1545,18 @@ class System(object):
                 else:
                     print('cannot find regular type for linker %s'
                           % p.type.name)
+                          
+    def read_pdb_coords(self, fname):
+        with open(fname) as f:
+            for line in f:
+                if line.startswith('ATOM'):
+                    tag = int(line[6:11].strip())
+                    x = float(line[30:38].strip())
+                    y = float(line[38:46].strip())
+                    z = float(line[46:54].strip())
+                    self.particles[tag].x = x
+                    self.particles[tag].y = y
+                    self.particles[tag].z = z
             
                           
     def read_lammps_dump(self, fname):
@@ -2914,6 +2925,66 @@ class System(object):
         else:
             out_file.close()
             
+    def write_psf(self, outfile='data.psf'):
+        """pysimm.system.System.write_psf
+
+        Write System data in psd format
+
+        Args:
+            outfile: where to write data, file name or 'string'
+
+        Returns:
+            None or string of data file if out_data='string'
+        """
+        if outfile == 'string':
+            out = StringIO()
+        else:
+            if append:
+                out = open(outfile, 'a')
+            else:
+                out = open(outfile, 'w')
+        out.write('       1 !NTITLE\n')
+        out.write(' REMARKS written using pysimm\n\n')
+        
+        out.write('{:>8} !NATOMS\n'.format(self.particles.count))
+        for p in self.particles:
+            out.write(
+                '{:>8} P {:>4} {:>6}  {:<4} {:<5}{: 8f}     {:>7} {:>7}\n'.format(
+                    p.tag, p.molecule.tag, 'RES', p.name or 'None', p.type.name, p.charge, p.type.mass, '0'
+                )
+            )
+        out.write('\n')
+        out.write('{:>8} !NBOND\n'.format(self.bonds.count))
+        for b in self.bonds:
+            out.write('{:>8}{:>8}'.format(b.a.tag, b.b.tag))
+            if b.tag%4 == 0:
+                out.write('\n')
+        out.write('\n\n')
+        out.write('{:>8} !NTHETA\n'.format(self.angles.count))
+        for a in self.angles:
+            out.write('{:>8}{:>8}{:>8}'.format(a.a.tag, a.b.tag, a.c.tag))
+            if a.tag%3 == 0:
+                out.write('\n')
+        out.write('\n\n')
+        out.write('{:>8} !NPHI\n'.format(self.dihedrals.count))
+        for d in self.dihedrals:
+            out.write('{:>8}{:>8}{:>8}{:>8}'.format(d.a.tag, d.b.tag, d.c.tag, d.d.tag))
+            if d.tag%2 == 0:
+                out.write('\n')
+        out.write('\n\n')
+        out.write('{:>8} !NIMPHI\n'.format(self.impropers.count))
+        for i in self.impropers:
+            out.write('{:>8}{:>8}{:>8}{:>8}'.format(i.a.tag, i.b.tag, i.c.tag, i.d.tag))
+            if i.tag%2 == 0:
+                out.write('\n')
+            
+        if outfile == 'string':
+            s = out.getvalue()
+            out.close()
+            return s
+        else:
+            out.close()
+            
     def write_xyz(self, outfile='data.xyz', **kwargs):
         """pysimm.system.System.write_xyz
 
@@ -3692,7 +3763,8 @@ def read_xyz(file_, **kwargs):
     s.set_box(padding=0.5)
 
     return s
-    
+
+
 def read_chemdoodle_json(file_, **kwargs):
     """pysimm.system.read_xyz
 
@@ -4487,8 +4559,8 @@ def read_pubchem_smiles(smiles, quiet=False, type_with=None):
         return read_mol(resp.read(), type_with=type_with)
     except HTTPError, URLError:
         print('Could not retrieve pubchem entry for smiles %s' % smiles)
-        
-        
+
+
 def read_pubchem_cid(cid, type_with=None):
     """pysimm.system.read_pubchem_smiles
 
@@ -4664,8 +4736,8 @@ def read_mol(mol_file, type_with=None, version='V2000'):
                   % type_with.ff_name)
 
     return s
-    
-    
+
+
 def read_prepc(prec_file):
     """pysimm.system.read_prepc
 
@@ -4710,7 +4782,8 @@ def read_prepc(prec_file):
     f.close()
     
     return s
-    
+
+
 def read_ac(ac_file):
     """pysimm.system.read_ac
 
@@ -4760,6 +4833,160 @@ def read_ac(ac_file):
 
     f.close()
     
+    return s
+
+
+def read_psf(psf_file):
+    if os.path.isfile(psf_file):
+        debug_print('reading file')
+        f = open(psf_file)
+    elif isinstance(psf_file, basestring):
+        debug_print('reading string')
+        f = StringIO(psf_file)
+    else:
+        raise PysimmError('pysimm.system.read_psf requires either '
+                          'file or string as argument')
+
+    s = System(name='read using pysimm.system.read_psf')
+    
+    for line in f:
+        if 'NATOM' in line:
+            nparticles = int(line.split()[0])
+            for n in range(nparticles):
+                line = f.next().split()
+                s.particles.add(
+                    Particle(
+                        tag = int(line[0]),
+                        type_name = line[5],
+                        charge = float(line[6]),
+                        mass = float(line[7])
+                    )
+                )
+        elif 'NBOND' in line:
+            nbonds = int(line.split()[0])
+            nlines = nbonds/4
+            for n in range(nlines):
+                line = f.next().split()
+                for _ in range(4):
+                    p1 = line.pop(0)
+                    p2 = line.pop(0)
+                    s.bonds.add(
+                        Bond(
+                            a=s.particles[int(p1)],
+                            b=s.particles[int(p2)]
+                        )
+                    )
+            if nbonds % 4 != 0:
+                extra = nbonds % 4
+                line = f.next().split()
+                for _ in range(extra):
+                    p1 = line.pop(0)
+                    p2 = line.pop(0)
+                    s.bonds.add(
+                        Bond(
+                            a=s.particles[int(p1)],
+                            b=s.particles[int(p2)]
+                        )
+                    )
+        elif 'NTHETA' in line:
+            nangles = int(line.split()[0])
+            nlines = nangles/3
+            for n in range(nlines):
+                line = f.next().split()
+                for _ in range(3):
+                    p1 = line.pop(0)
+                    p2 = line.pop(0)
+                    p3 = line.pop(0)
+                    s.angles.add(
+                        Angle(
+                            a=s.particles[int(p1)],
+                            b=s.particles[int(p2)],
+                            c=s.particles[int(p3)]
+                        )
+                    )
+            if nangles % 3 != 0:
+                extra = nangles % 3
+                line = f.next().split()
+                for _ in range(extra):
+                    p1 = line.pop(0)
+                    p2 = line.pop(0)
+                    p3 = line.pop(0)
+                    s.angles.add(
+                        Angle(
+                            a=s.particles[int(p1)],
+                            b=s.particles[int(p2)],
+                            c=s.particles[int(p3)]
+                        )
+                    )
+        elif 'NPHI' in line:
+            ndihedrals = int(line.split()[0])
+            nlines = ndihedrals/2
+            for n in range(nlines):
+                line = f.next().split()
+                for _ in range(2):
+                    p1 = line.pop(0)
+                    p2 = line.pop(0)
+                    p3 = line.pop(0)
+                    p4 = line.pop(0)
+                    s.dihedrals.add(
+                        Dihedral(
+                            a=s.particles[int(p1)],
+                            b=s.particles[int(p2)],
+                            c=s.particles[int(p3)],
+                            d=s.particles[int(p4)]
+                        )
+                    )
+            if ndihedrals % 2 != 0:
+                extra = ndihedrals % 2
+                line = f.next().split()
+                for _ in range(extra):
+                    p1 = line.pop(0)
+                    p2 = line.pop(0)
+                    p3 = line.pop(0)
+                    p4 = line.pop(0)
+                    s.dihedrals.add(
+                        Dihedral(
+                            a=s.particles[int(p1)],
+                            b=s.particles[int(p2)],
+                            c=s.particles[int(p3)],
+                            d=s.particles[int(p4)]
+                        )
+                    )
+        elif 'NIMPHI' in line:
+            nimpropers = int(line.split()[0])
+            nlines = nimpropers/2
+            for n in range(nlines):
+                line = f.next().split()
+                for _ in range(2):
+                    p1 = line.pop(0)
+                    p2 = line.pop(0)
+                    p3 = line.pop(0)
+                    p4 = line.pop(0)
+                    s.impropers.add(
+                        Improper(
+                            a=s.particles[int(p1)],
+                            b=s.particles[int(p2)],
+                            c=s.particles[int(p3)],
+                            d=s.particles[int(p4)]
+                        )
+                    )
+            if nimpropers % 2 != 0:
+                extra = nimpropers % 2
+                line = f.next().split()
+                for _ in range(extra):
+                    p1 = line.pop(0)
+                    p2 = line.pop(0)
+                    p3 = line.pop(0)
+                    p4 = line.pop(0)
+                    s.impropers.add(
+                        Improper(
+                            a=s.particles[int(p1)],
+                            b=s.particles[int(p2)],
+                            c=s.particles[int(p3)],
+                            d=s.particles[int(p4)]
+                        )
+                    )
+    f.close()
     return s
 
 
