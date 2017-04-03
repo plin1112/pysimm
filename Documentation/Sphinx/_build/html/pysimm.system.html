@@ -13,6 +13,8 @@
 
   
   
+  
+  
 
   
 
@@ -30,6 +32,9 @@
   
 
   
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
     <link rel="top" title="pysimm 0.1 documentation" href="index.html"/>
         <link rel="up" title="pysimm package" href="pysimm.html"/>
         <link rel="next" title="pysimm.utils module" href="pysimm.utils.html"/>
@@ -42,6 +47,7 @@
 
 <body class="wy-body-for-nav" role="document">
 
+   
   <div class="wy-grid-for-nav">
 
     
@@ -82,7 +88,10 @@
           
             
             
-                <ul class="current">
+              
+            
+            
+              <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="pysimm.html">pysimm package</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="pysimm.html#subpackages">Subpackages</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="pysimm.html#submodules">Submodules</a><ul class="current">
@@ -109,8 +118,10 @@
 
       
       <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
-        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="index.html">pysimm</a>
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">pysimm</a>
+        
       </nav>
 
 
@@ -119,25 +130,42 @@
         <div class="rst-content">
           
 
- 
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 <div role="navigation" aria-label="breadcrumbs navigation">
+
   <ul class="wy-breadcrumbs">
-    <li><a href="index.html">Docs</a> &raquo;</li>
-      
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
           <li><a href="pysimm.html">pysimm package</a> &raquo;</li>
-      
-    <li>pysimm.system module</li>
+        
+      <li>pysimm.system module</li>
+    
+    
       <li class="wy-breadcrumbs-aside">
         
-          
+            
             <a href="_sources/pysimm.system.txt" rel="nofollow"> View page source</a>
           
         
       </li>
+    
   </ul>
+
+  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
@@ -194,6 +222,11 @@ Attributes usually used are given below.</p>
 </table>
 </dd></dl>
 
+<dl class="method">
+<dt id="pysimm.system.Angle.ptype_name">
+<code class="descname">ptype_name</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#Angle.ptype_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.Angle.ptype_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="class">
@@ -219,6 +252,75 @@ Attributes usually used are given below.</p>
 <dt id="pysimm.system.AngleType.name">
 <code class="descname">name</code><a class="headerlink" href="#pysimm.system.AngleType.name" title="Permalink to this definition">¶</a></dt>
 <dd><p>force field angle type name</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pysimm.system.AngleType.form">
+<code class="descname">form</code><span class="sig-paren">(</span><em>style='harmonic'</em>, <em>d_range=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#AngleType.form"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.AngleType.form" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns data to plot functional form for the potential energy with
+the given style.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>style</strong> &#8211; string for pair style of AngleType (harmonic, class2, charmm)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">x, y for plotting functional form (energy vs angle)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pysimm.system.AngleType.write_lammps">
+<code class="descname">write_lammps</code><span class="sig-paren">(</span><em>style='harmonic'</em>, <em>cross_term=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#AngleType.write_lammps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.AngleType.write_lammps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Formats a string to define angle type coefficients for a LAMMPS
+data file given the provided style.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>style</strong> &#8211; string for pair style of AngleType (harmonic, class2, charmm)</li>
+<li><strong>cross_term</strong> &#8211; type of class2 cross term to write (default=None)
+-  BondBond
+-  BondAngle</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">LAMMPS formatted string with angle coefficients</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pysimm.system.AngleTypeContainer">
+<em class="property">class </em><code class="descclassname">pysimm.system.</code><code class="descname">AngleTypeContainer</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#AngleTypeContainer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.AngleTypeContainer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="pysimm.utils.html#pysimm.utils.ItemContainer" title="pysimm.utils.ItemContainer"><code class="xref py py-class docutils literal"><span class="pre">pysimm.utils.ItemContainer</span></code></a></p>
+<p>This class inherits from pysimm.utils.ItemContainer and defines custom
+behavior for methods to retrieve AngleType objects from the container.</p>
+<dl class="method">
+<dt id="pysimm.system.AngleTypeContainer.by_name">
+<code class="descname">by_name</code><span class="sig-paren">(</span><em>name</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#AngleTypeContainer.by_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.AngleTypeContainer.by_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieves a AngleType object from the container with the given name.
+By default, wildcards are supported using &#8216;X&#8217;, and therefore the
+default behavior is to return a list of AngleType objects that satisfy
+the query. If looking for one specific type, use the keyword exact=True
+to have only one item returned.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> &#8211; string for angle type name</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">AngleType object in the container with the given name</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>
@@ -272,6 +374,11 @@ Sets distance to dist attribute of Bond object. Does not consider pbc.</p>
 <code class="descname">get_other_particle</code><span class="sig-paren">(</span><em>p</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#Bond.get_other_particle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.Bond.get_other_particle" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="method">
+<dt id="pysimm.system.Bond.ptype_name">
+<code class="descname">ptype_name</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#Bond.ptype_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.Bond.ptype_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="class">
@@ -297,6 +404,68 @@ Attributes usually used are given below.</p>
 <dt id="pysimm.system.BondType.name">
 <code class="descname">name</code><a class="headerlink" href="#pysimm.system.BondType.name" title="Permalink to this definition">¶</a></dt>
 <dd><p>force field bond type name</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pysimm.system.BondType.form">
+<code class="descname">form</code><span class="sig-paren">(</span><em>style='harmonic'</em>, <em>d_range=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#BondType.form"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.BondType.form" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns data to plot functional form for the potential energy with
+the given style.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>style</strong> &#8211; string for pair style of BondType (harmonic, class2)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">x, y for plotting functional form (energy vs distance)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pysimm.system.BondType.write_lammps">
+<code class="descname">write_lammps</code><span class="sig-paren">(</span><em>style='harmonic'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#BondType.write_lammps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.BondType.write_lammps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Formats a string to define bond type coefficients for a LAMMPS
+data file given the provided style.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>style</strong> &#8211; string for pair style of BondType (harmonic, class2)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">LAMMPS formatted string with bond coefficients</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pysimm.system.BondTypeContainer">
+<em class="property">class </em><code class="descclassname">pysimm.system.</code><code class="descname">BondTypeContainer</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#BondTypeContainer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.BondTypeContainer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="pysimm.utils.html#pysimm.utils.ItemContainer" title="pysimm.utils.ItemContainer"><code class="xref py py-class docutils literal"><span class="pre">pysimm.utils.ItemContainer</span></code></a></p>
+<p>This class inherits from pysimm.utils.ItemContainer and defines custom
+behavior for methods to retrieve BondType objects from the container.</p>
+<dl class="method">
+<dt id="pysimm.system.BondTypeContainer.by_name">
+<code class="descname">by_name</code><span class="sig-paren">(</span><em>name</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#BondTypeContainer.by_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.BondTypeContainer.by_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieves a BondType object from the container with the given name.
+By default, wildcards are supported using &#8216;X&#8217;, and therefore the
+default behavior is to return a list of BondType objects that satisfy
+the query. If looking for one specific type, use the keyword exact=True
+to have only one item returned.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> &#8211; string for bond type name</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">BondType object in the container with the given name</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>
@@ -340,6 +509,11 @@ Attributes usually used are given below.</p>
 <dd><p>DihedralType object reference</p>
 </dd></dl>
 
+<dl class="method">
+<dt id="pysimm.system.Dihedral.ptype_name">
+<code class="descname">ptype_name</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#Dihedral.ptype_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.Dihedral.ptype_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="class">
@@ -371,6 +545,78 @@ Attributes usually used are given below.</p>
 <dt id="pysimm.system.DihedralType.name">
 <code class="descname">name</code><a class="headerlink" href="#pysimm.system.DihedralType.name" title="Permalink to this definition">¶</a></dt>
 <dd><p>force field dihedral type name</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pysimm.system.DihedralType.form">
+<code class="descname">form</code><span class="sig-paren">(</span><em>style='harmonic'</em>, <em>d_range=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#DihedralType.form"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.DihedralType.form" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns data to plot functional form for the potential energy with
+the given style.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>style</strong> &#8211; string for pair style of DihedralType (harmonic, class2, fourier)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">x, y for plotting functional form (energy vs angle)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pysimm.system.DihedralType.write_lammps">
+<code class="descname">write_lammps</code><span class="sig-paren">(</span><em>style='harmonic'</em>, <em>cross_term=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#DihedralType.write_lammps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.DihedralType.write_lammps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Formats a string to define dihedral type coefficients for a LAMMPS
+data file given the provided style.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>style</strong> &#8211; string for pair style of DihedralType (harmonic, class2, fourier)</li>
+<li><strong>cross_term</strong> &#8211; type of class2 cross term to write (default=None)
+-  MiddleBond
+-  EndBond
+-  Angle
+-  AngleAngle
+-  BondBond13</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">LAMMPS formatted string with dihedral coefficients</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pysimm.system.DihedralTypeContainer">
+<em class="property">class </em><code class="descclassname">pysimm.system.</code><code class="descname">DihedralTypeContainer</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#DihedralTypeContainer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.DihedralTypeContainer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="pysimm.utils.html#pysimm.utils.ItemContainer" title="pysimm.utils.ItemContainer"><code class="xref py py-class docutils literal"><span class="pre">pysimm.utils.ItemContainer</span></code></a></p>
+<p>This class inherits from pysimm.utils.ItemContainer and defines custom
+behavior for methods to retrieve DihedralType objects from the container.</p>
+<dl class="method">
+<dt id="pysimm.system.DihedralTypeContainer.by_name">
+<code class="descname">by_name</code><span class="sig-paren">(</span><em>name</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#DihedralTypeContainer.by_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.DihedralTypeContainer.by_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieves a DihedralType object from the container with the given name.
+By default, wildcards are supported using &#8216;X&#8217;, and therefore the
+default behavior is to return a list of DihedralType objects that satisfy
+the query. If looking for one specific type, use the keyword exact=True
+to have only one item returned.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> &#8211; string for dihedral type name</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">DihedralType object in the container with the given name</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>
@@ -493,6 +739,11 @@ Attributes usually used are given below.</p>
 <dd><p>ImproperType object reference</p>
 </dd></dl>
 
+<dl class="method">
+<dt id="pysimm.system.Improper.ptype_name">
+<code class="descname">ptype_name</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#Improper.ptype_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.Improper.ptype_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="class">
@@ -518,6 +769,74 @@ Attributes usually used are given below.</p>
 <dt id="pysimm.system.ImproperType.name">
 <code class="descname">name</code><a class="headerlink" href="#pysimm.system.ImproperType.name" title="Permalink to this definition">¶</a></dt>
 <dd><p>force field improper type name</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pysimm.system.ImproperType.form">
+<code class="descname">form</code><span class="sig-paren">(</span><em>style='harmonic'</em>, <em>d_range=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#ImproperType.form"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.ImproperType.form" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns data to plot functional form for the potential energy with
+the given style.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>style</strong> &#8211; string for pair style of ImproperType (harmonic, cvff)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">x, y for plotting functional form (energy vs angle)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pysimm.system.ImproperType.write_lammps">
+<code class="descname">write_lammps</code><span class="sig-paren">(</span><em>style='harmonic'</em>, <em>cross_term=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#ImproperType.write_lammps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.ImproperType.write_lammps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Formats a string to define improper type coefficients for a LAMMPS
+data file given the provided style.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>style</strong> &#8211; string for pair style of ImproperType (harmonic, class2, cvff)</li>
+<li><strong>cross_term</strong> &#8211; type of class2 cross term to write (default=None)
+-  AngleAngle</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">LAMMPS formatted string with dihedral coefficients</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pysimm.system.ImproperTypeContainer">
+<em class="property">class </em><code class="descclassname">pysimm.system.</code><code class="descname">ImproperTypeContainer</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#ImproperTypeContainer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.ImproperTypeContainer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="pysimm.utils.html#pysimm.utils.ItemContainer" title="pysimm.utils.ItemContainer"><code class="xref py py-class docutils literal"><span class="pre">pysimm.utils.ItemContainer</span></code></a></p>
+<p>This class inherits from pysimm.utils.ItemContainer and defines custom
+behavior for methods to retrieve ImproperType objects from the container.</p>
+<dl class="method">
+<dt id="pysimm.system.ImproperTypeContainer.by_name">
+<code class="descname">by_name</code><span class="sig-paren">(</span><em>name</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#ImproperTypeContainer.by_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.ImproperTypeContainer.by_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieves a ImproperType object from the container with the given name.
+By default, wildcards are supported using &#8216;X&#8217;, and therefore the
+default behavior is to return a list of ImproperType objects that satisfy
+the query. Additionally, the order of type names is assumed to be
+insignificant. To retain order use keyword order=True.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> &#8211; string for improper type name</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">ImproperType object in the container with the given name</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>
@@ -626,6 +945,83 @@ Attributes usually used are given below.</p>
 <dd><p>force field particle type name</p>
 </dd></dl>
 
+<dl class="method">
+<dt id="pysimm.system.ParticleType.form">
+<code class="descname">form</code><span class="sig-paren">(</span><em>style='lj_12-6'</em>, <em>d_range=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#ParticleType.form"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.ParticleType.form" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns data to plot functional form for the potential energy with
+the given style.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>style</strong> &#8211; string for pair style of ParticleType (lj_12-6, lj_9-6, buck)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">x, y for plotting functional form (energy vs distance)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pysimm.system.ParticleType.write_lammps">
+<code class="descname">write_lammps</code><span class="sig-paren">(</span><em>style='lj'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#ParticleType.write_lammps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.ParticleType.write_lammps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Formats a string to define particle type coefficients for a LAMMPS
+data file given the provided style.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>style</strong> &#8211; string for pair style of ParticleType (lj, class2, mass, buck)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">LAMMPS formatted string with pair coefficients</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pysimm.system.ParticleTypeContainer">
+<em class="property">class </em><code class="descclassname">pysimm.system.</code><code class="descname">ParticleTypeContainer</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#ParticleTypeContainer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.ParticleTypeContainer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="pysimm.utils.html#pysimm.utils.ItemContainer" title="pysimm.utils.ItemContainer"><code class="xref py py-class docutils literal"><span class="pre">pysimm.utils.ItemContainer</span></code></a></p>
+<p>This class inherits from pysimm.utils.ItemContainer and defines custom
+behavior for methods to retrieve ParticleType objects from the container.</p>
+<dl class="method">
+<dt id="pysimm.system.ParticleTypeContainer.by_elem">
+<code class="descname">by_elem</code><span class="sig-paren">(</span><em>elem</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#ParticleTypeContainer.by_elem"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.ParticleTypeContainer.by_elem" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieves ParticleType objects from the container with the given elem
+attribute. A list of ParticleType objects is returned.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>elem</strong> &#8211; string for particle type elem attribute</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">List of ParticleType objects in the container with the given elem</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pysimm.system.ParticleTypeContainer.by_name">
+<code class="descname">by_name</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#ParticleTypeContainer.by_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.ParticleTypeContainer.by_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieves a ParticleType object from the container with the given name.
+Only one ParticleType is returned, since names should be unique within
+a container.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> &#8211; string for particle type name</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">ParticleType object in the container with the given name</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="class">
@@ -649,7 +1045,7 @@ Contains information required for molecular simulation.</p>
 <dl class="attribute">
 <dt id="pysimm.system.System.particle_types">
 <code class="descname">particle_types</code><a class="headerlink" href="#pysimm.system.System.particle_types" title="Permalink to this definition">¶</a></dt>
-<dd><p>pysimm.utils.ItemContainer for ParticleType organization</p>
+<dd><p>pysimm.utils.ParticleTypeContainer for ParticleType organization</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -661,7 +1057,7 @@ Contains information required for molecular simulation.</p>
 <dl class="attribute">
 <dt id="pysimm.system.System.bond_types">
 <code class="descname">bond_types</code><a class="headerlink" href="#pysimm.system.System.bond_types" title="Permalink to this definition">¶</a></dt>
-<dd><p>pysimm.utils.ItemContainer for BondType organization</p>
+<dd><p>pysimm.utils.BondTypeContainer for BondType organization</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -673,7 +1069,7 @@ Contains information required for molecular simulation.</p>
 <dl class="attribute">
 <dt id="pysimm.system.System.angle_types">
 <code class="descname">angle_types</code><a class="headerlink" href="#pysimm.system.System.angle_types" title="Permalink to this definition">¶</a></dt>
-<dd><p>pysimm.utils.ItemContainer for AngleType organization</p>
+<dd><p>pysimm.utils.AngleTypeContainer for AngleType organization</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -685,7 +1081,7 @@ Contains information required for molecular simulation.</p>
 <dl class="attribute">
 <dt id="pysimm.system.System.dihedral_types">
 <code class="descname">dihedral_types</code><a class="headerlink" href="#pysimm.system.System.dihedral_types" title="Permalink to this definition">¶</a></dt>
-<dd><p>pysimm.utils.ItemContainer for DihedralType organization</p>
+<dd><p>pysimm.utils.DihedralTypeContainer for DihedralType organization</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -898,7 +1294,7 @@ properties (True)</li>
 
 <dl class="method">
 <dt id="pysimm.system.System.apply_forcefield">
-<code class="descname">apply_forcefield</code><span class="sig-paren">(</span><em>f</em>, <em>charges='default'</em>, <em>set_box=True</em>, <em>box_padding=10</em>, <em>update_ptypes=False</em>, <em>skip_ptypes=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#System.apply_forcefield"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.System.apply_forcefield" title="Permalink to this definition">¶</a></dt>
+<code class="descname">apply_forcefield</code><span class="sig-paren">(</span><em>f</em>, <em>charges='default'</em>, <em>set_box=False</em>, <em>box_padding=10</em>, <em>update_ptypes=False</em>, <em>skip_ptypes=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#System.apply_forcefield"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.System.apply_forcefield" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies force field data to System based on typing rules defined in Forcefield object f</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1153,6 +1549,11 @@ Assumes following format for each atom line:</p>
 </tbody>
 </table>
 </dd></dl>
+
+<dl class="method">
+<dt id="pysimm.system.System.read_pdb_coords">
+<code class="descname">read_pdb_coords</code><span class="sig-paren">(</span><em>fname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#System.read_pdb_coords"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.System.read_pdb_coords" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="method">
 <dt id="pysimm.system.System.read_type_names">
@@ -1631,7 +2032,23 @@ Ensure particles are contained within simulation box.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>out_data</strong> &#8211; where to write data, file name or &#8216;string&#8217;</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None or string of data file if out_data=&#8217;string&#8217;</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None or string if data file if out_data=&#8217;string&#8217;</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pysimm.system.System.write_lammps_mol">
+<code class="descname">write_lammps_mol</code><span class="sig-paren">(</span><em>out_data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#System.write_lammps_mol"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.System.write_lammps_mol" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write System data formatted as LAMMPS molecule template</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>out_data</strong> &#8211; where to write data, file name or &#8216;string&#8217;</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None or string if data file if out_data=&#8217;string&#8217;</td>
 </tr>
 </tbody>
 </table>
@@ -1657,6 +2074,22 @@ Ensure particles are contained within simulation box.</p>
 <dt id="pysimm.system.System.write_pdb">
 <code class="descname">write_pdb</code><span class="sig-paren">(</span><em>outfile='data.pdb'</em>, <em>type_names=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#System.write_pdb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.System.write_pdb" title="Permalink to this definition">¶</a></dt>
 <dd><p>Write System data in pdb format</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>outfile</strong> &#8211; where to write data, file name or &#8216;string&#8217;</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None or string of data file if out_data=&#8217;string&#8217;</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pysimm.system.System.write_psf">
+<code class="descname">write_psf</code><span class="sig-paren">(</span><em>outfile='data.psf'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#System.write_psf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.System.write_psf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write System data in psd format</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1926,6 +2359,11 @@ Ensure particles are contained within simulation box.</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="pysimm.system.read_psf">
+<code class="descclassname">pysimm.system.</code><code class="descname">read_psf</code><span class="sig-paren">(</span><em>psf_file</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#read_psf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.read_psf" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
 <dt id="pysimm.system.read_pubchem_cid">
 <code class="descclassname">pysimm.system.</code><code class="descname">read_pubchem_cid</code><span class="sig-paren">(</span><em>cid</em>, <em>type_with=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#read_pubchem_cid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.read_pubchem_cid" title="Permalink to this definition">¶</a></dt>
 <dd><p>pysimm.system.read_pubchem_smiles</p>
@@ -1949,7 +2387,7 @@ Ensure particles are contained within simulation box.</p>
 
 <dl class="function">
 <dt id="pysimm.system.read_pubchem_smiles">
-<code class="descclassname">pysimm.system.</code><code class="descname">read_pubchem_smiles</code><span class="sig-paren">(</span><em>smiles</em>, <em>type_with=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#read_pubchem_smiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.read_pubchem_smiles" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pysimm.system.</code><code class="descname">read_pubchem_smiles</code><span class="sig-paren">(</span><em>smiles</em>, <em>quiet=False</em>, <em>type_with=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/system.html#read_pubchem_smiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.system.read_pubchem_smiles" title="Permalink to this definition">¶</a></dt>
 <dd><p>Interface with pubchem restful API to create molecular system from SMILES format</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -2032,15 +2470,18 @@ Can be random insertion.</p>
 
 
            </div>
+           <div class="articleComments">
+            
+           </div>
           </div>
           <footer>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="pysimm.utils.html" class="btn btn-neutral float-right" title="pysimm.utils module" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="pysimm.utils.html" class="btn btn-neutral float-right" title="pysimm.utils module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="pysimm.lmps.html" class="btn btn-neutral" title="pysimm.lmps module" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="pysimm.lmps.html" class="btn btn-neutral" title="pysimm.lmps module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -2074,7 +2515,8 @@ Can be random insertion.</p>
             VERSION:'0.1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: ''
         };
     </script>
       <script type="text/javascript" src="_static/jquery.js"></script>

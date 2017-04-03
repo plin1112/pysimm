@@ -13,6 +13,8 @@
 
   
   
+  
+  
 
   
 
@@ -30,6 +32,9 @@
   
 
   
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
     <link rel="top" title="pysimm 0.1 documentation" href="../../index.html"/>
         <link rel="up" title="pysimm" href="../pysimm.html"/> 
 
@@ -40,6 +45,7 @@
 
 <body class="wy-body-for-nav" role="document">
 
+   
   <div class="wy-grid-for-nav">
 
     
@@ -80,7 +86,10 @@
           
             
             
-                <ul>
+              
+            
+            
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../pysimm.html">pysimm package</a></li>
 </ul>
 
@@ -94,8 +103,10 @@
 
       
       <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
-        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="../../index.html">pysimm</a>
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">pysimm</a>
+        
       </nav>
 
 
@@ -108,21 +119,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
 <div role="navigation" aria-label="breadcrumbs navigation">
+
   <ul class="wy-breadcrumbs">
-    <li><a href="../../index.html">Docs</a> &raquo;</li>
-      
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
           <li><a href="../index.html">Module code</a> &raquo;</li>
-      
+        
           <li><a href="../pysimm.html">pysimm</a> &raquo;</li>
-      
-    <li>pysimm.lmps</li>
+        
+      <li>pysimm.lmps</li>
+    
+    
       <li class="wy-breadcrumbs-aside">
         
-          
+            
         
       </li>
+    
   </ul>
+
+  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
@@ -181,6 +209,11 @@
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
     <span class="k">pass</span>
 
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">matplotlib</span> <span class="k">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="k">pass</span>
+
 <span class="n">LAMMPS_EXEC</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;LAMMPS_EXEC&#39;</span><span class="p">)</span>
 <span class="n">verbose</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="n">templates</span> <span class="o">=</span> <span class="p">{}</span>
@@ -234,7 +267,7 @@
 <span class="sd">            input string</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">qfile</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">param_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="n">__file__</span><span class="p">)),</span>
+            <span class="n">param_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)),</span>
                                       <span class="n">os</span><span class="o">.</span><span class="n">pardir</span><span class="p">,</span> <span class="s1">&#39;dat&#39;</span><span class="p">,</span> <span class="s1">&#39;qeq&#39;</span><span class="p">,</span> <span class="s1">&#39;hcno.json&#39;</span><span class="p">)</span>
             <span class="k">with</span> <span class="n">file</span><span class="p">(</span><span class="n">param_file</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
                 <span class="n">qeq_params</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
@@ -254,8 +287,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">+=</span> <span class="s1">&#39;unfix 1</span><span class="se">\n</span><span class="s1">&#39;</span>
         
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span></div></div>
-
-
+        
+    
 <div class="viewcode-block" id="MolecularDynamics"><a class="viewcode-back" href="../../pysimm.lmps.html#pysimm.lmps.MolecularDynamics">[docs]</a><span class="k">class</span> <span class="nc">MolecularDynamics</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;pysimm.lmps.MolecularDynamics</span>
 
@@ -267,6 +300,7 @@
 <span class="sd">        limit: numerical value to use with nve when limiting particle displacement</span>
 <span class="sd">        temp: temperature for use with &#39;nvt&#39; and &#39;npt&#39; or new_v</span>
 <span class="sd">        pressure: pressure for use with &#39;npt&#39;</span>
+<span class="sd">        pressure_iso: True to require box dimensions change isotropically, False to allow dimensions to change independently (False by default)</span>
 <span class="sd">        new_v: True to have LAMMPS generate new velocities</span>
 <span class="sd">        seed: seed value for RNG (random by default)</span>
 <span class="sd">        scale_v: True to scale velocities to given temperature default=False</span>
@@ -284,6 +318,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">limit</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;limit&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">temp</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;temp&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pressure</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;pressure&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="mf">1.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pressure_iso</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;pressure_iso&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">new_v</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;new_v&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">seed</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;seed&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">randint</span><span class="p">(</span><span class="mi">10000</span><span class="p">,</span> <span class="mi">99999</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">scale_v</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;scale_v&#39;</span><span class="p">)</span>
@@ -293,7 +328,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">dump</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dump&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dump_name</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dump_name&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dump_append</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dump_append&#39;</span><span class="p">)</span>
-
+        
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">temp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">t_start</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;t_start&#39;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">t_stop</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;t_stop&#39;</span><span class="p">)</span>
@@ -315,6 +350,11 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">p_start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pressure</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">p_stop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pressure</span>
+            
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pressure_iso</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">p_iso</span> <span class="o">=</span> <span class="s1">&#39;iso&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">p_iso</span> <span class="o">=</span> <span class="s1">&#39;aniso&#39;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
 
@@ -340,8 +380,8 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span> <span class="o">==</span> <span class="s1">&#39;nvt&#39;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">+=</span> <span class="s1">&#39;fix 1 all </span><span class="si">%s</span><span class="s1"> temp </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> 100</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_stop</span><span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span> <span class="o">==</span> <span class="s1">&#39;npt&#39;</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">+=</span> <span class="p">(</span><span class="s1">&#39;fix 1 all </span><span class="si">%s</span><span class="s1"> temp </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> 100 iso </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> 100</span><span class="se">\n</span><span class="s1">&#39;</span>
-                           <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_stop</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">p_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">p_stop</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">+=</span> <span class="p">(</span><span class="s1">&#39;fix 1 all </span><span class="si">%s</span><span class="s1"> temp </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> 100 </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> 100</span><span class="se">\n</span><span class="s1">&#39;</span>
+                           <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_stop</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">p_iso</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">p_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">p_stop</span><span class="p">))</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span> <span class="o">==</span> <span class="s1">&#39;nve&#39;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">limit</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">+=</span> <span class="s1">&#39;fix 1 all </span><span class="si">%s</span><span class="s1">/limit </span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">limit</span><span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span> <span class="o">==</span> <span class="s1">&#39;nve&#39;</span><span class="p">:</span>
@@ -371,6 +411,74 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">+=</span> <span class="s1">&#39;undump pysimm_dump</span><span class="se">\n</span><span class="s1">&#39;</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span></div></div>
+        
+        
+<div class="viewcode-block" id="SteeredMolecularDynamics"><a class="viewcode-back" href="../../pysimm.lmps.html#pysimm.lmps.SteeredMolecularDynamics">[docs]</a><span class="k">class</span> <span class="nc">SteeredMolecularDynamics</span><span class="p">(</span><span class="n">MolecularDynamics</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">MolecularDynamics</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">p1</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;p1&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">p2</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;p2&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">k</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;k&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s1">&#39;k&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="mf">20.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">v</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;v&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s1">&#39;v&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="mf">0.001</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;d&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s1">&#39;d&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="mf">3.0</span>
+    
+<div class="viewcode-block" id="SteeredMolecularDynamics.write"><a class="viewcode-back" href="../../pysimm.lmps.html#pysimm.lmps.SteeredMolecularDynamics.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;pysimm.lmps.SteeredMolecularDynamics.write</span>
+
+<span class="sd">        Create LAMMPS input for a steered molecular dynamics simulation.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            sim: pysimm.lmps.Simulation object reference</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            input string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">thermo</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">+=</span> <span class="s1">&#39;thermo </span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">thermo</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">thermo_style</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">+=</span> <span class="s1">&#39;thermo_style </span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">thermo_style</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">+=</span> <span class="s1">&#39;timestep </span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">timestep</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span> <span class="o">==</span> <span class="s1">&#39;nvt&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">+=</span> <span class="s1">&#39;fix 1 all </span><span class="si">%s</span><span class="s1"> temp </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> 100</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_stop</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span> <span class="o">==</span> <span class="s1">&#39;npt&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">+=</span> <span class="p">(</span><span class="s1">&#39;fix 1 all </span><span class="si">%s</span><span class="s1"> temp </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> 100 iso </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> 100</span><span class="se">\n</span><span class="s1">&#39;</span>
+                           <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_stop</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">p_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">p_stop</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span> <span class="o">==</span> <span class="s1">&#39;nve&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">+=</span> <span class="s1">&#39;fix 1 all </span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_v</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">+=</span> <span class="s1">&#39;velocity all create </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale_v</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">+=</span> <span class="s1">&#39;velocity all scale </span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_start</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dump</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dump_name</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">+=</span> <span class="p">(</span><span class="s1">&#39;dump pysimm_dump all atom </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">.lammpstrj</span><span class="se">\n</span><span class="s1">&#39;</span>
+                               <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dump</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dump_name</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="n">sim</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">+=</span> <span class="p">(</span><span class="s1">&#39;dump pysimm_dump all atom </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">.lammpstrj</span><span class="se">\n</span><span class="s1">&#39;</span>
+                               <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dump</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">())))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">+=</span> <span class="p">(</span><span class="s1">&#39;dump pysimm_dump all atom </span><span class="si">%s</span><span class="s1"> pysimm_dump.lammpstrj</span><span class="se">\n</span><span class="s1">&#39;</span>
+                               <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">dump</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dump_append</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">+=</span> <span class="s1">&#39;dump_modify pysimm_dump append yes</span><span class="se">\n</span><span class="s1">&#39;</span>
+                
+        <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">+=</span> <span class="s1">&#39;group p1 id </span><span class="si">{}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">p1</span><span class="o">.</span><span class="n">tag</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">+=</span> <span class="s1">&#39;group p2 id </span><span class="si">{}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">p2</span><span class="o">.</span><span class="n">tag</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">+=</span> <span class="s1">&#39;fix steer p1 smd cvel </span><span class="si">{}</span><span class="s1"> </span><span class="si">{}</span><span class="s1"> couple p2 auto auto auto </span><span class="si">{}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">d</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">+=</span> <span class="s1">&#39;run </span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">+=</span> <span class="s1">&#39;unfix 1</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">+=</span> <span class="s1">&#39;unfix steer</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dump</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">+=</span> <span class="s1">&#39;undump pysimm_dump</span><span class="se">\n</span><span class="s1">&#39;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span></div></div>
+        
 
 
 <div class="viewcode-block" id="Minimization"><a class="viewcode-back" href="../../pysimm.lmps.html#pysimm.lmps.Minimization">[docs]</a><span class="k">class</span> <span class="nc">Minimization</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -520,7 +628,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">kspace_style</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;kspace_style&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;pppm 1e-4&#39;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;units&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;real&#39;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">special_bonds</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;special_bonds&#39;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">nonbond_mixing</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;nonbond_mixing&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;arithmetic&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nonbond_mixing</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;nonbond_mixing&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cutoff</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;cutoff&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="mf">12.0</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">print_to_screen</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;print_to_screen&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;print_to_screen&#39;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">False</span>
@@ -532,6 +640,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">custom</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;custom&#39;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;sim&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;sim&#39;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[]</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
         
 <div class="viewcode-block" id="Simulation.add_qeq"><a class="viewcode-back" href="../../pysimm.lmps.html#pysimm.lmps.Simulation.add_qeq">[docs]</a>    <span class="k">def</span> <span class="nf">add_qeq</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;pysimm.lmps.Simulation.add_qeq</span>
@@ -626,7 +736,7 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">+=</span> <span class="s1">&#39;quit</span><span class="se">\n</span><span class="s1">&#39;</span></div>
 
-<div class="viewcode-block" id="Simulation.run"><a class="viewcode-back" href="../../pysimm.lmps.html#pysimm.lmps.Simulation.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">np</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nanohub</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rewrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">write_input</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="Simulation.run"><a class="viewcode-back" href="../../pysimm.lmps.html#pysimm.lmps.Simulation.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">np</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">kokkos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nanohub</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rewrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">write_input</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;pysimm.lmps.Simulation.run</span>
 
 <span class="sd">        Begin LAMMPS simulation.</span>
@@ -649,14 +759,44 @@
             <span class="k">with</span> <span class="n">file</span><span class="p">(</span><span class="s1">&#39;pysimm.sim.in&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">call_lammps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">np</span><span class="p">,</span> <span class="n">nanohub</span><span class="p">)</span>
+            <span class="n">call_lammps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">np</span><span class="p">,</span> <span class="n">kokkos</span><span class="p">,</span> <span class="n">nanohub</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">ose</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">PysimmError</span><span class="p">(</span><span class="s1">&#39;There was a problem calling LAMMPS with mpiexec&#39;</span><span class="p">),</span> <span class="kc">None</span><span class="p">,</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()[</span><span class="mi">2</span><span class="p">]</span>
         <span class="k">except</span> <span class="ne">IOError</span> <span class="k">as</span> <span class="n">ioe</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">check_lmps_exec</span><span class="p">():</span>
                 <span class="k">raise</span> <span class="n">PysimmError</span><span class="p">(</span><span class="s1">&#39;There was a problem running LAMMPS. The process started but did not finish successfully. Check the log file, or rerun the simulation with print_to_screen=True to debug issue from LAMMPS output&#39;</span><span class="p">),</span> <span class="kc">None</span><span class="p">,</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()[</span><span class="mi">2</span><span class="p">]</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="n">PysimmError</span><span class="p">(</span><span class="s1">&#39;There was a problem running LAMMPS. LAMMPS is not configured properly. Make sure the LAMMPS_EXEC environment variable is set to the correct LAMMPS executable path. The current path is set to:</span><span class="se">\n\n</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">LAMMPS_EXEC</span><span class="p">)),</span> <span class="kc">None</span><span class="p">,</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()[</span><span class="mi">2</span><span class="p">]</span></div></div>
+                <span class="k">raise</span> <span class="n">PysimmError</span><span class="p">(</span><span class="s1">&#39;There was a problem running LAMMPS. LAMMPS is not configured properly. Make sure the LAMMPS_EXEC environment variable is set to the correct LAMMPS executable path. The current path is set to:</span><span class="se">\n\n</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">LAMMPS_EXEC</span><span class="p">)),</span> <span class="kc">None</span><span class="p">,</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()[</span><span class="mi">2</span><span class="p">]</span>
+                
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">:</span>
+                <span class="n">log_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+                <span class="n">log_name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.log&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">()))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">log_name</span> <span class="o">=</span> <span class="s1">&#39;log.lammps&#39;</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">read_log</span><span class="p">(</span><span class="n">log_name</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">results</span> <span class="o">=</span> <span class="n">r</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Failed reading log file&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span></div>
+            
+<div class="viewcode-block" id="Simulation.plot_results"><a class="viewcode-back" href="../../pysimm.lmps.html#pysimm.lmps.Simulation.plot_results">[docs]</a>    <span class="k">def</span> <span class="nf">plot_results</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">steps</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">last_step</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">sim</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">:</span>
+            <span class="n">sts</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s1">&#39;Step&#39;</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">st</span> <span class="ow">in</span> <span class="n">sts</span><span class="p">:</span>
+                <span class="n">steps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">st</span><span class="o">+</span><span class="n">last_step</span><span class="p">)</span>
+            <span class="n">last_step</span> <span class="o">+=</span> <span class="n">sts</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s1">&#39;Step&#39;</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="n">sm</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">sm</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">]</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span> <span class="k">for</span> <span class="n">sublist</span> <span class="ow">in</span> <span class="n">data</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">sublist</span><span class="p">]</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Step&#39;</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div></div>
 
 
 <div class="viewcode-block" id="enqueue_output"><a class="viewcode-back" href="../../pysimm.lmps.html#pysimm.lmps.enqueue_output">[docs]</a><span class="k">def</span> <span class="nf">enqueue_output</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">queue</span><span class="p">):</span>
@@ -664,12 +804,12 @@
 
 <span class="sd">    Helps queue output for printing to screen during simulation.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">iter</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">readline</span><span class="p">,</span> <span class="n">b</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">iter</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">readline</span><span class="p">,</span> <span class="sa">b</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
         <span class="n">queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
     <span class="n">out</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="call_lammps"><a class="viewcode-back" href="../../pysimm.lmps.html#pysimm.lmps.call_lammps">[docs]</a><span class="k">def</span> <span class="nf">call_lammps</span><span class="p">(</span><span class="n">simulation</span><span class="p">,</span> <span class="n">np</span><span class="p">,</span> <span class="n">nanohub</span><span class="p">):</span>
+<div class="viewcode-block" id="call_lammps"><a class="viewcode-back" href="../../pysimm.lmps.html#pysimm.lmps.call_lammps">[docs]</a><span class="k">def</span> <span class="nf">call_lammps</span><span class="p">(</span><span class="n">simulation</span><span class="p">,</span> <span class="n">np</span><span class="p">,</span> <span class="n">kokkos</span><span class="p">,</span> <span class="n">nanohub</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;pysimm.lmps.call_lammps</span>
 
 <span class="sd">    Wrapper to call LAMMPS using executable name defined in pysimm.lmps module.</span>
@@ -702,12 +842,17 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: starting LAMMPS simulation&#39;</span>
                   <span class="o">%</span> <span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%H:%M:%S&#39;</span><span class="p">))</span>
-        <span class="k">if</span> <span class="n">np</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">kokkos</span><span class="p">:</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">Popen</span><span class="p">([</span><span class="s1">&#39;mpiexec&#39;</span><span class="p">,</span>
+                       <span class="n">LAMMPS_EXEC</span><span class="p">,</span> <span class="s1">&#39;-e&#39;</span><span class="p">,</span> <span class="s1">&#39;both&#39;</span><span class="p">,</span> <span class="s1">&#39;-l&#39;</span><span class="p">,</span> <span class="s1">&#39;none&#39;</span><span class="p">,</span>
+                       <span class="s1">&#39;-k&#39;</span> <span class="s1">&#39;on g 1&#39;</span><span class="p">,</span> <span class="s1">&#39;-sf&#39;</span> <span class="s1">&#39;kk&#39;</span><span class="p">,</span> <span class="s1">&#39;-pk&#39;</span><span class="p">,</span> <span class="s1">&#39;kokkos&#39;</span><span class="p">],</span>
+                      <span class="n">stdin</span><span class="o">=</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">PIPE</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">np</span><span class="p">:</span>
             <span class="n">p</span> <span class="o">=</span> <span class="n">Popen</span><span class="p">([</span><span class="s1">&#39;mpiexec&#39;</span><span class="p">,</span> <span class="s1">&#39;-np&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="p">),</span>
                        <span class="n">LAMMPS_EXEC</span><span class="p">,</span> <span class="s1">&#39;-e&#39;</span><span class="p">,</span> <span class="s1">&#39;both&#39;</span><span class="p">,</span> <span class="s1">&#39;-l&#39;</span><span class="p">,</span> <span class="s1">&#39;none&#39;</span><span class="p">],</span>
                       <span class="n">stdin</span><span class="o">=</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">PIPE</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">p</span> <span class="o">=</span> <span class="n">Popen</span><span class="p">([</span><span class="s1">&#39;mpiexec&#39;</span><span class="p">,</span> <span class="n">LAMMPS_EXEC</span><span class="p">,</span> <span class="s1">&#39;-e&#39;</span><span class="p">,</span> <span class="s1">&#39;both&#39;</span><span class="p">,</span> <span class="s1">&#39;-l&#39;</span><span class="p">,</span> <span class="s1">&#39;none&#39;</span><span class="p">],</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">Popen</span><span class="p">([</span><span class="n">LAMMPS_EXEC</span><span class="p">,</span> <span class="s1">&#39;-e&#39;</span><span class="p">,</span> <span class="s1">&#39;both&#39;</span><span class="p">,</span> <span class="s1">&#39;-l&#39;</span><span class="p">,</span> <span class="s1">&#39;none&#39;</span><span class="p">],</span>
                       <span class="n">stdin</span><span class="o">=</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">PIPE</span><span class="p">)</span>
         <span class="n">simulation</span><span class="o">.</span><span class="n">write_input</span><span class="p">()</span>
         <span class="n">p</span><span class="o">.</span><span class="n">stdin</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">simulation</span><span class="o">.</span><span class="n">input</span><span class="p">)</span>
@@ -784,7 +929,9 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">sim</span> <span class="o">=</span> <span class="n">Simulation</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="n">sim</span><span class="o">.</span><span class="n">add_md</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-    <span class="n">sim</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">np</span><span class="p">,</span> <span class="n">nanohub</span><span class="p">)</span></div>
+    <span class="n">sim</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">np</span><span class="p">,</span> <span class="n">nanohub</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">sim</span></div>
 
 
 <div class="viewcode-block" id="quick_min"><a class="viewcode-back" href="../../pysimm.lmps.html#pysimm.lmps.quick_min">[docs]</a><span class="k">def</span> <span class="nf">quick_min</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">np</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nanohub</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -802,7 +949,9 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">sim</span> <span class="o">=</span> <span class="n">Simulation</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="n">sim</span><span class="o">.</span><span class="n">add_min</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-    <span class="n">sim</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">np</span><span class="p">,</span> <span class="n">nanohub</span><span class="p">)</span></div>
+    <span class="n">sim</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">np</span><span class="p">,</span> <span class="n">nanohub</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">sim</span></div>
     
     
 <div class="viewcode-block" id="energy"><a class="viewcode-back" href="../../pysimm.lmps.html#pysimm.lmps.energy">[docs]</a><span class="k">def</span> <span class="nf">energy</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="nb">all</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">np</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -846,6 +995,23 @@
                <span class="p">}</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">etotal</span></div>
+        
+        
+<div class="viewcode-block" id="read_log"><a class="viewcode-back" href="../../pysimm.lmps.html#pysimm.lmps.read_log">[docs]</a><span class="k">def</span> <span class="nf">read_log</span><span class="p">(</span><span class="n">fname</span><span class="p">):</span>
+    <span class="n">sims</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;Step&#39;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">sims</span><span class="o">.</span><span class="n">append</span><span class="p">({})</span>
+                <span class="n">headers</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">headers</span><span class="p">:</span>
+                    <span class="n">sims</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="n">h</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+                <span class="k">while</span> <span class="s1">&#39;Loop&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">d</span><span class="p">,</span> <span class="n">h</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()),</span> <span class="n">headers</span><span class="p">):</span>
+                        <span class="n">sims</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="n">h</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+                    <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">sims</span></div>
 
 
 <div class="viewcode-block" id="md"><a class="viewcode-back" href="../../pysimm.lmps.html#pysimm.lmps.md">[docs]</a><span class="k">def</span> <span class="nf">md</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -1446,7 +1612,7 @@
     <span class="n">units</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;units&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;real&#39;</span>
     <span class="n">nb_cut</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;nb_cut&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="mf">12.0</span>
     <span class="n">special_bonds</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;special_bonds&#39;</span><span class="p">)</span>
-    <span class="n">nonbond_mixing</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;nonbond_mixing&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;arithmetic&#39;</span>
+    <span class="n">nonbond_mixing</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;nonbond_mixing&#39;</span><span class="p">)</span>
 
     <span class="n">output</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
 
@@ -1519,9 +1685,10 @@
         <span class="k">elif</span> <span class="n">nonbond_mixing</span> <span class="o">==</span> <span class="s1">&#39;geometric&#39;</span><span class="p">:</span>
             <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;pair_modify shift yes mix geometric</span><span class="se">\n</span><span class="s1">&#39;</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;pair_modify shift yes mix arithmetic</span><span class="se">\n</span><span class="s1">&#39;</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> mixing rule not supported; defaulting to arithmetic&#39;</span>
-                  <span class="o">%</span> <span class="n">nonbond_mixing</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">l</span><span class="o">.</span><span class="n">ff_class</span> <span class="o">==</span> <span class="s1">&#39;2&#39;</span><span class="p">:</span>
+                <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;pair_modify shift yes mix sixthpower</span><span class="se">\n</span><span class="s1">&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;pair_modify shift yes mix arithmetic</span><span class="se">\n</span><span class="s1">&#39;</span>
 
     <span class="k">if</span> <span class="n">l</span><span class="o">.</span><span class="n">bond_style</span><span class="p">:</span>
         <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;bond_style </span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">l</span><span class="o">.</span><span class="n">bond_style</span>
@@ -1561,7 +1728,10 @@
     <span class="k">if</span> <span class="n">special_bonds</span><span class="p">:</span>
         <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;special_bonds </span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">special_bonds</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;special_bonds amber</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="k">if</span> <span class="n">l</span><span class="o">.</span><span class="n">ff_class</span> <span class="o">==</span> <span class="s1">&#39;2&#39;</span><span class="p">:</span>
+            <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;special_bonds    lj 0 0 1 coul 0 0 1</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;special_bonds amber</span><span class="se">\n</span><span class="s1">&#39;</span>
 
     <span class="n">l</span><span class="o">.</span><span class="n">write_lammps</span><span class="p">(</span><span class="s1">&#39;temp.lmps&#39;</span><span class="p">)</span>
     <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;read_data temp.lmps</span><span class="se">\n</span><span class="s1">&#39;</span>
@@ -1578,6 +1748,9 @@
     <span class="k">return</span> <span class="n">output</span></div>
 </pre></div>
 
+           </div>
+           <div class="articleComments">
+            
            </div>
           </div>
           <footer>
@@ -1612,7 +1785,8 @@
             VERSION:'0.1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: ''
         };
     </script>
       <script type="text/javascript" src="../../_static/jquery.js"></script>

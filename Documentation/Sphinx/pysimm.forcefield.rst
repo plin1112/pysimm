@@ -7,7 +7,6 @@ Submodules
 .. toctree::
 
    pysimm.forcefield.cgenff
-   pysimm.forcefield.dreiding.new
    pysimm.forcefield.dreiding
    pysimm.forcefield.forcefield
    pysimm.forcefield.gaff
@@ -15,7 +14,6 @@ Submodules
    pysimm.forcefield.gasteiger
    pysimm.forcefield.pcff
    pysimm.forcefield.tip3p
-   pysimm.forcefield.trappe
 
 Module contents
 ---------------

@@ -7,6 +7,7 @@ Subpackages
 .. toctree::
 
     pysimm.models.monomers.dreiding
+    pysimm.models.monomers.gaff
     pysimm.models.monomers.gaff2
 
 Module contents

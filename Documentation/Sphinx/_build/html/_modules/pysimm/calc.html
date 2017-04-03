@@ -13,6 +13,8 @@
 
   
   
+  
+  
 
   
 
@@ -30,6 +32,9 @@
   
 
   
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
     <link rel="top" title="pysimm 0.1 documentation" href="../../index.html"/>
         <link rel="up" title="pysimm" href="../pysimm.html"/> 
 
@@ -40,6 +45,7 @@
 
 <body class="wy-body-for-nav" role="document">
 
+   
   <div class="wy-grid-for-nav">
 
     
@@ -80,7 +86,10 @@
           
             
             
-                <ul>
+              
+            
+            
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../pysimm.html">pysimm package</a></li>
 </ul>
 
@@ -94,8 +103,10 @@
 
       
       <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
-        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="../../index.html">pysimm</a>
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">pysimm</a>
+        
       </nav>
 
 
@@ -108,21 +119,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
 <div role="navigation" aria-label="breadcrumbs navigation">
+
   <ul class="wy-breadcrumbs">
-    <li><a href="../../index.html">Docs</a> &raquo;</li>
-      
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
           <li><a href="../index.html">Module code</a> &raquo;</li>
-      
+        
           <li><a href="../pysimm.html">pysimm</a> &raquo;</li>
-      
-    <li>pysimm.calc</li>
+        
+      <li>pysimm.calc</li>
+    
+    
       <li class="wy-breadcrumbs-aside">
         
-          
+            
         
       </li>
+    
   </ul>
+
+  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
@@ -304,7 +332,7 @@
     <span class="n">p12</span> <span class="o">=</span> <span class="n">distance</span><span class="p">(</span><span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">)</span>
     <span class="n">p23</span> <span class="o">=</span> <span class="n">distance</span><span class="p">(</span><span class="n">p2</span><span class="p">,</span> <span class="n">p3</span><span class="p">)</span>
     <span class="n">p13</span> <span class="o">=</span> <span class="n">distance</span><span class="p">(</span><span class="n">p1</span><span class="p">,</span> <span class="n">p3</span><span class="p">)</span>
-    <span class="n">theta</span> <span class="o">=</span> <span class="n">acos</span><span class="p">((</span><span class="nb">pow</span><span class="p">(</span><span class="n">p12</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">+</span><span class="nb">pow</span><span class="p">(</span><span class="n">p23</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">-</span><span class="nb">pow</span><span class="p">(</span><span class="n">p13</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">p13</span><span class="o">*</span><span class="n">p23</span><span class="p">))</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">acos</span><span class="p">((</span><span class="nb">pow</span><span class="p">(</span><span class="n">p12</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">+</span><span class="nb">pow</span><span class="p">(</span><span class="n">p23</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">-</span><span class="nb">pow</span><span class="p">(</span><span class="n">p13</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">p12</span><span class="o">*</span><span class="n">p23</span><span class="p">))</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">radians</span><span class="p">:</span>
         <span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span> <span class="o">*</span> <span class="mi">180</span> <span class="o">/</span> <span class="n">pi</span>
     <span class="k">return</span> <span class="n">theta</span></div>
@@ -470,8 +498,53 @@
     <span class="n">dz</span> <span class="o">=</span> <span class="n">frac_d</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">s</span><span class="o">.</span><span class="n">dim</span><span class="o">.</span><span class="n">dz</span>
 
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">([</span><span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">dz</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="LJ_12_6"><a class="viewcode-back" href="../../pysimm.calc.html#pysimm.calc.LJ_12_6">[docs]</a><span class="k">def</span> <span class="nf">LJ_12_6</span><span class="p">(</span><span class="n">pt</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+    <span class="k">return</span> <span class="mi">4</span><span class="o">*</span><span class="n">pt</span><span class="o">.</span><span class="n">epsilon</span><span class="o">*</span><span class="p">(</span><span class="nb">pow</span><span class="p">(</span><span class="n">pt</span><span class="o">.</span><span class="n">sigma</span><span class="o">/</span><span class="n">d</span><span class="p">,</span><span class="mi">12</span><span class="p">)</span><span class="o">-</span><span class="nb">pow</span><span class="p">(</span><span class="n">pt</span><span class="o">.</span><span class="n">sigma</span><span class="o">/</span><span class="n">d</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span></div>
+    
+<div class="viewcode-block" id="LJ_9_6"><a class="viewcode-back" href="../../pysimm.calc.html#pysimm.calc.LJ_9_6">[docs]</a><span class="k">def</span> <span class="nf">LJ_9_6</span><span class="p">(</span><span class="n">pt</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">pt</span><span class="o">.</span><span class="n">epsilon</span><span class="o">*</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="nb">pow</span><span class="p">(</span><span class="n">pt</span><span class="o">.</span><span class="n">sigma</span><span class="o">/</span><span class="n">d</span><span class="p">,</span><span class="mi">12</span><span class="p">)</span><span class="o">-</span><span class="mi">3</span><span class="o">*</span><span class="nb">pow</span><span class="p">(</span><span class="n">pt</span><span class="o">.</span><span class="n">sigma</span><span class="o">/</span><span class="n">d</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span></div>
+    
+<div class="viewcode-block" id="buckingham"><a class="viewcode-back" href="../../pysimm.calc.html#pysimm.calc.buckingham">[docs]</a><span class="k">def</span> <span class="nf">buckingham</span><span class="p">(</span><span class="n">pt</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">pt</span><span class="o">.</span><span class="n">a</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">d</span><span class="o">/</span><span class="n">pt</span><span class="o">.</span><span class="n">rho</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="n">pt</span><span class="o">.</span><span class="n">c</span><span class="o">/</span><span class="nb">pow</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span></div>
+    
+<div class="viewcode-block" id="harmonic_bond"><a class="viewcode-back" href="../../pysimm.calc.html#pysimm.calc.harmonic_bond">[docs]</a><span class="k">def</span> <span class="nf">harmonic_bond</span><span class="p">(</span><span class="n">bt</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">bt</span><span class="o">.</span><span class="n">k</span><span class="o">*</span><span class="nb">pow</span><span class="p">(</span><span class="n">d</span><span class="o">-</span><span class="n">bt</span><span class="o">.</span><span class="n">r0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="class2_bond"><a class="viewcode-back" href="../../pysimm.calc.html#pysimm.calc.class2_bond">[docs]</a><span class="k">def</span> <span class="nf">class2_bond</span><span class="p">(</span><span class="n">bt</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">bt</span><span class="o">.</span><span class="n">k2</span><span class="o">*</span><span class="nb">pow</span><span class="p">(</span><span class="n">d</span><span class="o">-</span><span class="n">bt</span><span class="o">.</span><span class="n">r0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">bt</span><span class="o">.</span><span class="n">k3</span><span class="o">*</span><span class="nb">pow</span><span class="p">(</span><span class="n">d</span><span class="o">-</span><span class="n">bt</span><span class="o">.</span><span class="n">r0</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">+</span> <span class="n">bt</span><span class="o">.</span><span class="n">k4</span><span class="o">*</span><span class="nb">pow</span><span class="p">(</span><span class="n">d</span><span class="o">-</span><span class="n">bt</span><span class="o">.</span><span class="n">r0</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="harmonic_angle"><a class="viewcode-back" href="../../pysimm.calc.html#pysimm.calc.harmonic_angle">[docs]</a><span class="k">def</span> <span class="nf">harmonic_angle</span><span class="p">(</span><span class="n">at</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">at</span><span class="o">.</span><span class="n">k</span><span class="o">*</span><span class="nb">pow</span><span class="p">(</span><span class="n">d</span><span class="o">-</span><span class="n">at</span><span class="o">.</span><span class="n">theta0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="class2_angle"><a class="viewcode-back" href="../../pysimm.calc.html#pysimm.calc.class2_angle">[docs]</a><span class="k">def</span> <span class="nf">class2_angle</span><span class="p">(</span><span class="n">at</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">at</span><span class="o">.</span><span class="n">k2</span><span class="o">*</span><span class="nb">pow</span><span class="p">(</span><span class="n">d</span><span class="o">-</span><span class="n">at</span><span class="o">.</span><span class="n">theta0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">at</span><span class="o">.</span><span class="n">k3</span><span class="o">*</span><span class="nb">pow</span><span class="p">(</span><span class="n">d</span><span class="o">-</span><span class="n">at</span><span class="o">.</span><span class="n">theta0</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">+</span> <span class="n">at</span><span class="o">.</span><span class="n">k4</span><span class="o">*</span><span class="nb">pow</span><span class="p">(</span><span class="n">d</span><span class="o">-</span><span class="n">at</span><span class="o">.</span><span class="n">theta0</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="harmonic_dihedral"><a class="viewcode-back" href="../../pysimm.calc.html#pysimm.calc.harmonic_dihedral">[docs]</a><span class="k">def</span> <span class="nf">harmonic_dihedral</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">dt</span><span class="o">.</span><span class="n">k</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="n">dt</span><span class="o">.</span><span class="n">d</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dt</span><span class="o">.</span><span class="n">n</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">d</span><span class="p">)))</span></div>
+    
+<div class="viewcode-block" id="class2_dihedral"><a class="viewcode-back" href="../../pysimm.calc.html#pysimm.calc.class2_dihedral">[docs]</a><span class="k">def</span> <span class="nf">class2_dihedral</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">dt</span><span class="o">.</span><span class="n">k1</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">d</span><span class="p">)</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">dt</span><span class="o">.</span><span class="n">phi1</span><span class="p">)))</span> <span class="o">+</span>
+        <span class="n">dt</span><span class="o">.</span><span class="n">k2</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">d</span><span class="p">)</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">dt</span><span class="o">.</span><span class="n">phi2</span><span class="p">)))</span> <span class="o">+</span>
+        <span class="n">dt</span><span class="o">.</span><span class="n">k3</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">d</span><span class="p">)</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">dt</span><span class="o">.</span><span class="n">phi3</span><span class="p">)))</span>
+    <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="fourier_dihedral"><a class="viewcode-back" href="../../pysimm.calc.html#pysimm.calc.fourier_dihedral">[docs]</a><span class="k">def</span> <span class="nf">fourier_dihedral</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">k</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">n</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">d</span><span class="p">)</span><span class="o">-</span><span class="n">d_</span><span class="p">))</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">d_</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">dt</span><span class="o">.</span><span class="n">k</span><span class="p">,</span> <span class="n">dt</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="n">dt</span><span class="o">.</span><span class="n">d</span><span class="p">)]</span>
+    <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="harmonic_improper"><a class="viewcode-back" href="../../pysimm.calc.html#pysimm.calc.harmonic_improper">[docs]</a><span class="k">def</span> <span class="nf">harmonic_improper</span><span class="p">(</span><span class="n">it</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">it</span><span class="o">.</span><span class="n">k</span><span class="o">*</span><span class="nb">pow</span><span class="p">(</span><span class="n">d</span><span class="o">-</span><span class="n">it</span><span class="o">.</span><span class="n">x0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="cvff_improper"><a class="viewcode-back" href="../../pysimm.calc.html#pysimm.calc.cvff_improper">[docs]</a><span class="k">def</span> <span class="nf">cvff_improper</span><span class="p">(</span><span class="n">it</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">it</span><span class="o">.</span><span class="n">k</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="n">it</span><span class="o">.</span><span class="n">d</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">it</span><span class="o">.</span><span class="n">n</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">d</span><span class="p">)))</span></div>
 </pre></div>
 
+           </div>
+           <div class="articleComments">
+            
            </div>
           </div>
           <footer>
@@ -506,7 +579,8 @@
             VERSION:'0.1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: ''
         };
     </script>
       <script type="text/javascript" src="../../_static/jquery.js"></script>
