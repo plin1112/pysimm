@@ -577,7 +577,7 @@ class Simulation(object):
 
         self.input += 'quit\n'
 
-    def run(self, np=None, kokkos_gpus=None, gpu_gpus=None, nanohub=None, rewrite=True, init=True, write_input=False):
+    def run(self, np=None, kokkos_gpus=None, gpu_gpus=None, nanohub=None, rewrite=True, init=True, write_input=True):
         """pysimm.lmps.Simulation.run
 
         Begin LAMMPS simulation.
