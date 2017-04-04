@@ -685,7 +685,7 @@ def call_lammps(simulation, np, kokkos_gpus, gpu_gpus, nanohub):
                   % strftime('%H:%M:%S'))
         if kokkos_gpus:
             if np:
-                p = Popen(['mpiexec', '-np', np,
+                p = Popen(['mpiexec', '-np', str(np),
                            LAMMPS_EXEC, '-e', 'both', '-l', 'none',
                            '-k' 'on g 1', '-sf' 'kk', '-pk', 'kokkos'],
                           stdin=PIPE, stdout=PIPE, stderr=PIPE)
@@ -696,7 +696,7 @@ def call_lammps(simulation, np, kokkos_gpus, gpu_gpus, nanohub):
                           stdin=PIPE, stdout=PIPE, stderr=PIPE)
         elif gpu_gpus:
             if np:
-                p = Popen(['mpiexec', '-np', np,
+                p = Popen(['mpiexec', '-np', str(np),
                            LAMMPS_EXEC, '-e', 'both', '-l', 'none',
                            '-sf' 'gpu', '-pk', 'gpu', gpu_gpus],
                           stdin=PIPE, stdout=PIPE, stderr=PIPE)
