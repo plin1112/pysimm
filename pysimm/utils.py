@@ -82,18 +82,87 @@ class ItemContainer(Sequence):
             return data
         else:
             return None
+            
+    def continuous(self):
+        if max(self._dict.keys()) == self.count:
+            return True
+        else:
+            return False
+            
+    def update_tags(self):
+        items = self.all()
+        self._dict = {}
+        self.count = 0
+        for i in items:
+            del i.tag
+            self.add(i)
+            
+    def update_positions(self):
+        items = self.all()
+        self._dict = {}
+        self.count = 0
+        for item in items:
+            self.add(item)
+            
+    def replace(self, item=None, tag=None):
+        if not item:
+            error_print('must provide item to replace')
+            return None
+        
+        if not item.tag and not tag:
+            error_print('must provide tag to replace')
+            return None
+            
+        if tag:
+            item.tag = tag
+        
+        self.remove(item.tag, update=False)
+        return self.add(item)
+        
+            
+    def insert(self, item, tag=None):
+        if not item:
+            error_print('must provide item to insert')
+            return None
+        
+        if not item.tag and not tag:
+            error_print('must provide tag to insert')
+            return None
+            
+        if tag:
+            item.tag = tag
+            
+        if self._dict.get(item.tag):
+            for i in self[item.tag:]:
+                i.tag += 1
+        
+        self.update_positions()
+        self.add(item)
+                
+        return item
+            
 
     def add(self, _item):
-        if _item.tag is not None and self._dict.get(_item.tag) is None:
-            self._dict[_item.tag] = _item
-            self.count += 1
-        elif _item.tag is None and not self._dict.get(self.count+1):
-            self.count += 1
-            self._dict[self.count] = _item
-            self._dict[self.count].tag = self.count
+        if _item.tag is not None:
+            if self._dict.get(_item.tag) is None:
+                self._dict[_item.tag] = _item
+                self.count += 1
+            else:
+                debug_print('cannot add at index %s' % (_item.tag))
+                return None
         else:
-            debug_print('cannot add at index %s' % (self.count+1))
-            return None
+            if self.count == 0:
+                max_key = 0
+            else:
+                max_key = max(self._dict.keys())
+            if not self._dict.get(max_key+1):
+                max_key += 1
+                self.count += 1
+                _item.tag = max_key
+                self._dict[max_key] = _item
+            else:
+                debug_print('cannot add at index %s' % (max_key+1))
+                return None
         return _item
         
     def all(self):
@@ -116,6 +185,14 @@ class ItemContainer(Sequence):
                 return None
         else:
             return sorted(found, key=lambda x: x.name.count(wildcard))
+    
+    def by_item_attr(self, attr, value):
+        found = []
+        for item in self:
+            if getattr(item, attr) == value:
+                found.append(item)
+                
+        return found
 
     def get(self, *args, **kwargs):
         name = None
