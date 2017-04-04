@@ -577,7 +577,7 @@ class Simulation(object):
 
         self.input += 'quit\n'
 
-    def run(self, np=None, kokkos=None, nanohub=None, rewrite=True, init=True, write_input=False):
+    def run(self, np=None, kokkos_gpus=None, gpu_gpus=None, nanohub=None, rewrite=True, init=True, write_input=False):
         """pysimm.lmps.Simulation.run
 
         Begin LAMMPS simulation.
@@ -600,7 +600,7 @@ class Simulation(object):
             with file('pysimm.sim.in', 'w') as f:
                 f.write(self.input)
         try:
-            call_lammps(self, np, kokkos, nanohub)
+            call_lammps(self, np, kokkos_gpus, gpu_gpus, nanohub)
         except OSError as ose:
             raise PysimmError('There was a problem calling LAMMPS with mpiexec'), None, sys.exc_info()[2]
         except IOError as ioe:
@@ -650,7 +650,7 @@ def enqueue_output(out, queue):
     out.close()
 
 
-def call_lammps(simulation, np, kokkos, nanohub):
+def call_lammps(simulation, np, kokkos_gpus, gpu_gpus, nanohub):
     """pysimm.lmps.call_lammps
 
     Wrapper to call LAMMPS using executable name defined in pysimm.lmps module.
@@ -683,11 +683,28 @@ def call_lammps(simulation, np, kokkos, nanohub):
         else:
             print('%s: starting LAMMPS simulation'
                   % strftime('%H:%M:%S'))
-        if kokkos:
-            p = Popen(['mpiexec',
-                       LAMMPS_EXEC, '-e', 'both', '-l', 'none',
-                       '-k' 'on g 1', '-sf' 'kk', '-pk', 'kokkos'],
-                      stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        if kokkos_gpus:
+            if np:
+                p = Popen(['mpiexec', '-np', np,
+                           LAMMPS_EXEC, '-e', 'both', '-l', 'none',
+                           '-k' 'on g 1', '-sf' 'kk', '-pk', 'kokkos'],
+                          stdin=PIPE, stdout=PIPE, stderr=PIPE)
+            else:
+                p = Popen(['mpiexec',
+                           LAMMPS_EXEC, '-e', 'both', '-l', 'none',
+                           '-k' 'on g', kokkos_gpus, '-sf' 'kk', '-pk', 'kokkos'],
+                          stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        elif gpu_gpus:
+            if np:
+                p = Popen(['mpiexec', '-np', np,
+                           LAMMPS_EXEC, '-e', 'both', '-l', 'none',
+                           '-sf' 'gpu', '-pk', 'gpu', gpu_gpus],
+                          stdin=PIPE, stdout=PIPE, stderr=PIPE)
+            else:
+                p = Popen(['mpiexec',
+                           LAMMPS_EXEC, '-e', 'both', '-l', 'none',
+                           '-sf' 'gpu', '-pk', 'gpu', gpu_gpus],
+                          stdin=PIPE, stdout=PIPE, stderr=PIPE)
         elif np:
             p = Popen(['mpiexec', '-np', str(np),
                        LAMMPS_EXEC, '-e', 'both', '-l', 'none'],
