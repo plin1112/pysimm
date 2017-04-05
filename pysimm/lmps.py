@@ -713,7 +713,6 @@ def call_lammps(simulation, np, kokkos_gpus, gpu_gpus, nanohub):
         else:
             p = Popen([LAMMPS_EXEC, '-e', 'both', '-l', 'none'],
                       stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        simulation.write_input()
         p.stdin.write(simulation.input)
         q = Queue()
         t = Thread(target=enqueue_output, args=(p.stdout, q))
