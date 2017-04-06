@@ -416,10 +416,11 @@ class Gaff(Forcefield):
                 it = sorted(it, key=lambda x: x.name.count('X'))
                 if it:
                     all_types.add(it[0])
+                    bonded_to = p.bonded_to.get('all')
                     s.impropers.add(Improper(type_name=it[0].name,
-                                             a=p, b=p.bonded_to[0],
-                                             c=p.bonded_to[1],
-                                             d=p.bonded_to[2]))
+                                             a=p, b=bonded_to[0],
+                                             c=bonded_to[1],
+                                             d=bonded_to[2]))
 
         for it in all_types:
             it = it.copy()
