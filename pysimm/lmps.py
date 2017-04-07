@@ -388,8 +388,6 @@ class Minimization(object):
         self.dump_name = kwargs.get('dump_name')
         self.dump_append = kwargs.get('dump_append')
         
-        self.shake = kwargs.get('shake')
-        
         self.temp = kwargs.get('temp')
         
         if self.temp is None:
@@ -447,23 +445,6 @@ class Minimization(object):
         self.input += 'min_style %s\n' % self.min_style
         if self.dmax:
             self.input += 'min_modify dmax %s\n' % self.dmax
-
-        if self.shake and isinstance(self.shake, dict):
-            self.input += 'fix pysimm_shake all shake {tol} {itr} {stats}'.format(
-                tol=self.shake.get('tol', 0.0001),
-                itr=self.shake.get('iter', 20),
-                stats=self.shake.get('stats', 0)
-            )
-            if self.shake.get('bond_types'):
-                self.input += ' b {bt_tags}'.format(
-                    bt_tags = ' '.join(map(str, [bt.tag for bt in self.shake.get('bond_types')]))
-                )
-            if self.shake.get('angle_types'):
-                self.input += ' a {at_tags}'.format(
-                    at_tags = ' '.join(map(str, [at.tag for at in self.shake.get('angle_types')]))
-                )
-            self.input +='\n'
-            
         self.input += ('minimize %s %s %s %s\n' % (self.etol, self.ftol,
                                                    self.maxiter, self.maxeval))
         if self.dump:
