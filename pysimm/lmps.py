@@ -226,11 +226,11 @@ class MolecularDynamics(object):
                 itr=self.shake.get('iter', 20),
                 stats=self.shake.get('stats', 0)
             )
-            if self.shake.get('bond_types') and isinstance(self.shake.get('bond_types'), ItemContainer):
+            if self.shake.get('bond_types'):
                 self.input += ' b {bt_tags}'.format(
                     bt_tags = ' '.join(map(str, [bt.tag for bt in self.shake.get('bond_types')]))
                 )
-            if self.shake.get('angle_types') and isinstance(self.shake.get('angle_types'), ItemContainer):
+            if self.shake.get('angle_types'):
                 self.input += ' a {at_tags}'.format(
                     at_tags = ' '.join(map(str, [at.tag for at in self.shake.get('angle_types')]))
                 )
