@@ -170,6 +170,8 @@ class MolecularDynamics(object):
         self.dump_name = kwargs.get('dump_name')
         self.dump_append = kwargs.get('dump_append')
         
+        self.shake = kwargs.get('shake')
+        
         if self.temp is None:
             self.t_start = kwargs.get('t_start')
             self.t_stop = kwargs.get('t_stop')
@@ -217,6 +219,23 @@ class MolecularDynamics(object):
             self.input += 'thermo_style %s\n' % self.thermo_style
 
         self.input += 'timestep %s\n' % self.timestep
+
+        if self.shake and isinstance(self.shake, dict):
+            self.input += 'fix pysimm_shake all shake {tol} {itr} {stats}'.format(
+                tol=self.shake.get('tol', 0.0001),
+                itr=self.shake.get('iter', 20),
+                stats=self.shake.get('stats', 0)
+            )
+            if self.shake.get('bond_types') and isinstance(self.shake.get('bond_types'), ItemContainer):
+                self.input += ' b {bt_tags}'.format(
+                    bt_tags = ' '.join(map(str, [bt.tag for bt in self.shake.get('bond_types')]))
+                )
+            if self.shake.get('angle_types') and isinstance(self.shake.get('angle_types'), ItemContainer):
+                self.input += ' a {at_tags}'.format(
+                    at_tags = ' '.join(map(str, [at.tag for at in self.shake.get('angle_types')]))
+                )
+            self.input +='\n'
+            
 
         if self.ensemble == 'nvt':
             self.input += 'fix 1 all %s temp %s %s 100\n' % (self.ensemble, self.t_start, self.t_stop)
