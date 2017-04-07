@@ -77,6 +77,7 @@ class Pcff(Forcefield):
         """
         all_types = set()
         s.pair_style = self.pair_style
+        s.add_particle_bonding()
         for p in s.particles:
             p.bond_orders = [x.order for x in p.bonds]
             p.bond_elements = [x.a.elem if p is x.b else x.b.elem for x in
@@ -232,8 +233,8 @@ class Pcff(Forcefield):
         """
         all_types = set()
         s.angle_style = self.angle_style
+        s.add_particle_bonding()
         for p in s.particles:
-            p.bonded_to = [x.a if p is x.b else x.b for x in p.bonds]
             for p1 in p.bonded_to:
                 for p2 in p.bonded_to:
                     if p1 is not p2:
