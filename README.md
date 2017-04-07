@@ -1,4 +1,4 @@
-pysimm
+pysimm 
 ======
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](http://opensource.org/licenses/MIT)
@@ -19,7 +19,7 @@ git clone https://github.com/polysimtools/pysimm
 python pysimm/complete_install.py --pysimm $PWD
 ```
 
-This adds the pysimm package to your PYTHONPATH, and adds a pysimm command line tool to your PATH. 
+This adds the pysimm package to your PYTHONPATH, and adds a pysimm command line tool to your PATH. Parts of pysimm require the use of the numpy package. To use the complete_install script to install numpy as well, include the --apt-install command line argument.
 
 Integration with LAMMPS
 =======================
@@ -29,6 +29,7 @@ If you are using your own build of LAMMPS, be sure that the following packages w
   -  class2
   -  kspace
   -  user-misc
+  -  misc
   -  qeq
   -  manybody
 

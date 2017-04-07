@@ -13,6 +13,8 @@
 
   
   
+  
+  
 
   
 
@@ -30,6 +32,9 @@
   
 
   
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
     <link rel="top" title="pysimm 0.1 documentation" href="index.html"/>
         <link rel="up" title="pysimm package" href="pysimm.html"/>
         <link rel="next" title="pysimm.system module" href="pysimm.system.html"/>
@@ -42,6 +47,7 @@
 
 <body class="wy-body-for-nav" role="document">
 
+   
   <div class="wy-grid-for-nav">
 
     
@@ -82,7 +88,10 @@
           
             
             
-                <ul class="current">
+              
+            
+            
+              <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="pysimm.html">pysimm package</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="pysimm.html#subpackages">Subpackages</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="pysimm.html#submodules">Submodules</a><ul class="current">
@@ -94,7 +103,7 @@
 <li class="toctree-l3"><a class="reference internal" href="pysimm.utils.html">pysimm.utils module</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="pysimm.html#module-contents">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysimm.html#module-pysimm">Module contents</a></li>
 </ul>
 </li>
 </ul>
@@ -109,8 +118,10 @@
 
       
       <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
-        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="index.html">pysimm</a>
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">pysimm</a>
+        
       </nav>
 
 
@@ -119,25 +130,42 @@
         <div class="rst-content">
           
 
- 
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 <div role="navigation" aria-label="breadcrumbs navigation">
+
   <ul class="wy-breadcrumbs">
-    <li><a href="index.html">Docs</a> &raquo;</li>
-      
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
           <li><a href="pysimm.html">pysimm package</a> &raquo;</li>
-      
-    <li>pysimm.lmps module</li>
+        
+      <li>pysimm.lmps module</li>
+    
+    
       <li class="wy-breadcrumbs-aside">
         
-          
+            
             <a href="_sources/pysimm.lmps.txt" rel="nofollow"> View page source</a>
           
         
       </li>
+    
   </ul>
+
+  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
@@ -290,6 +318,12 @@
 <dt id="pysimm.lmps.MolecularDynamics.pressure">
 <code class="descname">pressure</code><a class="headerlink" href="#pysimm.lmps.MolecularDynamics.pressure" title="Permalink to this definition">¶</a></dt>
 <dd><p>pressure for use with &#8216;npt&#8217;</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pysimm.lmps.MolecularDynamics.pressure_iso">
+<code class="descname">pressure_iso</code><a class="headerlink" href="#pysimm.lmps.MolecularDynamics.pressure_iso" title="Permalink to this definition">¶</a></dt>
+<dd><p>True to require box dimensions change isotropically, False to allow dimensions to change independently (False by default)</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -549,8 +583,13 @@ pysimm.lmps.MolecularDynamics, pysimm.lmps.Minimization, and/or pysimm.lmps.Cust
 </dd></dl>
 
 <dl class="method">
+<dt id="pysimm.lmps.Simulation.plot_results">
+<code class="descname">plot_results</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/lmps.html#Simulation.plot_results"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.lmps.Simulation.plot_results" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="pysimm.lmps.Simulation.run">
-<code class="descname">run</code><span class="sig-paren">(</span><em>np=None</em>, <em>nanohub=None</em>, <em>rewrite=True</em>, <em>write_input=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/lmps.html#Simulation.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.lmps.Simulation.run" title="Permalink to this definition">¶</a></dt>
+<code class="descname">run</code><span class="sig-paren">(</span><em>np=None</em>, <em>kokkos=None</em>, <em>nanohub=None</em>, <em>rewrite=True</em>, <em>init=True</em>, <em>write_input=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/lmps.html#Simulation.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.lmps.Simulation.run" title="Permalink to this definition">¶</a></dt>
 <dd><p>Begin LAMMPS simulation.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -560,6 +599,7 @@ pysimm.lmps.MolecularDynamics, pysimm.lmps.Minimization, and/or pysimm.lmps.Cust
 <li><strong>np</strong> &#8211; number of threads to use (serial by default) default=None</li>
 <li><strong>nanohub</strong> &#8211; dictionary containing nanohub resource information default=None</li>
 <li><strong>rewrite</strong> &#8211; True to rewrite input before running default=True</li>
+<li><strong>init</strong> &#8211; True to write initialization part of LAMMPS input script (set to False if using complete custom input)</li>
 </ul>
 </td>
 </tr>
@@ -569,7 +609,7 @@ pysimm.lmps.MolecularDynamics, pysimm.lmps.Minimization, and/or pysimm.lmps.Cust
 
 <dl class="method">
 <dt id="pysimm.lmps.Simulation.write_input">
-<code class="descname">write_input</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/lmps.html#Simulation.write_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.lmps.Simulation.write_input" title="Permalink to this definition">¶</a></dt>
+<code class="descname">write_input</code><span class="sig-paren">(</span><em>init=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/lmps.html#Simulation.write_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.lmps.Simulation.write_input" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates LAMMPS input string including initialization and input from templates/custom input</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -585,9 +625,31 @@ pysimm.lmps.MolecularDynamics, pysimm.lmps.Minimization, and/or pysimm.lmps.Cust
 
 </dd></dl>
 
+<dl class="class">
+<dt id="pysimm.lmps.SteeredMolecularDynamics">
+<em class="property">class </em><code class="descclassname">pysimm.lmps.</code><code class="descname">SteeredMolecularDynamics</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/lmps.html#SteeredMolecularDynamics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.lmps.SteeredMolecularDynamics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pysimm.lmps.MolecularDynamics" title="pysimm.lmps.MolecularDynamics"><code class="xref py py-class docutils literal"><span class="pre">pysimm.lmps.MolecularDynamics</span></code></a></p>
+<dl class="method">
+<dt id="pysimm.lmps.SteeredMolecularDynamics.write">
+<code class="descname">write</code><span class="sig-paren">(</span><em>sim</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/lmps.html#SteeredMolecularDynamics.write"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.lmps.SteeredMolecularDynamics.write" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create LAMMPS input for a steered molecular dynamics simulation.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>sim</strong> &#8211; pysimm.lmps.Simulation object reference</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">input string</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="function">
 <dt id="pysimm.lmps.call_lammps">
-<code class="descclassname">pysimm.lmps.</code><code class="descname">call_lammps</code><span class="sig-paren">(</span><em>simulation</em>, <em>np</em>, <em>nanohub</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/lmps.html#call_lammps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.lmps.call_lammps" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pysimm.lmps.</code><code class="descname">call_lammps</code><span class="sig-paren">(</span><em>simulation</em>, <em>np</em>, <em>kokkos</em>, <em>nanohub</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/lmps.html#call_lammps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.lmps.call_lammps" title="Permalink to this definition">¶</a></dt>
 <dd><p>Wrapper to call LAMMPS using executable name defined in pysimm.lmps module.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -608,14 +670,37 @@ pysimm.lmps.MolecularDynamics, pysimm.lmps.Minimization, and/or pysimm.lmps.Cust
 </dd></dl>
 
 <dl class="function">
+<dt id="pysimm.lmps.check_lmps_exec">
+<code class="descclassname">pysimm.lmps.</code><code class="descname">check_lmps_exec</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/lmps.html#check_lmps_exec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.lmps.check_lmps_exec" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
 <dt id="pysimm.lmps.energy">
 <code class="descclassname">pysimm.lmps.</code><code class="descname">energy</code><span class="sig-paren">(</span><em>s</em>, <em>all=False</em>, <em>np=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/lmps.html#energy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.lmps.energy" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Convenience function to calculate energy of a given System object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>s</strong> &#8211; system to calculate energy</li>
+<li><strong>all</strong> &#8211; returns decomposition of energy if True (default: False)</li>
+<li><strong>np</strong> &#8211; number of threads to use for simulation</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">total energy or disctionary of energy components</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="function">
 <dt id="pysimm.lmps.enqueue_output">
 <code class="descclassname">pysimm.lmps.</code><code class="descname">enqueue_output</code><span class="sig-paren">(</span><em>out</em>, <em>queue</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/lmps.html#enqueue_output"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.lmps.enqueue_output" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Helps queue output for printing to screen during simulation.</p>
+</dd></dl>
 
 <dl class="function">
 <dt id="pysimm.lmps.md">
@@ -698,6 +783,11 @@ pysimm.lmps.MolecularDynamics, pysimm.lmps.Minimization, and/or pysimm.lmps.Cust
 </dd></dl>
 
 <dl class="function">
+<dt id="pysimm.lmps.read_log">
+<code class="descclassname">pysimm.lmps.</code><code class="descname">read_log</code><span class="sig-paren">(</span><em>fname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/lmps.html#read_log"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.lmps.read_log" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
 <dt id="pysimm.lmps.relax">
 <code class="descclassname">pysimm.lmps.</code><code class="descname">relax</code><span class="sig-paren">(</span><em>s</em>, <em>template=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pysimm/lmps.html#relax"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pysimm.lmps.relax" title="Permalink to this definition">¶</a></dt>
 <dd><p>pysimm.lmps.md</p>
@@ -732,15 +822,18 @@ nb_cut: cutoff for nonbonded interactions default=12</li>
 
 
            </div>
+           <div class="articleComments">
+            
+           </div>
           </div>
           <footer>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="pysimm.system.html" class="btn btn-neutral float-right" title="pysimm.system module" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="pysimm.system.html" class="btn btn-neutral float-right" title="pysimm.system module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="pysimm.cli.html" class="btn btn-neutral" title="pysimm.cli module" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="pysimm.cli.html" class="btn btn-neutral" title="pysimm.cli module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -774,7 +867,8 @@ nb_cut: cutoff for nonbonded interactions default=12</li>
             VERSION:'0.1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: ''
         };
     </script>
       <script type="text/javascript" src="_static/jquery.js"></script>

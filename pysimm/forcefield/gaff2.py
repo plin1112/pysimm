@@ -276,7 +276,7 @@ class Gaff2(Forcefield):
     def assign_atypes(self, s):
         """pysimm.forcefield.Gaff2.assign_atypes
 
-        Gaff2 specific boanglend typing rules.
+        Gaff2 specific angle typing rules.
         Requires System object Particle objects have Particle.bonds, Particle.type
         and Particle.type.name defined.
         *** use after assign_ptypes ***
@@ -394,7 +394,6 @@ class Gaff2(Forcefield):
         """pysimm.forcefield.Gaff2.assign_itypes
 
         Gaff2 specific improper typing rules.
-        There are none.
 
         Args:
             s: pysimm.system.System
@@ -406,19 +405,25 @@ class Gaff2(Forcefield):
         s.improper_style = self.improper_style
         for p in s.particles:
             if len(p.bonded_to) == 3:
+                it = []
                 for perm in permutations(p.bonded_to, 3):
                     p1_name = perm[0].type.eq_improper or perm[0].type.name
                     p2_name = perm[1].type.eq_improper or perm[1].type.name
                     p3_name = perm[2].type.eq_improper or perm[2].type.name
-                    it = self.improper_types.get(','.join([p.type.name, p1_name,
-                                                           p2_name, p3_name]), order=True)
-                    if it:
-                        all_types.add(it[0])
-                        s.impropers.add(Improper(type_name=it[0].name,
-                                                 a=p, b=p.bonded_to[0],
-                                                 c=p.bonded_to[1],
-                                                 d=p.bonded_to[2]))
-                        break
+                    it.extend(
+                        self.improper_types.get(
+                            ','.join([p.type.name, p1_name, p2_name, p3_name]), 
+                            order=True
+                        )
+                    )
+                it = sorted(it, key=lambda x: x.name.count('X'))
+                if it:
+                    all_types.add(it[0])
+                    bonded_to = p.bonded_to.all()
+                    s.impropers.add(Improper(type_name=it[0].name,
+                                             a=p, b=bonded_to[0],
+                                             c=bonded_to[1],
+                                             d=bonded_to[2]))
 
         for it in all_types:
             it = it.copy()

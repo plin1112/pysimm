@@ -6,6 +6,7 @@ Submodules
 
 .. toctree::
 
+   pysimm.forcefield.cgenff
    pysimm.forcefield.dreiding
    pysimm.forcefield.forcefield
    pysimm.forcefield.gaff

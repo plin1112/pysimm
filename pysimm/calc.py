@@ -2,10 +2,6 @@
 # pysimm.calc module
 # ******************************************************************************
 #
-# vector rotation
-# particle separation distance
-# particle separation distance considering PBC
-#
 # ******************************************************************************
 # License
 # ******************************************************************************
@@ -48,27 +44,6 @@ from pysimm.utils import Item
 from pysimm.utils import ItemContainer
 
 
-def hyperbola(x, a, b, c, d, e):
-    if not np:
-        raise PysimmError('pysimm.calc.hyperbola function requires numpy')
-    #   hyperbola(x) with parameters
-    #   a/b = asymptotic slope
-    #    c  = curvature at vertex
-    #    d  = offset to vertex
-    #    e  = vertical offset
-    return a*np.sqrt((b*c)**2 + (x-d)**2)/b + e
-
-
-def rot_hyperbola(x, a, b, c, d, e, th):
-    if not np:
-        raise PysimmError('pysimm.calc.rot_hyperbola function requires numpy')
-    pars = a, b, c, 0, 0  # do the shifting after rotation
-    xd = x - d
-    hsin = hyperbola(xd, *pars)*np.sin(th)
-    xcos = xd*np.cos(th)
-    return e + hyperbola(xcos - hsin, *pars)*np.cos(th) + xcos - hsin
-
-
 def intersection(line1, line2):
     """pysimm.calc.intersection
 
@@ -99,7 +74,7 @@ def intersection(line1, line2):
 def find_rotation(a, b):
     """pysimm.calc.find_rotation
 
-    Finds rotation vector required to align a and b
+    Finds rotation vector required to align vector a and vector b
 
     Args:
         a: 3D vector [x,y,z]
@@ -129,7 +104,7 @@ def find_rotation(a, b):
 def rotate_vector(x, y, z, theta_x=None, theta_y=None, theta_z=None):
     """pysimm.calc.rotate_vector
 
-    Rotates vector
+    Rotates 3d vector around x-axis, y-axis and z-axis given by user defined angles
 
     Args:
         x: x vector component
@@ -169,7 +144,7 @@ def rotate_vector(x, y, z, theta_x=None, theta_y=None, theta_z=None):
 def distance(p1, p2):
     """pysimm.calc.distance
 
-    Finds distance between two pysimm.system.Particle objects
+    Finds distance between two pysimm.system.Particle objects. Simply calculates length of vector between particle coordinates and does not consider periodic boundary conditions.
 
     Args:
         p1: pysimm.system.Particle
@@ -185,7 +160,7 @@ def distance(p1, p2):
 def angle(p1, p2, p3, radians=False):
     """pysimm.calc.angle
 
-    Finds angle between three pysimm.system.Particle objects
+    Finds angle between three pysimm.system.Particle objects. Does not consider periodic boundary conditions.
 
     Args:
         p1: pysimm.system.Particle
@@ -198,7 +173,7 @@ def angle(p1, p2, p3, radians=False):
     p12 = distance(p1, p2)
     p23 = distance(p2, p3)
     p13 = distance(p1, p3)
-    theta = acos((pow(p12, 2)+pow(p23, 2)-pow(p13, 2))/(2*p13*p23))
+    theta = acos((pow(p12, 2)+pow(p23, 2)-pow(p13, 2))/(2*p12*p23))
     if not radians:
         theta = theta * 180 / pi
     return theta
@@ -207,15 +182,19 @@ def angle(p1, p2, p3, radians=False):
 def chiral_angle(a, b, c, d):
     """pysimm.calc.chiral_angle
 
-    Finds chiral angle between four pysimm.system.Particle objects
-
+    Finds chiral angle between four pysimm.system.Particle objects. Chiral angle is defined as the angle between the vector resulting from vec(a->c) X vec(a->d) and vec(a->b). Used to help define tacticity where backbone follow b'--a--b and c and d are side groups.
+           
+       b'--a--b
+          / \
+         c   d
+    
     Args:
         a: pysimm.system.Particle
         b: pysimm.system.Particle
         c: pysimm.system.Particle
         d: pysimm.system.Particle
     Returns:
-        chiral angle for particles
+        chiral angle
     """
     if not np:
         raise PysimmError('pysimm.calc.chiral_angle function requires numpy')
@@ -244,7 +223,7 @@ def tacticity(s, a_tag=None, b_tag=None, c_tag=None, d_tag=None, offset=None, re
               rewrap=True, skip_first=False):
     """pysimm.calc.tacticity
 
-    Determines tacticity for polymer chain
+    Determines tacticity for polymer chain. Iterates through groups of four patricles given by X_tags, using offset. This assumes equivalent atoms in each group of four are perfectly offset.
 
     Args:
         s: pysimm.system.System
@@ -319,7 +298,7 @@ def tacticity(s, a_tag=None, b_tag=None, c_tag=None, d_tag=None, offset=None, re
 def frac_free_volume(v_sp, v_void):
     """pysimm.calc.frac_free_volume
 
-    Determines fractional free volume for a poroous system
+    Determines fractional free volume for a poroous system.
 
     Args:
         v_sp: specific volume
@@ -360,3 +339,45 @@ def pbc_distance(s, p1, p2):
     dz = frac_d[2] * s.dim.dz
 
     return np.linalg.norm([dx, dy, dz])
+
+def LJ_12_6(pt, d):
+    return 4*pt.epsilon*(pow(pt.sigma/d,12)-pow(pt.sigma/d, 6))
+    
+def LJ_9_6(pt, d):
+    return pt.epsilon*(2*pow(pt.sigma/d,12)-3*pow(pt.sigma/d, 6))
+    
+def buckingham(pt, d):
+    return pt.a*np.exp(-d/pt.rho)-(pt.c/pow(d, 6))
+    
+def harmonic_bond(bt, d):
+    return bt.k*pow(d-bt.r0, 2)
+    
+def class2_bond(bt, d):
+    return bt.k2*pow(d-bt.r0, 2) + bt.k3*pow(d-bt.r0, 3) + bt.k4*pow(d-bt.r0, 4)
+    
+def harmonic_angle(at, d):
+    return at.k*pow(d-at.theta0, 2)
+    
+def class2_angle(at, d):
+    return at.k2*pow(d-at.theta0, 2) + at.k3*pow(d-at.theta0, 3) + at.k4*pow(d-at.theta0, 4)
+    
+def harmonic_dihedral(dt, d):
+    return dt.k*(1+dt.d*np.cos(dt.n*np.radians(d)))
+    
+def class2_dihedral(dt, d):
+    return (
+        dt.k1*(1-np.cos(np.radians(d)-np.radians(dt.phi1))) +
+        dt.k2*(1-np.cos(np.radians(d)-np.radians(dt.phi2))) +
+        dt.k3*(1-np.cos(np.radians(d)-np.radians(dt.phi3)))
+    )
+    
+def fourier_dihedral(dt, d):
+    return np.sum(
+        [k*(1 + np.cos(n*np.radians(d)-d_)) for k, n, d_ in zip(dt.k, dt.n, dt.d)]
+    )
+    
+def harmonic_improper(it, d):
+    return it.k*pow(d-it.x0, 2)
+    
+def cvff_improper(it, d):
+    return it.k*(1+it.d*np.cos(it.n*np.radians(d)))

@@ -2,11 +2,6 @@
 # pysimm.utils module
 # ******************************************************************************
 #
-# Container class definition
-# Item class definition
-# ItemContainer(Sequence) class deinition
-# comma separated string compare
-#
 # ******************************************************************************
 # License
 # ******************************************************************************
@@ -41,17 +36,23 @@ from pysimm import debug_print
 
 
 class PysimmError(Exception):
-    def __init__(self, *args, **kwargs):
-        Exception.__init__(self, *args, **kwargs)
+    pass
 
 
 class Container(object):
+    """pysimm.utils.Container
 
+    Abitrary container object that returns None if trying to access an attribute that does not exist
+    """
     def __getattr__(self, name):
         return None
 
 
 class ItemContainer(Sequence):
+    """pysimm.utils.ItemContainer
+
+    Container object intended to organize Item objects. Arbitrary attributes can be set using keyword arguments. Underlying data structure is a dictionary where the key is referred to as a tag, and the value should be an Item object. Item.tag should equal the key for the object in the dictionary.
+    """
     def __init__(self, _dict=None, **kwargs):
         self._dict = _dict or {}
         self.count = len(_dict) if _dict else 0
@@ -73,27 +74,125 @@ class ItemContainer(Sequence):
                 return self._dict.get(self.count + slice_ + 1)
         elif isinstance(slice_, slice):
             data = []
-            start, stop, step = slice_.indices(len(self._dict))
-            for i in xrange(start+1, stop+1, step):
+            start, stop, step = slice_.indices(len(self._dict)+1)
+            for i in xrange(start, stop+1, step):
                 item = self._dict.get(i)
                 if item:
                     data.append(item)
             return data
         else:
             return None
+            
+    def continuous(self):
+        if max(self._dict.keys()) == self.count:
+            return True
+        else:
+            return False
+            
+    def update_tags(self):
+        items = self.all()
+        self._dict = {}
+        self.count = 0
+        for i in items:
+            del i.tag
+            self.add(i)
+            
+    def update_positions(self):
+        items = self.all()
+        self._dict = {}
+        self.count = 0
+        for item in items:
+            self.add(item)
+            
+    def replace(self, item=None, tag=None):
+        if not item:
+            error_print('must provide item to replace')
+            return None
+        
+        if not item.tag and not tag:
+            error_print('must provide tag to replace')
+            return None
+            
+        if tag:
+            item.tag = tag
+        
+        self.remove(item.tag, update=False)
+        return self.add(item)
+        
+            
+    def insert(self, item, tag=None):
+        if not item:
+            error_print('must provide item to insert')
+            return None
+        
+        if not item.tag and not tag:
+            error_print('must provide tag to insert')
+            return None
+            
+        if tag:
+            item.tag = tag
+            
+        if self._dict.get(item.tag):
+            for i in self[item.tag:]:
+                i.tag += 1
+        
+        self.update_positions()
+        self.add(item)
+                
+        return item
+            
 
     def add(self, _item):
-        if _item.tag is not None and self._dict.get(_item.tag) is None:
-            self._dict[_item.tag] = _item
-            self.count += 1
-        elif _item.tag is None and not self._dict.get(self.count+1):
-            self.count += 1
-            self._dict[self.count] = _item
-            self._dict[self.count].tag = self.count
+        if _item.tag is not None:
+            if self._dict.get(_item.tag) is None:
+                self._dict[_item.tag] = _item
+                self.count += 1
+            else:
+                debug_print('cannot add at index %s' % (_item.tag))
+                return None
         else:
-            debug_print('cannot add at index %s' % (self.count+1))
-            return None
+            if self.count == 0:
+                max_key = 0
+            else:
+                max_key = max(self._dict.keys())
+            if not self._dict.get(max_key+1):
+                max_key += 1
+                self.count += 1
+                _item.tag = max_key
+                self._dict[max_key] = _item
+            else:
+                debug_print('cannot add at index %s' % (max_key+1))
+                return None
         return _item
+        
+    def all(self):
+        return self._dict.values()
+        
+    def by_item_name(self, name, exact=False, order=False, wildcard='X', improper_type=False):
+        found = []
+        for item in self:
+            if item.name == name or (not order and item.rname == name):
+                found.append(item)
+            elif not exact:
+                if compare(name, item.name, query_wildcard=wildcard, order=order, improper_type=improper_type):
+                    found.append(item)
+        if exact:
+            if found and len(found) == 1:
+                return found[0]
+            elif len(found) > 1:
+                print('error: found multiple items with name {}'.format(name))
+            else:
+                return None
+        else:
+            return sorted(found, key=lambda x: x.name.count(wildcard))
+    
+    def by_item_attr(self, attr, value):
+        found = []
+        for item in self:
+            if getattr(item, attr) == value:
+                found.append(item)
+                
+        return found
 
     def get(self, *args, **kwargs):
         name = None
@@ -140,7 +239,7 @@ class ItemContainer(Sequence):
                     found.append(item)
                     if first:
                         return found
-        return found
+        return sorted(found, key=lambda x: x.name.count('X'))
 
     def remove(self, index, update=True):
         if index == 'all':

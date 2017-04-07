@@ -33,15 +33,12 @@ from xml.dom import minidom
 from xml.etree import ElementTree as Et
 from itertools import permutations, combinations
 
-from pysimm import error_print
-from pysimm import warning_print
-from pysimm import debug_print
 import gasteiger
+from pysimm import error_print, warning_print, debug_print
 from pysimm.utils import PysimmError, Item, ItemContainer, compare
-from pysimm.system import ParticleContainer
-from pysimm.system import ParticleType, BondType, AngleType
-from pysimm.system import Angle, Dihedral, Improper
-from pysimm.system import DihedralType, ImproperType
+from pysimm.system import (ParticleType, BondType, AngleType,
+    DihedralType, ImproperType, ParticleTypeContainer, BondTypeContainer, 
+    AngleTypeContainer, DihedralTypeContainer, ImproperTypeContainer)
 
 
 element_names_by_mass = {1: 'H', 4: 'He', 7: 'Li', 9: 'Be', 11: 'B', 12: 'C',
@@ -69,15 +66,15 @@ class Forcefield(object):
         self.ff_class = 0
         self.ff_name = ''
         self.pair_style = None
-        self.particle_types = ParticleContainer()
+        self.particle_types = ParticleTypeContainer()
         self.bond_style = None
-        self.bond_types = ItemContainer()
+        self.bond_types = BondTypeContainer()
         self.angle_style = None
-        self.angle_types = ItemContainer()
+        self.angle_types = AngleTypeContainer()
         self.dihedral_style = None
-        self.dihedral_types = ItemContainer()
+        self.dihedral_types = DihedralTypeContainer()
         self.improper_style = None
-        self.improper_types = ItemContainer()
+        self.improper_types = ImproperTypeContainer()
 
         if file_:
             if format == 'json' or file_.split('.')[-1] == 'json':

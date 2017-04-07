@@ -33,30 +33,31 @@ import os
 import re
 import sys
 import json
-from xml.etree import ElementTree as Et
 from random import random
 from StringIO import StringIO
-from urllib2 import urlopen, HTTPError, URLError
 from itertools import permutations
+from xml.etree import ElementTree as Et
+from urllib2 import urlopen, HTTPError, URLError
 from math import sin, cos, sqrt, pi, acos, floor, ceil
-
 
 try:
     from subprocess import call
 except ImportError:
     call = None
+    
 try:
     import numpy as np
 except ImportError:
     np = None
 
 from pysimm import calc
+from pysimm import debug_print
+from pysimm import PysimmError
 from pysimm import error_print
 from pysimm import warning_print
 from pysimm import verbose_print
-from pysimm import debug_print
-from pysimm import PysimmError
 from pysimm.calc import rotate_vector
+import pysimm.utils as utils
 from pysimm.utils import PysimmError, Item, ItemContainer
 
 
@@ -97,41 +98,6 @@ class Particle(Item):
         else:
             error_print('style %s not supported yet' % style)
             return False
-            
-    def environment(self):
-        e = Item()
-        e.elem = self.elem
-        e.nbonds = self.bonds.count
-        e.bonded_elem = [p.elem for p in self.get_bonded_particles()]
-        self.env = e
-        
-    def assign_type(self, f):
-        possible_types = f.particle_types.subset(**vars(self.env))
-        if possible_types.count == 1:
-            self.type_name = iter(possible_types).next().name
-        else:
-            print('particle {} possible types: {}'.format(self.tag, ', '.join([pt.name for pt in possible_types])))
-            
-    def get_bonded_particles(self):
-        return [b.a if b.b is self else b.b for b in self.bonds]
-            
-    def in_ring(self, max_size=6):
-        '''buggggggggy'''
-        network = [[self]]
-        n_set = set([self])
-        network.append(self.get_bonded_particles())
-        for p in self.get_bonded_particles():
-            n_set.add(p)
-        for n in range(max_size - 1):
-            network.append([])
-            for p in network[-2]:
-                for pb in p.get_bonded_particles():
-                    if pb is p:
-                        return n + 2
-                    if pb not in n_set:
-                        n_set.add(pb)
-                        network[-1].append(pb)
-        return network
 
     def delete_bonding(self, s):
         """pysimm.system.Particle.delete_bonding
@@ -217,52 +183,110 @@ class ParticleType(Item):
     def __init__(self, **kwargs):
         Item.__init__(self, **kwargs)
         
-        
-class ParticleContainer(ItemContainer):
-    def __init__(self, _dict=None, **kwargs):
-        ItemContainer.__init__(self, _dict, **kwargs)
-        
-    def subset(self, elem=None, nbonds=None, bonded_elem=None, aromatic=None, hyb=None, united_atom=None):
-        result = ParticleContainer()
-        
-        for pt in self:
-            pt_ = pt.copy()
-            pt_.tag=pt_.name
-            result.add(pt_)
+    def write_lammps(self, style='lj'):
+        """pysimm.system.ParticleType.write_lammps
+
+        Formats a string to define particle type coefficients for a LAMMPS 
+        data file given the provided style.
+
+        Args:
+            style: string for pair style of ParticleType (lj, class2, mass, buck)
+
+        Returns:
+            LAMMPS formatted string with pair coefficients
+        """
+        if style.startswith('lj'):
+            return '{:4}\t{}\t{}\t# {}\n'.format(
+                self.tag, self.epsilon, self.sigma, self.name
+            )
+        elif style.startswith('class2'):
+            return '{:4}\t{}\t{}\t# {}\n'.format(
+                self.tag, self.epsilon, self.sigma, self.name
+            )
+        elif style.startswith('mass'):
+            return '{:4}\t{}\t# {}\n'.format(
+                self.tag, self.mass, self.name
+            )
+        elif style.startswith('buck'):
+            return '{:4}\t{}\t{}\t{}\t# {}\n'.format(
+                self.tag, self.a, self.rho, self.c, self.name
+            )
             
-        result.refine(elem, nbonds, bonded_elem, aromatic, hyb, united_atom)
-        return result
-            
-    def refine(self, elem=None, nbonds=None, bonded_elem=None, aromatic=None, hyb=None, united_atom=None):
-        if elem:
-            for pt in self:
-                if pt.elem != elem:
-                    self.remove(pt.tag, update=False)
-        if nbonds:
-            for pt in self:
-                if pt.nbonds and pt.nbonds != nbonds:
-                    self.remove(pt.tag, update=False)
-        if bonded_elem:
-            for pt in self:
-                for e in bonded_elem:
-                    if pt.bonded_elem and pt.bonded_elem.count(e) != bonded_elem.count(e):
-                        self.remove(pt.tag, update=False)
-        if hyb:
-            for pt in self:
-                if pt.hyb and pt.hyb != hyb:
-                    self.remove(pt.tag, update=False)
-        if aromatic is not None:
-            for pt in self:
-                if pt.aromatic is not None and pt.aromatic != aromatic:
-                    self.remove(pt.tag, update=False)
-        if united_atom is not None:
-            for pt in self:
-                if (united_atom is True and not pt.united_atom) or (united_atom is False and pt.united_atom is True):
-                    self.remove(pt.tag, update=False)
+    def form(self, style='lj_12-6', d_range=None):
+        """pysimm.system.ParticleType.form
+
+        Returns data to plot functional form for the potential energy with 
+        the given style.
+
+        Args:
+            style: string for pair style of ParticleType (lj_12-6, lj_9-6, buck)
+
+        Returns:
+            x, y for plotting functional form (energy vs distance)
+        """
+        if not d_range:
+            d_range = np.linspace(0.1, 8, 79)
+        if style == 'lj_12-6':
+            e = np.array([calc.LJ_12_6(self, d) for d in d_range])
+            return d_range, e
+        elif style == 'lj_9-6':
+            e = np.array([calc.LJ_9_6(self, d) for d in d_range])
+            return d_range, e
+        elif style.startswith('buck'):
+            e = np.array([calc.buckingham(self, d) for d in d_range])
+            return d_range, e
+
+
+class ParticleTypeContainer(ItemContainer):
+    """pysimm.system.ParticleTypeContainer
+
+    This class inherits from pysimm.utils.ItemContainer and defines custom 
+    behavior for methods to retrieve ParticleType objects from the container.
+    """
+    def __init__(self, **kwargs):
+        ItemContainer.__init__(self, **kwargs)
+    
+    
+    def by_name(self, name):
+        """pysimm.system.ParticleTypeContainer.by_name
+
+        Retrieves a ParticleType object from the container with the given name. 
+        Only one ParticleType is returned, since names should be unique within 
+        a container.
+
+        Args:
+            name: string for particle type name
+
+        Returns:
+            ParticleType object in the container with the given name
+        """
+        return self.by_item_name(name, exact=True)
+    
+    def by_elem(self, elem):
+        """pysimm.system.ParticleTypeContainer.by_elem
+
+        Retrieves ParticleType objects from the container with the given elem
+        attribute. A list of ParticleType objects is returned.
+
+        Args:
+            elem: string for particle type elem attribute
+
+        Returns:
+            List of ParticleType objects in the container with the given elem
+        """
+        found = []
+        for item in self:
+            if item.elem == elem:
+                found.append(item)
+        return found
 
 
 class Bond(Item):
     """pysimm.system.Bond
+    
+    Bond between particle a and b
+    
+    a--b
 
     Objects inheriting from pysimm.utils.Item can contain arbitrary data.
     Keyword arguments are assigned as attributes.
@@ -277,10 +301,16 @@ class Bond(Item):
         Item.__init__(self, **kwargs)
         
     def get_other_particle(self, p):
-        if p is not b.a and p is not b.b:
+        if p is not self.a and p is not self.b:
             return None
         else:
-            return b.a if p is b.b else b.b
+            return self.a if p is self.b else self.b
+            
+    def ptype_name(self):
+        if self.a.type is None or self.b.type is None:
+            return None
+        else:
+            return '{},{}'.format(self.a.type.name, self.b.type.name)
 
     def distance(self):
         """pysimm.system.Bond.distance
@@ -317,10 +347,83 @@ class BondType(Item):
         Item.__init__(self, **kwargs)
         if self.name:
             self.rname = ','.join(reversed(self.name.split(',')))
+            
+    def write_lammps(self, style='harmonic'):
+        """pysimm.system.BondType.write_lammps
+
+        Formats a string to define bond type coefficients for a LAMMPS 
+        data file given the provided style.
+
+        Args:
+            style: string for pair style of BondType (harmonic, class2)
+
+        Returns:
+            LAMMPS formatted string with bond coefficients
+        """
+        if style.startswith('harm'):
+            return '{:4}\t{}\t{}\t# {}\n'.format(
+                self.tag, self.k, self.r0, self.name
+            )
+        elif style.startswith('class2'):
+            return '{:4}\t{}\t{}\t{}\t{}\t# {}\n'.format(
+                self.tag, self.r0, self.k2, self.k3, self.k4, self.name
+            )
+
+    def form(self, style='harmonic', d_range=None):
+        """pysimm.system.BondType.form
+
+        Returns data to plot functional form for the potential energy with 
+        the given style.
+
+        Args:
+            style: string for pair style of BondType (harmonic, class2)
+
+        Returns:
+            x, y for plotting functional form (energy vs distance)
+        """
+        if not d_range:
+            d_range = np.linspace(self.r0-0.5, self.r0+0.5, 100)
+        if style == 'harmonic':
+            e = np.array([calc.harmonic_bond(self, d) for d in d_range])
+            return d_range, e
+        elif style == 'class2':
+            e = np.array([calc.class2_bond(self, d) for d in d_range])
+            return d_range, e
+
+
+class BondTypeContainer(ItemContainer):
+    """pysimm.system.BondTypeContainer
+
+    This class inherits from pysimm.utils.ItemContainer and defines custom 
+    behavior for methods to retrieve BondType objects from the container.
+    """
+    def __init__(self, **kwargs):
+        ItemContainer.__init__(self, **kwargs)
+        
+    def by_name(self, name, **kwargs):
+        """pysimm.system.BondTypeContainer.by_name
+
+        Retrieves a BondType object from the container with the given name. 
+        By default, wildcards are supported using 'X', and therefore the 
+        default behavior is to return a list of BondType objects that satisfy 
+        the query. If looking for one specific type, use the keyword exact=True
+        to have only one item returned.
+
+        Args:
+            name: string for bond type name
+
+        Returns:
+            BondType object in the container with the given name
+        """
+        return self.by_item_name(name, **kwargs)
 
 
 class Angle(Item):
     """pysimm.system.Angle
+    
+    Angle between particles a, b, and c
+    
+    a--b--c
 
     Objects inheriting from pysimm.utils.Item can contain arbitrary data.
     Keyword arguments are assigned as attributes.
@@ -334,6 +437,12 @@ class Angle(Item):
     """
     def __init__(self, **kwargs):
         Item.__init__(self, **kwargs)
+        
+    def ptype_name(self):
+        if self.a.type is None or self.b.type is None or self.c.type is None:
+            return None
+        else:
+            return '{},{},{}'.format(self.a.type.name, self.b.type.name, self.c.type.name)
 
     def angle(self, radians=False):
         """pysimm.system.Angle.angle
@@ -366,10 +475,103 @@ class AngleType(Item):
         Item.__init__(self, **kwargs)
         if self.name:
             self.rname = ','.join(reversed(self.name.split(',')))
+            
+    def write_lammps(self, style='harmonic', cross_term=None):
+        """pysimm.system.AngleType.write_lammps
+
+        Formats a string to define angle type coefficients for a LAMMPS 
+        data file given the provided style.
+
+        Args:
+            style: string for pair style of AngleType (harmonic, class2, charmm)
+            cross_term: type of class2 cross term to write (default=None)
+              -  BondBond
+              -  BondAngle
+
+        Returns:
+            LAMMPS formatted string with angle coefficients
+        """
+        if style.startswith('harm'):
+            return '{:4}\t{}\t{}\t# {}\n'.format(
+                self.tag, self.k, self.theta0, self.name
+            )
+        elif style.startswith('class2'):
+            if not cross_term:
+                return '{:4}\t{}\t{}\t{}\t{}\t# {}\n'.format(
+                    self.tag, self.theta0, self.k2, self.k3, self.k4, self.name
+                )
+            elif cross_term == 'BondBond':
+                return '{:4}\t{}\t{}\t{}\t# {}\n'.format(
+                    self.tag, self.m, self.r1, self.r2, self.name
+                )
+            elif cross_term == 'BondAngle':
+                return '{:4}\t{}\t{}\t{}\t{}\t# {}\n'.format(
+                    self.tag, self.n1, self.n2, self.r1, self.r2, self.name
+                )
+        
+        elif style.startswith('charmm'):
+            return '{:4}\t{}\t{}\t{}\t{}\t# {}\n'.format(
+                self.tag, self.k, self.theta0, self.kub, self.rub, self.name
+            )
+        
+    def form(self, style='harmonic', d_range=None):
+        """pysimm.system.AngleType.form
+
+        Returns data to plot functional form for the potential energy with 
+        the given style.
+
+        Args:
+            style: string for pair style of AngleType (harmonic, class2, charmm)
+
+        Returns:
+            x, y for plotting functional form (energy vs angle)
+        """
+        if not d_range:
+            d_range = np.linspace(self.theta0-1, self.theta0+1, 100)
+        if style == 'harmonic':
+            e = np.array([calc.harmonic_angle(self, d) for d in d_range])
+            return d_range, e
+        elif style == 'charmm':
+            e = np.array([calc.harmonic_angle(self, d) for d in d_range])
+            return d_range, e
+        elif style == 'class2':
+            e = np.array([calc.class2_angle(self, d) for d in d_range])
+            return d_range, e
+
+
+class AngleTypeContainer(ItemContainer):
+    """pysimm.system.AngleTypeContainer
+
+    This class inherits from pysimm.utils.ItemContainer and defines custom 
+    behavior for methods to retrieve AngleType objects from the container.
+    """
+    def __init__(self, **kwargs):
+        ItemContainer.__init__(self, **kwargs)
+        
+    def by_name(self, name, **kwargs):
+        """pysimm.system.AngleTypeContainer.by_name
+
+        Retrieves a AngleType object from the container with the given name. 
+        By default, wildcards are supported using 'X', and therefore the 
+        default behavior is to return a list of AngleType objects that satisfy 
+        the query. If looking for one specific type, use the keyword exact=True
+        to have only one item returned.
+
+        Args:
+            name: string for angle type name
+
+        Returns:
+            AngleType object in the container with the given name
+        """
+        return self.by_item_name(name, **kwargs)
 
 
 class Dihedral(Item):
     """pysimm.system.Dihedral
+    
+    Dihedral between particles a, b, c, and d
+    
+    a--b--c--d
 
     Objects inheriting from pysimm.utils.Item can contain arbitrary data.
     Keyword arguments are assigned as attributes.
@@ -384,6 +586,12 @@ class Dihedral(Item):
     """
     def __init__(self, **kwargs):
         Item.__init__(self, **kwargs)
+        
+    def ptype_name(self):
+        if self.a.type is None or self.b.type is None or self.c.type is None or self.d.type is None:
+            return None
+        else:
+            return '{},{},{},{}'.format(self.a.type.name, self.b.type.name, self.c.type.name, self.d.type.name)
 
 
 class DihedralType(Item):
@@ -403,11 +611,144 @@ class DihedralType(Item):
         Item.__init__(self, **kwargs)
         if self.name:
             self.rname = ','.join(reversed(self.name.split(',')))
+            
+    def write_lammps(self, style='harmonic', cross_term=None):
+        """pysimm.system.DihedralType.write_lammps
+
+        Formats a string to define dihedral type coefficients for a LAMMPS 
+        data file given the provided style.
+
+        Args:
+            style: string for pair style of DihedralType (harmonic, class2, fourier)
+            cross_term: type of class2 cross term to write (default=None)
+              -  MiddleBond
+              -  EndBond
+              -  Angle
+              -  AngleAngle
+              -  BondBond13
+
+        Returns:
+            LAMMPS formatted string with dihedral coefficients
+        """
+        if style.startswith('harm'):
+            return '{:4}\t{}\t{}\t{}\t# {}\n'.format(
+                self.tag, self.k, self.d, self.n, self.name
+            )
+        elif style.startswith('fourier'):
+            st = '{:4}\t{}'.format(self.tag, self.m)
+            for k, n, d in zip(self.k, self.n, self.d):
+                st += '\t{}\t{}\t{}'.format(k, n, d)
+            st += '\t# {}\n'.format(self.name)
+            return st
+        elif style.startswith('class2'):
+            if not cross_term:
+                return '{:4}\t{}\t{}\t{}\t{}\t{}\t{}\t# {}\n'.format(
+                    self.tag, 
+                    self.k1, self.phi1, 
+                    self.k2, self.phi2, 
+                    self.k3, self.phi3, 
+                    self.name
+                )
+            elif cross_term == 'MiddleBond':
+                return '{:4}\t{}\t{}\t{}\t{}\t# {}\n'.format(
+                    self.tag, 
+                    self.a1, self.a2, self.a3, self.r2,
+                    self.name
+                )
+            elif cross_term == 'EndBond':
+                return '{:4}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t# {}\n'.format(
+                    self.tag, 
+                    self.b1, self.b2, self.b3,
+                    self.c1, self.c2, self.c3,
+                    self.r1, self.r3,
+                    self.name
+                )
+            elif cross_term == 'Angle':
+                return '{:4}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t# {}\n'.format(
+                    self.tag, 
+                    self.d1, self.d2, self.d3,
+                    self.e1, self.e2, self.e3,
+                    self.theta1, self.theta2,
+                    self.name
+                )
+            elif cross_term == 'AngleAngle':
+                return '{:4}\t{}\t{}\t{}\t# {}\n'.format(
+                    self.tag, 
+                    self.m,
+                    self.theta1, self.theta2,
+                    self.name
+                )
+            elif cross_term == 'BondBond13':
+                return '{:4}\t{}\t{}\t{}\t# {}\n'.format(
+                    self.tag, 
+                    self.n,
+                    self.r1, self.r3,
+                    self.name
+                )
+
+    def form(self, style='harmonic', d_range=None):
+        """pysimm.system.DihedralType.form
+
+        Returns data to plot functional form for the potential energy with 
+        the given style.
+
+        Args:
+            style: string for pair style of DihedralType (harmonic, class2, fourier)
+
+        Returns:
+            x, y for plotting functional form (energy vs angle)
+        """
+        if not d_range:
+            d_range = np.linspace(-180, 180, 100)
+        if style == 'harmonic':
+            e = np.array([calc.harmonic_dihedral(self, d) for d in d_range])
+            return d_range, e
+        elif style == 'fourier':
+            e = np.array([calc.fourier_dihedral(self, d) for d in d_range])
+            return d_range, e
+        elif style == 'class2':
+            e = np.array([calc.class2_dihedral(self, d) for d in d_range])
+            return d_range, e
+
+
+class DihedralTypeContainer(ItemContainer):
+    """pysimm.system.DihedralTypeContainer
+
+    This class inherits from pysimm.utils.ItemContainer and defines custom 
+    behavior for methods to retrieve DihedralType objects from the container.
+    """
+    def __init__(self, **kwargs):
+        ItemContainer.__init__(self, **kwargs)
+        
+    def by_name(self, name, **kwargs):
+        """pysimm.system.DihedralTypeContainer.by_name
+
+        Retrieves a DihedralType object from the container with the given name. 
+        By default, wildcards are supported using 'X', and therefore the 
+        default behavior is to return a list of DihedralType objects that satisfy 
+        the query. If looking for one specific type, use the keyword exact=True
+        to have only one item returned.
+
+        Args:
+            name: string for dihedral type name
+
+        Returns:
+            DihedralType object in the container with the given name
+        """
+        return self.by_item_name(name, **kwargs)
 
 
 class Improper(Item):
     """pysimm.system.Improper
-
+    
+    Improper dihedral around particle a, bonded to b, c, and d
+    
+    | b
+    | |
+    | a--d
+    | |
+    | c
+      
     Objects inheriting from pysimm.utils.Item can contain arbitrary data.
     Keyword arguments are assigned as attributes.
     Attributes usually used are given below.
@@ -421,6 +762,12 @@ class Improper(Item):
     """
     def __init__(self, **kwargs):
         Item.__init__(self, **kwargs)
+        
+    def ptype_name(self):
+        if self.a.type is None or self.b.type is None or self.c.type is None or self.d.type is None:
+            return None
+        else:
+            return '{},{},{},{}'.format(self.a.type.name, self.b.type.name, self.c.type.name, self.d.type.name)
 
 
 class ImproperType(Item):
@@ -439,6 +786,88 @@ class ImproperType(Item):
         Item.__init__(self, **kwargs)
         if self.name:
             self.rname = ','.join(reversed(self.name.split(',')))
+            
+    def write_lammps(self, style='harmonic', cross_term=None):
+        """pysimm.system.ImproperType.write_lammps
+
+        Formats a string to define improper type coefficients for a LAMMPS 
+        data file given the provided style.
+
+        Args:
+            style: string for pair style of ImproperType (harmonic, class2, cvff)
+            cross_term: type of class2 cross term to write (default=None)
+              -  AngleAngle
+
+        Returns:
+            LAMMPS formatted string with dihedral coefficients
+        """
+        if style.startswith('harmonic'):
+            return '{:4}\t{}\t{}\t# {}\n'.format(
+                self.tag, self.k, self.x0, self.name
+            )
+        elif style.startswith('cvff'):
+            return '{:4}\t{}\t{}\t{}\t# {}\n'.format(
+                self.tag, self.k, self.d, self.n, self.name
+            )
+        elif style.startswith('class2'):
+            if not cross_term:
+                return '{:4}\t{}\t{}\t# {}\n'.format(
+                    self.tag, self.k, self.x0, self.name
+                )
+            elif cross_term == 'AngleAngle':
+                return '{:4}\t{}\t{}\t{}\t{}\t{}\t{}\t# {}\n'.format(
+                    self.tag,
+                    self.m1, self.m2, self.m3,
+                    self.theta1, self.theta2, self.theta3,
+                    self.name
+                )
+    def form(self, style='harmonic', d_range=None):
+        """pysimm.system.ImproperType.form
+
+        Returns data to plot functional form for the potential energy with 
+        the given style.
+
+        Args:
+            style: string for pair style of ImproperType (harmonic, cvff)
+
+        Returns:
+            x, y for plotting functional form (energy vs angle)
+        """
+        if not d_range:
+            d_range = np.linspace(-2, 2, 100)
+        if style == 'harmonic':
+            e = np.array([calc.harmonic_improper(self, d) for d in d_range])
+            return d_range, e
+        elif style == 'cvff':
+            e = np.array([calc.cvff_improper(self, d) for d in d_range])
+            return d_range, e
+
+
+class ImproperTypeContainer(ItemContainer):
+    """pysimm.system.ImproperTypeContainer
+
+    This class inherits from pysimm.utils.ItemContainer and defines custom 
+    behavior for methods to retrieve ImproperType objects from the container.
+    """
+    def __init__(self, **kwargs):
+        ItemContainer.__init__(self, **kwargs)
+        
+    def by_name(self, name, **kwargs):
+        """pysimm.system.ImproperTypeContainer.by_name
+
+        Retrieves a ImproperType object from the container with the given name. 
+        By default, wildcards are supported using 'X', and therefore the 
+        default behavior is to return a list of ImproperType objects that satisfy 
+        the query. Additionally, the order of type names is assumed to be 
+        insignificant. To retain order use keyword order=True.
+
+        Args:
+            name: string for improper type name
+
+        Returns:
+            ImproperType object in the container with the given name
+        """
+        return self.by_item_name(name, improper_type=True, **kwargs)
 
 
 class Dimension(Item):
@@ -508,13 +937,13 @@ class System(object):
     Attributes:
         dim: Dimension object reference
         particles: pysimm.utils.ItemContainer for Particle organization
-        particle_types: pysimm.utils.ItemContainer for ParticleType organization
+        particle_types: pysimm.utils.ParticleTypeContainer for ParticleType organization
         bonds: pysimm.utils.ItemContainer for Bond organization
-        bond_types: pysimm.utils.ItemContainer for BondType organization
+        bond_types: pysimm.utils.BondTypeContainer for BondType organization
         angles: pysimm.utils.ItemContainer for Angle organization
-        angle_types: pysimm.utils.ItemContainer for AngleType organization
+        angle_types: pysimm.utils.AngleTypeContainer for AngleType organization
         dihedrals: pysimm.utils.ItemContainer for Dihedral organization
-        dihedral_types: pysimm.utils.ItemContainer for DihedralType organization
+        dihedral_types: pysimm.utils.DihedralTypeContainer for DihedralType organization
         impropers: pysimm.utils.ItemContainer for Improper organization
         improper_types: pysimm.utils.ItemContainer for ImproperType organization
         molecules: pysimm.utils.ItemContainer for Molecule organization
@@ -534,11 +963,11 @@ class System(object):
                              dz=kwargs.get('dz'), center=kwargs.get('center'))
         self.dim_check = self.dim.check()
         self.mass = kwargs.get('mass') or 0.0
-        self.particle_types = kwargs.get('particle_types') or ItemContainer()
-        self.bond_types = kwargs.get('bond_types') or ItemContainer()
-        self.angle_types = kwargs.get('angle_types') or ItemContainer()
-        self.dihedral_types = kwargs.get('dihedral_types') or ItemContainer()
-        self.improper_types = kwargs.get('improper_types') or ItemContainer()
+        self.particle_types = kwargs.get('particle_types') or ParticleTypeContainer()
+        self.bond_types = kwargs.get('bond_types') or BondTypeContainer()
+        self.angle_types = kwargs.get('angle_types') or AngleTypeContainer()
+        self.dihedral_types = kwargs.get('dihedral_types') or DihedralTypeContainer()
+        self.improper_types = kwargs.get('improper_types') or ImproperTypeContainer()
         self.molecule_types = kwargs.get('molecule_types') or ItemContainer()
         self.particles = kwargs.get('particles') or ItemContainer()
         self.bonds = kwargs.get('bonds') or ItemContainer()
@@ -657,6 +1086,10 @@ class System(object):
                 new_i.type=new.improper_types[i.type.tag]
             new.impropers.add(new_i)
             new_i.a.molecule.impropers.add(new_i)
+            
+        for k, v in vars(self).items():
+            if not isinstance(v, ItemContainer) and not isinstance(v, Item):
+                setattr(new, k, v)
 
         return new
 
@@ -678,11 +1111,6 @@ class System(object):
         change_dim = kwargs.get('change_dim') if (kwargs.get('change_dim')
                                                   is not None) else True
         update_properties = kwargs.get('update_properties') if kwargs.get('update_properties') is not None else True
-
-        if self.ff_class is not None and self.ff_class != other.ff_class:
-            warning_print('warning: mixing forcefield classes is highly '
-                          'unadvised. only continue if you know what you '
-                          'are doing')
 
         for pt in other.particle_types:
             if unique_types:
@@ -788,6 +1216,10 @@ class System(object):
         for m in other.molecules:
             del m.tag
             self.molecules.add(m)
+            p_list=m.particles.get('all')
+            m.particles.remove('all')
+            for p in p_list:
+                m.particles.add(p)
 
         if update_properties:
             self.set_mass()
@@ -850,7 +1282,6 @@ class System(object):
         """
         self.dim.check()
         self.add_particle_bonding()
-        self.add_particle_bonding()
         next_to_unwrap = []
         for p in self.particles:
             p.unwrapped = False
@@ -895,15 +1326,14 @@ class System(object):
         
     def unite_atoms(self):
         for p in self.particles:
+            p.implicit_h = 0
             if p.elem != 'C':
                 continue
             for b in p.bonds:
                 pb = b.a if b.b is p else b.b
                 if pb.elem =='H':
-                    if p.implicit_h is not None:
-                        p.implicit_h += 1
-                    else:
-                        p.implicit_h = 1
+                    p.implicit_h += 1
+                    p.charge += pb.charge
                     self.particles.remove(pb.tag, update=False)
         self.remove_spare_bonding()
 
@@ -982,6 +1412,16 @@ class System(object):
         self.set_charge()
 
     def check_items(self):
+        """pysimm.system.System.check_items
+
+        Checks particles, bonds, angles, dihedrals, impropers, and molecules containers and raises exception if the length of items in the container does not equal the count property
+
+        Args:
+            None:
+
+        Returns:
+            None
+        """
         if len(self.particles) != self.particles.count:
             raise PysimmError('particles missing')
         if len(self.bonds) != self.bonds.count:
@@ -996,6 +1436,17 @@ class System(object):
             raise PysimmError('molecules missing')
             
     def update_ff_types_from_ac(self, ff, acname):
+        """pysimm.system.System.update_ff_types_from_ac
+
+        Updates ParticleType objects in system using type names given in antechamber (ac) file. Retrieves type from System if possible, then searches force field provided by ff.
+
+        Args:
+            ff: forcefield to search for Type objects
+            acname: ac filename containing type names
+
+        Returns:
+            None
+        """
         self.particle_types.remove('all')
         with file(acname) as f:
             for line in f:
@@ -1094,12 +1545,28 @@ class System(object):
                 else:
                     print('cannot find regular type for linker %s'
                           % p.type.name)
+                          
+    def read_pdb_coords(self, fname):
+        with open(fname) as f:
+            for line in f:
+                if line.startswith('ATOM'):
+                    tag = int(line[6:11].strip())
+                    x = float(line[30:38].strip())
+                    y = float(line[38:46].strip())
+                    z = float(line[46:54].strip())
+                    self.particles[tag].x = x
+                    self.particles[tag].y = y
+                    self.particles[tag].z = z
             
                           
     def read_lammps_dump(self, fname):
         """pysimm.system.System.read_lammps_dump
 
-        Updates particle positions and box size from LAMMPS dump file
+        Updates particle positions and box size from LAMMPS dump file.
+        Assumes following format for each atom line:
+     
+        tag charge xcoord ycoord zcoord xvelocity yvelocity zvelocity
+
 
         Args:
             fname: LAMMPS dump file
@@ -1137,7 +1604,19 @@ class System(object):
     def read_lammpstrj(self, trj, frame=1):
         """pysimm.system.System.read_lammpstrj
 
-        Updates particle positions and box size from LAMMPS trajectory file at given frame
+        Updates particle positions and box size from LAMMPS trajectory file at given frame.
+        
+        Assumes one of following formats for each atom line:
+     
+        tag xcoord ycoord zcoord
+        
+        OR
+        
+        tag type_id xcoord ycoord zcoord
+        
+        OR
+        
+        tag type_id xcoord ycoord zcoord ximage yimage zimage
 
         Args:
             trj: LAMMPS trajectory file
@@ -1383,7 +1862,7 @@ class System(object):
     def update_tags(self):
         """pysimm.system.System.update_tags
 
-        Update Item tags in ItemContainer objects to preserve continuous tags
+        Update Item tags in ItemContainer objects to preserve continuous tags. Removes all objects and then reinserts them.
 
          Args:
              None
@@ -1735,6 +2214,16 @@ class System(object):
         return p
 
     def add_particle(self, p):
+        """pysimm.system.System.add_particle
+
+        Add new Particle to System.
+
+        Args:
+            p: new Particle object to be added
+
+        Returns:
+            None
+        """
         self.particles.add(p)
 
     def rotate(self, around=None, theta_x=0, theta_y=0, theta_z=0, rot_matrix=None):
@@ -1797,30 +2286,43 @@ class System(object):
         Returns:
             None
         """
+        
         self.add_particle_bonding()
+        
+        if p1.molecule is not p2.molecule:
+            if p1.molecule.particles.count < p2.molecule.particles.count:
+                old_molecule_tag = p1.molecule.tag
+                for p_ in p1.molecule.particles:
+                    p_.molecule = p2.molecule
+            else:
+                old_molecule_tag = p2.molecule.tag
+                for p_ in p2.molecule.particles:
+                    p_.molecule = p1.molecule
+            self.molecules.remove(old_molecule_tag)
+        
         self.add_bond(p1, p2, f)
         if angles or dihedrals or impropers:
             for p in p1.bonded_to:
                 if angles:
-                    self.add_angle(p, p1, p2, f)
+                    if p is not p2:
+                        self.add_angle(p, p1, p2, f)
                 if dihedrals:
                     for pb in p.bonded_to:
-                        if pb is not p1:
+                        if pb is not p1 and p is not p2:
                             self.add_dihedral(pb, p, p1, p2, f)
             for p in p2.bonded_to:
                 if angles:
-                    self.add_angle(p1, p2, p, f)
+                    if p is not p1:
+                        self.add_angle(p1, p2, p, f)
                 if dihedrals:
                     for pb in p.bonded_to:
-                        if pb is not p2:
+                        if pb is not p2 and p is not p1:
                             self.add_dihedral(p1, p2, p, pb, f)
             if dihedrals:
                 for pb1 in p1.bonded_to:
                     for pb2 in p2.bonded_to:
-                        self.add_dihedral(pb1, p1, p2, pb2, f)
-
-        p1.bonded_to.add(p2)
-        p2.bonded_to.add(p1)
+                        if pb1 is not p2 and pb2 is not p1:
+                            self.add_dihedral(pb1, p1, p2, pb2, f)
 
         if impropers:
             if self.ff_class == '2':
@@ -1860,6 +2362,8 @@ class System(object):
         Returns:
             None
         """
+        if a is b:
+            return
         a_name = a.type.eq_bond or a.type.name
         b_name = b.type.eq_bond or b.type.name
         btype = self.bond_types.get('%s,%s' % (a_name, b_name))
@@ -1898,22 +2402,36 @@ class System(object):
         Returns:
             None
         """
+        if a is c:
+            return
         a_name = a.type.eq_angle or a.type.name
         b_name = b.type.eq_angle or b.type.name
         c_name = c.type.eq_angle or c.type.name
-        atype = self.angle_types.get('%s,%s,%s'
-                                     % (a_name, b_name, c_name))
+        atype = self.angle_types.get(
+            '%s,%s,%s' % (a_name, b_name, c_name),
+            item_wildcard=None
+        )
         if not atype and f:
-            atype = f.angle_types.get('%s,%s,%s'
-                                      % (a_name, b_name, c_name))
+            atype = self.angle_types.get(
+                '%s,%s,%s' % (a_name, b_name, c_name)
+            )
+            atype.extend(
+                f.angle_types.get(
+                    '%s,%s,%s' % (a_name, b_name, c_name)
+                )
+            )
+            
+            atype = sorted(atype, key=lambda x: x.name.count('X'))
+            
             if atype:
-                at = atype[0].copy()
-                self.angle_types.add(at)
-            atype = self.angle_types.get('%s,%s,%s'
-                                         % (a_name, b_name,
-                                            c_name))
+                if not self.angle_types.get(atype[0].name, item_wildcard=None):
+                    atype = self.angle_types.add(atype[0].copy())
+                else:
+                    atype = self.angle_types.get(atype[0].name, item_wildcard=None)[0]
+        elif atype:
+            atype = atype[0]
         if atype:
-            self.angles.add(Angle(type=atype[0], a=a, b=b, c=c))
+            self.angles.add(Angle(type=atype, a=a, b=b, c=c))
         else:
             error_print('error: system does not contain angle type named '
                         '%s,%s,%s or could not find type in forcefield supplied'
@@ -1935,25 +2453,38 @@ class System(object):
         Returns:
             None
         """
+        if a is c or b is d:
+            return
         a_name = a.type.eq_dihedral or a.type.name
         b_name = b.type.eq_dihedral or b.type.name
         c_name = c.type.eq_dihedral or c.type.name
         d_name = d.type.eq_dihedral or d.type.name
-        dtype = self.dihedral_types.get('%s,%s,%s,%s'
-                                        % (a_name, b_name,
-                                           c_name, d_name))
+        dtype = self.dihedral_types.get(
+            '%s,%s,%s,%s' % (a_name, b_name, c_name, d_name),
+            item_wildcard=None
+        )
         if not dtype and f:
-            dtype = f.dihedral_types.get('%s,%s,%s,%s'
-                                         % (a_name, b_name,
-                                            c_name, d_name))
+            dtype = self.dihedral_types.get(
+                '%s,%s,%s,%s' % (a_name, b_name, c_name, d_name)
+            )
+            dtype.extend(
+                f.dihedral_types.get(
+                    '%s,%s,%s,%s' % (a_name, b_name, c_name, d_name)
+                )
+            )
+            
+            dtype = sorted(dtype, key=lambda x: x.name.count('X'))
+            
             if dtype:
-                dt = dtype[0].copy()
-                self.dihedral_types.add(dt)
-            dtype = self.dihedral_types.get('%s,%s,%s,%s'
-                                            % (a_name, b_name,
-                                               c_name, d_name))
+                if not self.dihedral_types.get(dtype[0].name, item_wildcard=None):
+                    dtype = self.dihedral_types.add(dtype[0].copy())
+                else:
+                    dtype = self.dihedral_types.get(dtype[0].name, item_wildcard=None)[0]
+            
+        elif dtype:
+            dtype = dtype[0]
         if dtype:
-            self.dihedrals.add(Dihedral(type=dtype[0], a=a, b=b, c=c, d=d))
+            self.dihedrals.add(Dihedral(type=dtype, a=a, b=b, c=c, d=d))
         else:
             error_print('error: system does not contain dihedral type named '
                         '%s,%s,%s,%s or could not find type in forcefield '
@@ -1977,60 +2508,71 @@ class System(object):
         Returns:
             None
         """
+        if a is b or a is c or a is d:
+            return
         a_name = a.type.eq_improper or a.type.name
         b_name = b.type.eq_improper or b.type.name
         c_name = c.type.eq_improper or c.type.name
         d_name = d.type.eq_improper or d.type.name
-        if self.ff_class == '2' or self.improper_style == 'class2':
-            itype = self.improper_types.get('%s,%s,%s,%s'
-                                            % (b_name, a_name,
-                                               c_name, d_name),
-                                            improper_type=True)
-        else:
-            itype = self.improper_types.get('%s,%s,%s,%s'
-                                            % (a_name, b_name,
-                                               c_name, d_name),
-                                            improper_type=True)
+        itype = self.improper_types.get('%s,%s,%s,%s'
+                                        % (a_name, b_name,
+                                           c_name, d_name),
+                                        improper_type=True,
+                                        item_wildcard=None)
         if not itype and f:
-            if f.ff_class == '2':
-                itype = f.improper_types.get('%s,%s,%s,%s'
-                                             % (b_name, a_name,
-                                                c_name, d_name),
-                                             improper_type=True)
-            else:
-                itype = f.improper_types.get('%s,%s,%s,%s'
-                                             % (a_name, b_name,
-                                                c_name, d_name),
-                                             improper_type=True)
+            itype = self.improper_types.get(
+                '%s,%s,%s,%s' % (a_name, b_name, c_name, d_name),
+                improper_type=True
+            )
+            itype.extend(
+                f.improper_types.get(
+                    '%s,%s,%s,%s' % (a_name, b_name, c_name, d_name),
+                    improper_type=True
+                )
+            )
+                
+            itype = sorted(itype, key=lambda x: x.name.count('X'))
+            
             if itype:
-                it = itype[0].copy()
-                self.improper_types.add(it)
-            if f.ff_class == '2':
-                itype = self.improper_types.get('%s,%s,%s,%s'
-                                                % (b_name, a_name,
-                                                   c_name, d_name),
-                                                improper_type=True)
-            else:
-                itype = self.improper_types.get('%s,%s,%s,%s'
-                                                % (a_name, b_name,
-                                                   c_name, d_name),
-                                                improper_type=True)
+                if not self.improper_types.get(itype[0].name, item_wildcard=None, improper_type=True):
+                    itype = self.improper_types.add(itype[0].copy())
+                else:
+                    itype = self.improper_types.get(itype[0].name, item_wildcard=None, improper_type=True)[0]
+            
+        elif itype:
+            itype = itype[0]
+                
         if itype:
-            self.impropers.add(Improper(type=itype[0], a=a, b=b, c=c, d=d))
+            self.impropers.add(Improper(type=itype, a=a, b=b, c=c, d=d))
         else:
             return
 
     def check_forcefield(self):
+        """pysimm.system.System.check_forcefield
+
+        Iterates through particles and prints the following:
+        
+        tag
+        type name
+        type element
+        type description
+        bonded elements
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         if not self.objectified:
             self.objectify()
         for p in self.particles:
-            if not p.bond_elements:
-                p.bond_elements = [x.a.type.elem if p is x.b else
-                                   x.b.type.elem for x in p.bonds]
-                p.nbonds = len(p.bond_elements)
+            p.bond_elements = [x.a.type.elem if p is x.b else
+                               x.b.type.elem for x in p.bonds]
+            p.nbonds = len(p.bond_elements)
             print(p.tag, p.type.name, p.type.elem, p.type.desc, p.bond_elements)
 
-    def apply_forcefield(self, f, charges='default', set_box=True, box_padding=10,
+    def apply_forcefield(self, f, charges='default', set_box=False, box_padding=10,
                          update_ptypes=False, skip_ptypes=False):
         """pysimm.system.System.apply_forcefield
 
@@ -2065,237 +2607,102 @@ class System(object):
             f.assign_charges(self, charges=charges)
 
         if set_box:
-            self.set_box(box_padding)
+            self.set_box(box_padding, center=False)
 
     def apply_charges(self, f, charges='default'):
-        f.assign_charges(self, charges=charges)
+        """pysimm.system.System.apply_charges
 
-    def write_amber(self, prmtop='prmtop', inpcrd='inpcrd', **kwargs):
-        """pysimm.system.System.write_amber
+        Applies charges derived using method provided by user. Defaults to 'default'. Calls Forcefield.assign_charges method of forcefield object provided.
 
-        *** NOT FINISHED ***
+        Args:
+            f: pysimm.forcefield.Forcefield object
+            charges: type of charges ot be applied default='default'
 
+        Returns:
+            None
         """
-        periodic = kwargs.get('periodic') or 1
+        f.assign_charges(self, charges=charges)
+        
+    def write_lammps_mol(self, out_data):
+        """pysimm.system.System.write_lammps_mol
 
-        self.set_atomic_numbers()
-        self.set_excluded_particles()
+        Write System data formatted as LAMMPS molecule template
 
-        nbonh = 0
-        for b in self.bonds:
-            if b.a.type.elem == 'H' or b.b.type.elem == 'H':
-                nbonh += 1
-            if periodic is None:
-                if b.distance() > self.dim.dx/2 or b.distance() > self.dim.dy/2 or b.distance() > self.dim.dz/2:
-                    periodic = 1 
+        Args:
+            out_data: where to write data, file name or 'string'
 
-        if periodic is None:
-            periodic = 0
-
-        ntheth = 0
-        for a in self.angles:
-            if a.a.type.elem == 'H' or a.b.type.elem == 'H' or a.c.type.elem == 'H':
-                ntheth += 1
-
-        nphih = 0
-        for d in self.dihedrals:
-            if d.a.type.elem == 'H' or d.b.type.elem == 'H' or d.c.type.elem == 'H' or d.d.type.elem == 'H':
-                nphih += 1
-
-        out_prmtop = open(prmtop, 'w+')
-        out_inpcrd = open(inpcrd, 'w+')
-
-        out_prmtop.write('%VERSION WRITTEN BY PYSIMM\n')
-        out_prmtop.write('%FLAG TITLE\n')
-        out_prmtop.write('%FORMAT(20a4)\n')
-        out_prmtop.write('%s\n' % self.name[:80])
-        out_prmtop.write('%FLAG POINTERS\n')
-        out_prmtop.write('%FORMAT(10I8)\n')
-        out_prmtop.write('%8d%8d%8d%8d%8d%8d%8d%8d%8d%8d\n' % (self.particles.count, self.particle_types.count,
-                                                               nbonh, (self.bonds.count - nbonh),
-                                                               ntheth, (self.angles.count - ntheth),
-                                                               nphih, (self.dihedrals.count - nphih), 0, 0))
-        out_prmtop.write('%8d%8d%8d%8d%8d%8d%8d%8d%8d%8d\n' % (0, self.molecules.count, 0, 0, 0, self.bond_types.count,
-                                                               self.angles_types.count, self.dihedral_types.count, 0,
-                                                               0))
-        out_prmtop.write('%8d%8d%8d%8d%8d%8d%8d%8d%8d%8d\n' % (0, 0, 0, 0, 0, 0, 0, periodic, 0, 0))
-        out_prmtop.write('%8d%8d\n' % 0, 0)
-
-        out_prmtop.write('%FLAG ATOM_NAME\n')
-        out_prmtop.write('%FORMAT(20a4)\n')
-        for i in range(1, self.particles.count + 1):
-            if (i != 1 and i % 20 == 0) or i == self.particles.count:
-                out_prmtop.write('%4s\n' % self.particles[i].type.name[:4])
-            else:
-                out_prmtop.write('%4s' % self.particles[i].type.name[:4])
-
-        out_prmtop.write('%FLAG CHARGE\n')
-        out_prmtop.write('%FORMAT(5E16.8)\n')
-        for i in range(1, self.particles.count + 1):
-            if (i != 1 and i % 5 == 0) or i == self.particles.count:
-                out_prmtop.write('%.8e\n' % self.particles[i].charge)
-            else:
-                out_prmtop.write('%.8e' % self.particles[i].charge)
-
-        out_prmtop.write('%FLAG ATOMIC_NUMBER\n')
-        out_prmtop.write('%FORMAT(10I8)\n')
-        for i in range(1, self.particles.count + 1):
-            if (i != 1 and i % 10 == 0) or i == self.particles.count:
-                out_prmtop.write('%8d\n' % self.particles[i].type.atomic_number)
-            else:
-                out_prmtop.write('%8d' % self.particles[i].type.atomic_number)
-
-        out_prmtop.write('%FLAG MASS\n')
-        out_prmtop.write('%FORMAT(5E16.8)\n')
-        for i in range(1, self.particles.count + 1):
-            if (i != 1 and i % 5 == 0) or i == self.particles.count:
-                out_prmtop.write('%.8e\n' % self.particles[i].type.mass)
-            else:
-                out_prmtop.write('%.8e' % self.particles[i].type.mass)
-
-        out_prmtop.write('%FLAG ATOM_TYPE_INDEX\n')
-        out_prmtop.write('%FORMAT(10I8)\n')
-        for i in range(1, self.particles.count + 1):
-            if (i != 1 and i % 10 == 0) or i == self.particles.count:
-                out_prmtop.write('%8d\n' % self.particles[i].type.tag)
-            else:
-                out_prmtop.write('%8d' % self.particles[i].type.tag)
-
-        out_prmtop.write('%FLAG NUMBER_EXCLUDED_ATOMS\n')
-        out_prmtop.write('%FORMAT(10I8)\n')
-        for i in range(1, self.particles.count + 1):
-            excluded = self.particles[i].excluded_particles.count or 1
-            if (i != 1 and i % 10 == 0) or i == self.particles.count:
-                out_prmtop.write('%8d\n' % excluded)
-            else:
-                out_prmtop.write('%8d' % excluded)
-
-        out_prmtop.write('%FLAG NONBONDED_PARM_INDEX\n')
-        out_prmtop.write('%FORMAT(10I8)\n')
-        count = 0
-        for pti in range(1, self.particle_types.count + 1):
-            for ptj in range(1, self.particle_types.count + 1):
-                count += 1
-                if pti <= ptj:
-                    index = self.particle_types.count * (pti-1) + ptj
-                else:
-                    index = self.particle_types.count * (ptj-1) + pti
-                if (count != 1 and count % 10 == 0) or count == self.particle_types.count*self.particle_types.count:
-                    out_prmtop.write('%8d\n' % index)
-                else:
-                    out_prmtop.write('%8d' % index)
-
-        out_prmtop.write('%FLAG RESIDUE_LABEL\n')
-        out_prmtop.write('%FORMAT(20a4)\n')
-        for i in range(1, self.molecules.count + 1):
-            if (i != 1 and i % 20 == 0) or i == self.molecules.count:
-                out_prmtop.write('%4s\n' % self.molecules[i].name[:4])
-            else:
-                out_prmtop.write('%4s' % self.molecules[i].name[:4])
-
-        out_prmtop.write('%FLAG RESIDUE_POINTER\n')
-        out_prmtop.write('%FORMAT(10I8)\n')
-        for i in range(1, self.molecules.count + 1):
-            if (i != 1 and i % 10 == 0) or i == self.molecules.count:
-                for p in self.molecules[i].particles:
-                    out_prmtop.write('%8s\n' % p.tag)
-                    break
-            else:
-                for p in self.molecules[i].particles:
-                    out_prmtop.write('%8s' % p.tag)
-                    break
-
-        out_prmtop.write('%FLAG BOND_FORCE_CONSTANT\n')
-        out_prmtop.write('%FORMAT(5E16.8)\n')
-        for i in range(1, self.bond_types.count + 1):
-            if (i != 1 and i % 5 == 0) or i == self.bond_types.count:
-                out_prmtop.write('%.8e\n' % (self.bond_types[i].k*2))
-            else:
-                out_prmtop.write('%.8e' % (self.bond_types[i].k*2))
-
-        out_prmtop.write('%FLAG BOND_EQUIL_VALUE\n')
-        out_prmtop.write('%FORMAT(5E16.8)\n')
-        for i in range(1, self.bond_types.count + 1):
-            if (i != 1 and i % 5 == 0) or i == self.bond_types.count:
-                out_prmtop.write('%.8e\n' % self.bond_types[i].r0)
-            else:
-                out_prmtop.write('%.8e' % self.bond_types[i].r0)
-
-        out_prmtop.write('%FLAG ANGLE_FORCE_CONSTANT\n')
-        out_prmtop.write('%FORMAT(5E16.8)\n')
-        for i in range(1, self.angle_types.count + 1):
-            if (i != 1 and i % 5 == 0) or i == self.angle_types.count:
-                out_prmtop.write('%.8e\n' % (self.angle_types[i].k*2))
-            else:
-                out_prmtop.write('%.8e' % (self.angle_types[i].k*2))
-
-        out_prmtop.write('%FLAG ANGLE_EQUIL_VALUE\n')
-        out_prmtop.write('%FORMAT(5E16.8)\n')
-        for i in range(1, self.angle_types.count + 1):
-            if (i != 1 and i % 5 == 0) or i == self.angle_types.count:
-                out_prmtop.write('%.8e\n' % (self.angle_types[i].theta0*pi/180.))
-            else:
-                out_prmtop.write('%.8e' % (self.angle_types[i].theta0*pi/180.))
-
-        out_prmtop.write('%FLAG DIHEDRAL_FORCE_CONSTANT\n')
-        out_prmtop.write('%FORMAT(5E16.8)\n')
-        for i in range(1, self.dihedral_types.count + 1):
-            if (i != 1 and i % 5 == 0) or i == self.dihedral_types.count:
-                out_prmtop.write('%.8e\n' % self.dihedral_types[i].k)
-            else:
-                out_prmtop.write('%.8e' % self.dihedral_types[i].k)
-
-        out_prmtop.write('%FLAG DIHEDRAL_PERIODICITY\n')
-        out_prmtop.write('%FORMAT(5E16.8)\n')
-        for i in range(1, self.dihedral_types.count + 1):
-            if (i != 1 and i % 5 == 0) or i == self.dihedral_types.count:
-                out_prmtop.write('%.8e\n' % self.dihedral_types[i].n)
-            else:
-                out_prmtop.write('%.8e' % self.dihedral_types[i].n)
-
-        out_prmtop.write('%FLAG DIHEDRAL_PHASE\n')
-        out_prmtop.write('%FORMAT(5E16.8)\n')
-        for i in range(1, self.dihedral_types.count + 1):
-            if (i != 1 and i % 5 == 0) or i == self.dihedral_types.count:
-                out_prmtop.write('%.8e\n' % acos(self.dihedral_types[i].d))
-            else:
-                out_prmtop.write('%.8e' % acos(self.dihedral_types[i].d))
-
-        out_prmtop.write('%FLAG SCEE_SCALE_FACTOR\n')
-        out_prmtop.write('%FORMAT(5E16.8)\n')
-        for i in range(1, self.dihedral_types.count + 1):
-            if (i != 1 and i % 5 == 0) or i == self.dihedral_types.count:
-                out_prmtop.write('%.8e\n' % 1.2)
-            else:
-                out_prmtop.write('%.8e' % 1.2)
-
-        out_prmtop.write('%FLAG SCNB_SCALE_FACTOR\n')
-        out_prmtop.write('%FORMAT(5E16.8)\n')
-        for i in range(1, self.dihedral_types.count + 1):
-            if (i != 1 and i % 5 == 0) or i == self.dihedral_types.count:
-                out_prmtop.write('%.8e\n' % 2)
-            else:
-                out_prmtop.write('%.8e' % 2)
-
-        out_prmtop.write('%FLAG LENNARD_JONES_ACOEF\n')
-        out_prmtop.write('%FORMAT(5E16.8)\n')
-        count = 0
-        for i in range(1, self.particle_types.count + 1):
-            for j in range(1, self.particle_types.count + 1):
-                count += 1
-                if i <= j:
-                    index = self.particle_types.count * (self.particles[i].type.tag-1) + self.particles[j].type.tag
-                else:
-                    index = self.particle_types.count * (self.particles[j].type.tag-1) + self.particles[i].type.tag
-                if (count != 1 and count % 10 == 0) or count == self.particle_types.count*self.particle_types.count:
-                    out_prmtop.write('%s\n' % index)
-                else:
-                    out_prmtop.write('%s' % index)
-        for i in range(1, self.particle_types.count + 1):
-            if (i != 1 and i % 5 == 0) or i == self.particle_types.count:
-                out_prmtop.write('%.8e\n' % self.particle_types[i].epsilon)
-            else:
-                out_prmtop.write('%.8e' % self.particle_types[i].epsilon)
+        Returns:
+            None or string if data file if out_data='string'
+        """
+        if out_data == 'string':
+            out_file = StringIO()
+        else:
+            out_file = open(out_data, 'w+')
+            
+        self.set_mass()
+        self.set_cog()
+            
+        out_file.write('%s\n\n' % self.name)
+        out_file.write('%s atoms\n' % self.particles.count)
+        out_file.write('%s bonds\n' % self.bonds.count)
+        out_file.write('%s angles\n' % self.angles.count)
+        out_file.write('%s dihedrals\n' % self.dihedrals.count)
+        out_file.write('%s impropers\n' % self.impropers.count)
+        
+        if self.particles.count > 0:
+            out_file.write('Coords\n\n')
+            for p in self.particles:
+                out_file.write('{} {} {} {}\n'.format(p.tag, p.x, p.y, p.z))
+        
+        out_file.write('\n')
+        
+        if self.particles.count > 0:
+            out_file.write('Types\n\n')
+            for p in self.particles:
+                out_file.write('{} {}\n'.format(p.tag, p.type.tag))
+        
+        out_file.write('\n')
+        
+        if self.particles.count > 0:
+            out_file.write('Charges\n\n')
+            for p in self.particles:
+                out_file.write('{} {}\n'.format(p.tag, p.charge))
+        
+        out_file.write('\n')
+        
+        if self.bonds.count > 0:
+            out_file.write('Bonds\n\n')
+            for b in self.bonds:
+                out_file.write('{} {} {} {}\n'.format(b.tag, b.type.tag, b.a.tag, b.b.tag))
+        
+        out_file.write('\n')
+        
+        if self.angles.count > 0:
+            out_file.write('Angles\n\n')
+            for a in self.angles:
+                out_file.write('{} {} {} {} {}\n'.format(a.tag, a.type.tag, a.a.tag, a.b.tag, a.c.tag))
+        
+        out_file.write('\n')
+        
+        if self.dihedrals.count > 0:
+            out_file.write('Dihedrals\n\n')
+            for d in self.dihedrals:
+                out_file.write('{} {} {} {} {} {}\n'.format(d.tag, d.type.tag, d.a.tag, d.b.tag, d.c.tag, d.d.tag))
+        
+        out_file.write('\n')
+        
+        if self.impropers.count > 0:
+            out_file.write('Impropers\n\n')
+            for i in self.impropers:
+                out_file.write('{} {} {} {} {} {}\n'.format(i.tag, i.type.tag, i.a.tag, i.b.tag, i.c.tag, i.d.tag))
+                
+        if out_data == 'string':
+            s = out_file.getvalue()
+            out_file.close()
+            return s
+        else:
+            out_file.close()
+        
 
     def write_lammps(self, out_data, **kwargs):
         """pysimm.system.System.write_lammps
@@ -2306,7 +2713,7 @@ class System(object):
             out_data: where to write data, file name or 'string'
 
         Returns:
-            None or string of data file if out_data='string'
+            None or string if data file if out_data='string'
         """
         empty = kwargs.get('empty')
 
@@ -2356,21 +2763,14 @@ class System(object):
                 if not pt.mass:
                     error_print('error: some particle types do not have masses')
                     return
-                out_file.write('%4d\t%s\t# %s\n' % (pt.tag, pt.mass, pt.name))
+                out_file.write(pt.write_lammps('mass'))
             out_file.write('\n')
 
         if self.particle_types.count > 0:
             out_file.write('Pair Coeffs\n\n')
             for pt in self.particle_types:
-                if (self.pair_style and (self.pair_style.startswith('lj') or
-                        self.pair_style.startswith('class2')) and
-                        pt.sigma is not None and pt.epsilon is not None):
-                    out_file.write('%4d\t%s\t%s\t# %s\n'
-                                   % (pt.tag, pt.epsilon, pt.sigma, pt.name))
-                elif (self.pair_style and self.pair_style.startswith('buck') and
-                        pt.a is not None and pt.rho is not None and pt.c is not None):
-                    out_file.write('%4d\t%s\t%s\t%s\t# %s\n'
-                                   % (pt.tag, pt.a, pt.rho, pt.c, pt.name))
+                if self.pair_style:
+                    out_file.write(pt.write_lammps(self.pair_style))
                 elif not self.pair_style and pt.sigma is not None and pt.epsilon is not None:
                     out_file.write('%4d\t%s\t%s\t# %s\n'
                                    % (pt.tag, pt.epsilon, pt.sigma, pt.name))
@@ -2385,12 +2785,8 @@ class System(object):
         if self.bond_types.count > 0:
             out_file.write('Bond Coeffs\n\n')
             for b in self.bond_types:
-                if self.bond_style == 'harmonic' or self.ff_class == '1':
-                    out_file.write('%4d\t%s\t%s\t# %s\n'
-                                   % (b.tag, b.k, b.r0, b.name))
-                elif self.bond_style == 'class2' or self.ff_class == '2':
-                    out_file.write('%4d\t%s\t%s\t%s\t%s\t# %s\n'
-                                   % (b.tag, b.r0, b.k2, b.k3, b.k4, b.name))
+                if self.bond_style:
+                    out_file.write(b.write_lammps(self.bond_style))
                 else:
                     error_print('error: cannot understand your bond style')
             out_file.write('\n')
@@ -2398,259 +2794,74 @@ class System(object):
         if self.angle_types.count > 0:
             out_file.write('Angle Coeffs\n\n')
             for a in self.angle_types:
-                if self.angle_style == 'harmonic' or self.ff_class == '1':
-                    out_file.write('%4d\t%s\t'
-                                   '%s\t# %s\n'
-                                   % (a.tag, a.k,
-                                      a.theta0, a.name))
-                elif self.angle_style == 'class2' or self.ff_class == '2':
-                    out_file.write('%4d\t%s\t'
-                                   '%s\t%s\t%s\t# %s\n'
-                                   % (a.tag, a.theta0,
-                                      a.k2, a.k3, a.k4, a.name))
+                if self.angle_style:
+                    out_file.write(a.write_lammps(self.angle_style))
+                else:
+                    error_print('error: cannot understand your angle style')
             out_file.write('\n')
 
-        if (self.angle_types.count > 0 and (self.ff_class == '2' or
-                                            self.angle_style == 'class2')):
+        if (self.angle_types.count > 0 and self.angle_style == 'class2'):
             out_file.write('BondBond Coeffs\n\n')
             for a in self.angle_types:
-                if not a.m:
-                    a.m = 0.0
-                    if not a.r1:
-                        a.r1 = 0.0
-                    if not a.r2:
-                        a.r2 = 0.0
-                out_file.write('%4d\t%s\t%s\t%s\t# %s\n'
-                               % (a.tag, a.m, a.r1, a.r2, a.name))
+                out_file.write(a.write_lammps(self.angle_style, cross_term='BondBond'))
             out_file.write('\n')
             out_file.write('BondAngle Coeffs\n\n')
             for a in self.angle_types:
-                if not a.n1:
-                    a.n1 = 0.0
-                    if not a.r1:
-                        a.r1 = 0.0
-                    if not a.r2:
-                        a.r2 = 0.0
-                if not a.n2:
-                    a.n2 = 0.0
-                out_file.write('%4d\t%s\t%s\t%s\t%s\t# %s\n'
-                               % (a.tag, a.n1, a.n2, a.r1, a.r2, a.name))
+                out_file.write(a.write_lammps(self.angle_style, cross_term='BondAngle'))
             out_file.write('\n')
 
         if self.dihedral_types.count > 0:
             out_file.write('Dihedral Coeffs\n\n')
             for dt in self.dihedral_types:
-                if self.dihedral_style == 'fourier':
-                    dt_str = '{:4d}\t{}'.format(dt.tag, dt.m)
-                    for k, d, n in zip(dt.k, dt.d, dt.n):
-                        dt_str += '\t{}\t{}\t{}'.format(k, d, n)
-                    dt_str += '\t# {}\n'.format(dt.name)
-                    out_file.write(dt_str)
-                elif self.dihedral_style == 'harmonic' or self.ff_class == '1':
-                    out_file.write('%4d\t%s\t%2s\t%s\t# %s\n'
-                                   % (dt.tag, dt.k, dt.d, dt.n, dt.name))
-                elif self.dihedral_style == 'class2' or self.ff_class == '2':
-                    out_file.write('%4d\t%s\t%s\t%s\t%s\t%s\t%s\t# %s\n'
-                                   % (dt.tag, dt.k1, dt.phi1, dt.k2, dt.phi2, dt.k3,
-                                      dt.phi3, dt.name))
+                if self.dihedral_style:
+                    out_file.write(dt.write_lammps(self.dihedral_style))
+                else:
+                    error_print('error: cannot understand your dihedral style')
             out_file.write('\n')
 
-        if self.dihedral_types.count > 0 and (self.ff_class == '2' or
-                                        self.dihedral_style == 'class2'):
+        if self.dihedral_types.count > 0 and self.dihedral_style == 'class2':
             out_file.write('MiddleBondTorsion Coeffs\n\n')
             for d in self.dihedral_types:
-                if not d.a1:
-                    d.a1 = 0.0
-                    if not d.r2:
-                        d.r2 = 0.0
-                if not d.a2:
-                    d.a2 = 0.0
-                    if not d.r2:
-                        d.r2 = 0.0
-                if not d.a3:
-                    d.a3 = 0.0
-                    if not d.r2:
-                        d.r2 = 0.0
-                out_file.write('%4d\t%s\t%s\t%s\t%s\t# %s\n'
-                               % (d.tag, d.a1, d.a2, d.a3, d.r2, d.name))
+                out_file.write(d.write_lammps(self.dihedral_style, cross_term='MiddleBond'))
             out_file.write('\n')
             out_file.write('EndBondTorsion Coeffs\n\n')
             for d in self.dihedral_types:
-                if not d.b1:
-                    d.b1 = 0.0
-                    if not d.r1:
-                        d.r1 = 0.0
-                    if not d.r3:
-                        d.r3 = 0.0
-                if not d.b2:
-                    d.b2 = 0.0
-                    if not d.r1:
-                        d.r1 = 0.0
-                    if not d.r3:
-                        d.r3 = 0.0
-                if not d.b3:
-                    d.b3 = 0.0
-                    if not d.r1:
-                        d.r1 = 0.0
-                    if not d.r3:
-                        d.r3 = 0.0
-                if not d.c1:
-                    d.c1 = 0.0
-                    if not d.r1:
-                        d.r1 = 0.0
-                    if not d.r3:
-                        d.r3 = 0.0
-                if not d.c2:
-                    d.c2 = 0.0
-                    if not d.r1:
-                        d.r1 = 0.0
-                    if not d.r3:
-                        d.r3 = 0.0
-                if not d.c3:
-                    d.c3 = 0.0
-                    if not d.r1:
-                        d.r1 = 0.0
-                    if not d.r3:
-                        d.r3 = 0.0
-                out_file.write('%4d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t# %s\n'
-                               % (d.tag,
-                                  d.b1, d.b2, d.b3,
-                                  d.c1, d.c2, d.c3,
-                                  d.r1, d.r3,
-                                  d.name))
+                out_file.write(d.write_lammps(self.dihedral_style, cross_term='EndBond'))
             out_file.write('\n')
             out_file.write('AngleTorsion Coeffs\n\n')
             for d in self.dihedral_types:
-                if not d.d1:
-                    d.d1 = 0.0
-                    if not d.theta1:
-                        d.theta1 = 0.0
-                    if not d.theta2:
-                        d.theta2 = 0.0
-                if not d.d2:
-                    d.d2 = 0.0
-                    if not d.theta1:
-                        d.theta1 = 0.0
-                    if not d.theta2:
-                        d.theta2 = 0.0
-                if not d.d3:
-                    d.d3 = 0.0
-                    if not d.theta1:
-                        d.theta1 = 0.0
-                    if not d.theta2:
-                        d.theta2 = 0.0
-                if not d.e1:
-                    d.e1 = 0.0
-                    if not d.theta1:
-                        d.theta1 = 0.0
-                    if not d.theta2:
-                        d.theta2 = 0.0
-                if not d.e2:
-                    d.e2 = 0.0
-                    if not d.theta1:
-                        d.theta1 = 0.0
-                    if not d.theta2:
-                        d.theta2 = 0.0
-                if not d.e3:
-                    d.e3 = 0.0
-                    if not d.theta1:
-                        d.theta1 = 0.0
-                    if not d.theta2:
-                        d.theta2 = 0.0
-                out_file.write('%4d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t# %s\n'
-                               % (d.tag,
-                                  d.d1, d.d2, d.d3,
-                                  d.e1, d.e2, d.e3,
-                                  d.theta1, d.theta2,
-                                  d.name))
+                out_file.write(d.write_lammps(self.dihedral_style, cross_term='Angle'))
             out_file.write('\n')
             out_file.write('AngleAngleTorsion Coeffs\n\n')
             for d in self.dihedral_types:
-                if not d.m:
-                    d.m = 0.0
-                    if not d.theta1:
-                        d.theta1 = 0.0
-                    if not d.theta2:
-                        d.theta2 = 0.0
-                out_file.write('%4d\t%s\t%s\t%s\t# %s\n'
-                               % (d.tag,
-                                  d.m,
-                                  d.theta1, d.theta2,
-                                  d.name))
+                out_file.write(d.write_lammps(self.dihedral_style, cross_term='AngleAngle'))
             out_file.write('\n')
             out_file.write('BondBond13 Coeffs\n\n')
             for d in self.dihedral_types:
-                if not d.n_class2:
-                    d.n_class2 = 0.0
-                    if not d.r1:
-                        d.r1 = 0.0
-                    if not d.r3:
-                        d.r3 = 0.0
-                out_file.write('%4d\t%s\t%s\t%s\t# %s\n'
-                               % (d.tag,
-                                  d.n_class2,
-                                  d.r1, d.r3,
-                                  d.name))
+                out_file.write(d.write_lammps(self.dihedral_style, cross_term='BondBond13'))
             out_file.write('\n')
 
         if self.improper_types.count > 0:
             out_file.write('Improper Coeffs\n\n')
             for i in self.improper_types:
-                if self.improper_style == 'harmonic' or self.improper_style =='class2':
-                    if not i.k:
-                        i.k = 0.0
-                    if not i.x0:
-                        i.x0 = 0.0
-                    out_file.write('%4d\t%s\t%s\t# %s\n'
-                                   % (i.tag, i.k, i.x0, i.name))
-                elif self.improper_style == 'cvff':
-                    out_file.write('%4d\t%s\t%s\t%s\t# %s\n'
-                                   % (i.tag, i.k, i.d, i.n, i.name))
+                if self.improper_style:
+                    out_file.write(i.write_lammps(self.improper_style))
             out_file.write('\n')
 
-        if self.improper_types.count > 0 and (self.ff_class == '2' or
-                                              self.improper_style == 'class2'):
+        if self.improper_types.count > 0 and self.improper_style == 'class2':
             out_file.write('AngleAngle Coeffs\n\n')
             for i in self.improper_types:
-                if not i.m1:
-                    i.m1 = 0.0
-                    if not i.theta1:
-                        i.theta1 = 0.0
-                    if not i.theta2:
-                        i.theta2 = 0.0
-                    if not i.theta3:
-                        i.theta3 = 0.0
-                if not i.m2:
-                    i.m2 = 0.0
-                    if not i.theta1:
-                        i.theta1 = 0.0
-                    if not i.theta2:
-                        i.theta2 = 0.0
-                    if not i.theta3:
-                        i.theta3 = 0.0
-                if not i.m3:
-                    i.m3 = 0.0
-                    if not i.theta1:
-                        i.theta1 = 0.0
-                    if not i.theta2:
-                        i.theta2 = 0.0
-                    if not i.theta3:
-                        i.theta3 = 0.0
-                out_file.write('%4d\t%s\t%s\t%s\t%s\t%s\t%s\t# %s\n'
-                               % (i.tag,
-                                  i.m1, i.m2, i.m3,
-                                  i.theta1, i.theta2, i.theta3,
-                                  i.name))
+                out_file.write(i.write_lammps(self.improper_style, cross_term='AngleAngle'))
             out_file.write('\n')
 
         if self.particles.count > 0 and not empty:
             out_file.write('Atoms\n\n')
             for p in self.particles:
                 if not p.molecule:
-                    p.molecule = Item()
+                    p.molecule = Molecule()
                     p.molecule.tag = 1
                 if not p.charge:
-                    p.charge = 0
+                    p.charge = 0.
                 if isinstance(p.molecule, int):
                     out_file.write('%4d\t%d\t%d\t%s\t%s\t%s\t%s\n'
                                    % (p.tag, p.molecule, p.type.tag, p.charge,
@@ -2714,22 +2925,58 @@ class System(object):
         else:
             out_file.close()
             
-    def write_gro(self, outfile='data.gro', time=0.0):
+    def write_psf(self, outfile='data.psf'):
+        """pysimm.system.System.write_psf
+
+        Write System data in psd format
+
+        Args:
+            outfile: where to write data, file name or 'string'
+
+        Returns:
+            None or string of data file if out_data='string'
+        """
         if outfile == 'string':
             out = StringIO()
         else:
-            out = open(outfile, 'w+')
-            
-        out.write('{}, time={}\n'.format(self.name, time))
-        out.write('{}\n'.format(self.particles.count))
-        for p in self.particles:
-            if p.vx is None:
-                self.zero_velocity()
-            out.write('{:^5}{:^5}{:^5}{:^5}{:8.3f}{:8.3f}{:8.3f}{:8.4f}{:8.4f}{:8.4f}\n'.format(p.molecule.tag, p.molecule.name[:5],
-                                                    p.type.name[:5], p.tag, p.x/10, p.y/10, p.z/10,
-                                                    p.vx*100, p.vy*100, p.vz*100))
-        out.write('{}\t{}\t{}'.format(self.dim.dx/10, self.dim.dy/10, self.dim.dz/10))
+            if append:
+                out = open(outfile, 'a')
+            else:
+                out = open(outfile, 'w')
+        out.write('       1 !NTITLE\n')
+        out.write(' REMARKS written using pysimm\n\n')
         
+        out.write('{:>8} !NATOMS\n'.format(self.particles.count))
+        for p in self.particles:
+            out.write(
+                '{:>8} P {:>4} {:>6}  {:<4} {:<5}{: 8f}     {:>7} {:>7}\n'.format(
+                    p.tag, p.molecule.tag, 'RES', p.name or 'None', p.type.name, p.charge, p.type.mass, '0'
+                )
+            )
+        out.write('\n')
+        out.write('{:>8} !NBOND\n'.format(self.bonds.count))
+        for b in self.bonds:
+            out.write('{:>8}{:>8}'.format(b.a.tag, b.b.tag))
+            if b.tag%4 == 0:
+                out.write('\n')
+        out.write('\n\n')
+        out.write('{:>8} !NTHETA\n'.format(self.angles.count))
+        for a in self.angles:
+            out.write('{:>8}{:>8}{:>8}'.format(a.a.tag, a.b.tag, a.c.tag))
+            if a.tag%3 == 0:
+                out.write('\n')
+        out.write('\n\n')
+        out.write('{:>8} !NPHI\n'.format(self.dihedrals.count))
+        for d in self.dihedrals:
+            out.write('{:>8}{:>8}{:>8}{:>8}'.format(d.a.tag, d.b.tag, d.c.tag, d.d.tag))
+            if d.tag%2 == 0:
+                out.write('\n')
+        out.write('\n\n')
+        out.write('{:>8} !NIMPHI\n'.format(self.impropers.count))
+        for i in self.impropers:
+            out.write('{:>8}{:>8}{:>8}{:>8}'.format(i.a.tag, i.b.tag, i.c.tag, i.d.tag))
+            if i.tag%2 == 0:
+                out.write('\n')
             
         if outfile == 'string':
             s = out.getvalue()
@@ -2737,86 +2984,7 @@ class System(object):
             return s
         else:
             out.close()
-
-    def write_hoomd(self, outfile='data.xml'):
-        """pysimm.system.System.write_hoomd
-
-        Write System data formatted for hoomd
-
-        Args:
-            outfile: file name to write data
-
-        Returns:
-            None
-        """
-        hoomd = Et.Element('hoomd_xml')
-        tree = Et.ElementTree(hoomd)
-
-        config = Et.SubElement(hoomd, 'configuration')
-
-        box = Et.SubElement(config, 'box')
-        box.set('lx', str((self.dim.xhi * 0.1) - (self.dim.xlo * 0.1)))
-        box.set('ly', str((self.dim.yhi * 0.1) - (self.dim.ylo * 0.1)))
-        box.set('lz', str((self.dim.zhi * 0.1) - (self.dim.zlo * 0.1)))
-
-        position = Et.SubElement(config, 'position')
-        position.set('num', str(self.particles.count))
-        position.text = ''
-        for p in self.particles:
-            position.text += ('%s %s %s\n' % (p.x * 0.1, p.y * 0.1, p.z * 0.1))
-
-        mass = Et.SubElement(config, 'mass')
-        mass.set('num', str(self.particles.count))
-        mass.text = ''
-        for p in self.particles:
-            mass.text += '%s\n' % p.type.mass
-
-        type_ = Et.SubElement(config, 'type')
-        type_.set('num', str(self.particles.count))
-        type_.text = ''
-        for p in self.particles:
-            type_.text += '%s\n' % p.type.name
-
-        if self.bonds.count > 0:
-            bond = Et.SubElement(config, 'bond')
-            bond.set('num', str(self.bonds.count))
-            bond.text = ''
-            for b in self.bonds:
-                bond.text += '%s %s %s\n' % (b.type.name, b.a.tag - 1,
-                                             b.b.tag - 1)
-
-        if self.angles.count > 0:
-            angle = Et.SubElement(config, 'angle')
-            angle.set('num', str(self.angles.count))
-            angle.text = ''
-            for a in self.angles:
-                angle.text += '%s %s %s %s\n' % (a.type.name, a.a.tag - 1,
-                                                 a.b.tag - 1, a.c.tag - 1)
-
-        if self.dihedrals.count > 0:
-            dihedral = Et.SubElement(config, 'dihedral')
-            dihedral.set('num', str(self.dihedrals.count))
-            dihedral.text = ''
-            for d in self.dihedrals:
-                dihedral.text += '%s %s %s %s %s\n' % (d.type.name,
-                                                       d.a.tag - 1,
-                                                       d.b.tag - 1,
-                                                       d.c.tag - 1,
-                                                       d.d.tag - 1)
-
-        if self.impropers.count > 0:
-            improper = Et.SubElement(config, 'improper')
-            improper.set('num', str(self.impropers.count))
-            improper.text = ''
-            for i in self.impropers:
-                improper.text += '%s %s %s %s %s\n' % (i.type.name,
-                                                       i.a.tag - 1,
-                                                       i.b.tag - 1,
-                                                       i.c.tag - 1,
-                                                       i.d.tag - 1)
-
-        tree.write(outfile)
-
+            
     def write_xyz(self, outfile='data.xyz', **kwargs):
         """pysimm.system.System.write_xyz
 
@@ -2972,12 +3140,12 @@ class System(object):
         for p in self.particles:
             if p.type:
                 out.write('{:<6}{:>5} {:>4} RES  {:4}   '
-                          '{: 8.4f}{: 8.4f}{: 8.4f}{:>22}{:>2}\n'
+                          '{: 8.3f}{: 8.3f}{: 8.3f}{:>22}{:>2}\n'
                           .format('ATOM', p.tag, p.type.name[0:4] if type_names else p.type.elem, p.molecule.tag,
                                   p.x, p.y, p.z, '', p.type.elem))
             elif p.elem:
                 out.write('{:<6}{:>5} {:>4} RES  {:4}   '
-                          '{: 8.4f}{: 8.4f}{: 8.4f}{:>22}{:>2}\n'
+                          '{: 8.3f}{: 8.3f}{: 8.3f}{:>22}{:>2}\n'
                           .format('ATOM', p.tag, p.elem, p.molecule.tag,
                                   p.x, p.y, p.z, '', p.elem))
         for p in self.particles:
@@ -3025,6 +3193,8 @@ class System(object):
                                     s[k][k_][t][key] = value.tag
             elif isinstance(v, Item):
                 s[k] = vars(v)
+            else:
+                s[k] = v
 
         if file_ == 'string':
             f = StringIO()
@@ -3122,175 +3292,13 @@ class System(object):
             p.x -= self.cog[0]
             p.y -= self.cog[1]
             p.z -= self.cog[2]
+        self.dim.xhi -= self.cog[0]
+        self.dim.xlo -= self.cog[0]
+        self.dim.yhi -= self.cog[1]
+        self.dim.ylo -= self.cog[1]
+        self.dim.zhi -= self.cog[2]
+        self.dim.zlo -= self.cog[2]
         self.set_cog()
-
-    def set_neighbors(self, cutoff=12.0):
-        """pysimm.system.System.set_neighbors
-
-        *** BUGGY - DO NOT USE ***
-
-        """
-        ncells = [int(ceil(self.dim.dx/cutoff)), int(ceil(self.dim.dy/cutoff)), int(ceil(self.dim.dz/cutoff))]
-        cell_dx = self.dim.dx/ncells[0]
-        cell_dy = self.dim.dy/ncells[1]
-        cell_dz = self.dim.dz/ncells[2]
-        if min(ncells) < 2:
-            warning_print('dimension along one axis is less than cutoff - this is not good')
-        self.neighbors = [[[ItemContainer() for c_z in range(ncells[2])]
-                           for c_y in range(ncells[1])]
-                          for c_x in range(ncells[0])]
-
-        for p in self.particles:
-            p.cell_id = [int(floor((p.x-self.dim.xlo)/cell_dx)),
-                         int(floor((p.y-self.dim.ylo)/cell_dy)),
-                         int(floor((p.z-self.dim.zlo)/cell_dz))]
-            self.neighbors[p.cell_id[0]][p.cell_id[1]][p.cell_id[2]].add(p)
-
-        for p in self.particles:
-            p.neighbors = ItemContainer()
-            p_xcell = p.cell_id[0]
-            p_ycell = p.cell_id[1]
-            p_zcell = p.cell_id[2]
-
-            for x_index in range(p_xcell-1, p_xcell+2):
-                for y_index in range(p_ycell-1, p_ycell+2):
-                    for z_index in range(p_zcell-1, p_zcell+2):
-                        if x_index >= len(self.neighbors):
-                            x_index -= len(self.neighbors)
-                        if y_index >= len(self.neighbors):
-                            y_index -= len(self.neighbors)
-                        if z_index >= len(self.neighbors):
-                            z_index -= len(self.neighbors)
-
-                        for p_ in self.neighbors[x_index][y_index][z_index]:
-                            if p is not p_:
-                                p.neighbors.add(p_)
-
-        self.neighbors_check = True
-        
-    def guess_elements_from_mass(self, mass_dict=None):
-        if mass_dict is None:
-            elem_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                     os.pardir, 'dat', 'elements_by_mass.json')
-            with file(elem_file) as f:
-                mass_dict = json.loads(f.read())
-        
-        for pt in self.particle_types:
-            pt.elem = mass_dict['default']['{}'.format(int(round(pt.mass)))]
-
-    def guess_bonds(self, heavy_d=2.0, hydrogen_d=1.5, neighbor_cutoff=2.5, allow_h2=False):
-        """pysimm.system.System.guess_bonds
-
-        *** USES BUGGY FUNCTION SET_NEIGHBORS - DO NOT USE ***
-
-        """
-        self.bonds.remove('all')
-        for p in self.particles:
-            p.bonds = ItemContainer()
-            p.bonded_to = ItemContainer()
-
-        if not self.neighbors_check:
-            self.set_neighbors(cutoff=neighbor_cutoff)
-
-        for p in self.particles:
-            for p_ in p.neighbors:
-                if p_ in p.bonded_to:
-                    continue
-                if not allow_h2 and p.type.elem == 'H' and p_.type.elem == 'H':
-                    continue
-                if p.type.elem == 'H' or p_.type.elem == 'H':
-                    if calc.pbc_distance(self, p, p_) <= hydrogen_d:
-                        new_bond = Bond(a=p, b=p_)
-                        self.bonds.add(new_bond)
-                        p.bonds.add(new_bond)
-                        p_.bonds.add(new_bond)
-                        p.bonded_to.add(p_)
-                        p_.bonded_to.add(p)
-                else:
-                    if calc.pbc_distance(self, p, p_) <= heavy_d:
-                        new_bond = Bond(a=p, b=p_)
-                        self.bonds.add(new_bond)
-                        p.bonds.add(new_bond)
-                        p_.bonds.add(new_bond)
-                        p.bonded_to.add(p_)
-                        p_.bonded_to.add(p)
-
-    def guess_hybridization(self, unwrap=True):
-        """pysimm.system.System.guess_hybridization
-
-        Simple guessing of hybridization based on element and number of bonds. Cannot detect aromaticity.
-
-        Args:
-            unwrap: if True, unwrap System first default=True
-
-        Returns:
-            None
-        """
-        if unwrap:
-            self.unwrap()
-        self.add_particle_bonding()
-        for p in self.particles:
-            if not p.type or not p.type.elem:
-                error_print('cannot determine hybridization for particle %s because type/element not defined' % p.tag)
-                return
-            if p.type.elem == 'C':
-                if p.bonds.count == 4:
-                    p.hyb = 'sp3'
-                elif p.bonds.count == 3:
-                    p.hyb = 'sp2'
-                elif p.bonds.count == 2:
-                    p.hyb = 'sp1'
-                else:
-                    error_print('unexpected number of bonds for particle %s' % p.tag)
-            elif p.type.elem == 'O':
-                if p.bonds.count == 2:
-                    p.hyb = 'sp3'
-                elif p.bonds.count == 1:
-                    p.hyb = 'sp2'
-                else:
-                    error_print('unexpected number of bonds for particle %s' % p.tag)
-            elif p.type.elem == 'N':
-                if p.bonds.count == 1:
-                    p.hyb = 'sp1'
-                elif p.bonds.count == 2:
-                    p.hyb = 'sp2'
-                elif p.bonds.count == 3:
-                    p.hyb = 'sp3'
-                else:
-                    error_print('unexpected number of bonds for particle %s' % p.tag)
-
-    def guess_bond_order(self):
-        """pysimm.system.System.guess_bond_order
-
-        Simple guessing of bond order based on hybridizations
-
-        Args:
-            None
-
-        Returns:
-            None
-        """
-        for b in self.bonds:
-            if b.a.type.elem == 'H' or b.b.type.elem == 'H':
-                if not b.order:
-                    b.order = 1
-                else:
-                    print(b.order, 1)
-            elif b.a.hyb == 'sp2' and b.b.hyb == 'sp2':
-                if not b.order:
-                    b.order = 2
-                else:
-                    print(b.order, 2)
-            elif b.a.hyb == 'sp1' and b.b.hyb == 'sp1':
-                if not b.order:
-                    b.order = 3
-                else:
-                    print(b.order, 3)
-            else:
-                if not b.order:
-                    b.order = 1
-                else:
-                    print(b.order, 1)
 
     def set_mass(self):
         """pysimm.system.System.set_mass
@@ -3397,7 +3405,7 @@ class System(object):
     def set_box(self, padding=0., center=True):
         """pysimm.system.System.set_box
 
-        Update System.Dimension with user defined padding
+        Update System.Dimension with user defined padding. Used to construct a simulation box if it doesn't exist, or adjust the size of the simulation box following system modifications.
 
         Args:
             padding: add padding to all sides of box (Angstrom)
@@ -3406,8 +3414,6 @@ class System(object):
         Returns:
             None
         """
-        if center:
-            self.center_at_origin()
         xmin = ymin = zmin = sys.float_info.max
         xmax = ymax = zmax = sys.float_info.min
         for p in self.particles:
@@ -3433,7 +3439,10 @@ class System(object):
         self.dim.dx = self.dim.xhi - self.dim.xlo
         self.dim.dy = self.dim.yhi - self.dim.ylo
         self.dim.dz = self.dim.zhi - self.dim.zlo
-
+        
+        if center:
+            self.center_at_origin()
+        
     def set_mm_dist(self, molecules=None):
         """pysimm.system.System.set_mm_dist
 
@@ -3525,7 +3534,7 @@ class System(object):
         os.remove(name_)
 
     def viz(self, **kwargs):
-        self.visualize(vis_exec='vmd', unwrap=False, format='xyz')
+        self.visualize(vis_exec='vmd', unwrap=False, format='xyz', **kwargs)
 
 
 class Molecule(System):
@@ -3535,35 +3544,6 @@ class Molecule(System):
     """
     def __init__(self, **kwargs):
         System.__init__(self, **kwargs)
-
-
-def join(system1, system2, remove_overlaps=True, max_buffer=6):
-    """pysimm.system.join
-
-    *** USES BUGGY FUNCTION SET_NEIGHBORS - DO NOT USE ***
-
-    """
-    s1 = system1.copy()
-    s2 = system2.copy()
-    new_system = replicate([s1, s2], [1, 1], density=None, rand=False, print_insertions=False)
-    new_system.dim = s1.dim.copy()
-    if not remove_overlaps:
-        return new_system
-    for m in new_system.molecules[s1.molecules.count+1:]:
-        overlap = False
-        for mp in m.particles:
-            for p in new_system.particles[1:s1.particles.count+1]:
-                if calc.pbc_distance(new_system, mp, p) < (mp.type.sigma + p.type.sigma)/2:
-                    overlap = True
-                    break
-            if overlap:
-                break
-        if overlap:
-            new_system.molecules.remove(m.tag, update=False)
-            for mp in m.particles:
-                new_system.particles.remove(mp.tag, update=False)
-    new_system.remove_spare_bonding()
-    return new_system
 
 
 def read_yaml(file_, **kwargs):
@@ -3782,6 +3762,48 @@ def read_xyz(file_, **kwargs):
 
     s.set_box(padding=0.5)
 
+    return s
+
+
+def read_chemdoodle_json(file_, **kwargs):
+    """pysimm.system.read_xyz
+
+    Interprets xyz file and creates pysimm.system.System object
+
+    Args:
+        file_: xyz file name
+        quiet(optional): if False, print status
+
+    Returns:
+        pysimm.system.System object
+    """
+    quiet = kwargs.get('quiet')
+
+    if os.path.isfile(file_):
+        debug_print('reading file')
+        f = file(file_)
+    elif isinstance(file_, basestring):
+        debug_print('reading string')
+        f = StringIO(file_)
+        
+    s = System()
+    data = json.loads(f.read())
+    for a in data.get('a'):
+        s.particles.add(Particle(
+            x=a.get('x'),
+            y=a.get('y'),
+            z=a.get('z'),
+            charge=a.get('c'),
+            elem=a.get('l'),
+            type_name=a.get('i')
+        ))
+    for b in data.get('b'):
+        s.bonds.add(Bond(
+            a=s.particles[b.get('b')+1],
+            b=s.particles[b.get('e')+1],
+            order=b.get('o')
+        ))
+        
     return s
 
 
@@ -4132,12 +4154,12 @@ def read_lammps(data_file, **kwargs):
                     n=[]
                     for i in range(m):
                         k.append(data.pop(0))
-                        d.append(data.pop(0))
                         n.append(data.pop(0))
+                        d.append(data.pop(0))
                     s.dihedral_types.add(DihedralType(tag=tag, name=name,
                                                       m=m,
                                                       k=map(float, k),
-                                                      d=map(int, d),
+                                                      d=map(float, d),
                                                       n=map(int, n)))
                 elif not dihedral_style:
                     if not quiet and i == 0:
@@ -4164,16 +4186,16 @@ def read_lammps(data_file, **kwargs):
                         data = line[1:]
                         m = int(data.pop(0))
                         k=[]
-                        d=[]
                         n=[]
+                        d=[]
                         for i in range(m):
                             k.append(data.pop(0))
-                            d.append(data.pop(0))
                             n.append(data.pop(0))
+                            d.append(data.pop(0))
                         s.dihedral_types.add(DihedralType(tag=tag, name=name,
                                                           m=m,
                                                           k=map(float, k),
-                                                          d=map(int, d),
+                                                          d=map(float, d),
                                                           n=map(int, n)))
             if not quiet and dihedral_style:
                 verbose_print('read "%s" dihedral parameters '
@@ -4248,7 +4270,7 @@ def read_lammps(data_file, **kwargs):
             for i in range(ndihedral_types):
                 line = f.next().strip().split()
                 tag = int(line[0])
-                s.dihedral_types[tag].n_class2 = float(line[1])
+                s.dihedral_types[tag].n = float(line[1])
             if not quiet and dihedral_style:
                 verbose_print('read "%s" dihedral '
                               '(bond-bond-1-3 parameters for '
@@ -4278,21 +4300,35 @@ def read_lammps(data_file, **kwargs):
                     s.improper_types.add(ImproperType(tag=tag, name=name,
                                                       k=float(line[1]),
                                                       x0=float(line[2])))
+                elif (improper_style and
+                      improper_style.lower().startswith('cvff')):
+                    s.improper_types.add(ImproperType(tag=tag, name=name,
+                                                      k=float(line[1]),
+                                                      d=int(line[2]),
+                                                      n=int(line[3])))
                 elif not improper_style:
                     if not quiet and i == 0:
                             warning_print('cannot guess improper_style '
                                           'from number of parameters - '
                                           'will try to determine style later '
                                           'based on other types')
-                    s.improper_types.add(ImproperType(tag=tag, name=name,
-                                                      k=float(line[1]),
-                                                      x0=float(line[2])))
+                    if len(line) == 3:
+                        s.improper_types.add(ImproperType(tag=tag, name=name,
+                                                          k=float(line[1]),
+                                                          x0=float(line[2])))
+                    elif len(line) == 4:
+                        improper_style = 'cvff'
+                        s.improper_types.add(ImproperType(tag=tag, name=name,
+                                                          k=float(line[1]),
+                                                          d=int(line[2]),
+                                                          n=int(line[3])))
 
             if not quiet and improper_style:
                 verbose_print('read "%s" improper parameters '
                               'for %s ImproperTypes'
                               % (improper_style, nimproper_types))
         elif len(line) > 0 and line[0] == 'AngleAngle':
+            improper_style = 'class2'
             f.next()
             for i in range(nimproper_types):
                 line = f.next().strip().split()
@@ -4498,214 +4534,7 @@ def read_lammps(data_file, **kwargs):
     return s
 
 
-def read_hoomd(data_file, **kwargs):
-    """pysimm.system.read_hoomd
-
-    Interprets hoomd data file and creates pysimm.system.System object
-
-    Args:
-        data_file: hoomd data file name
-        f (optional): Forcefield object to get data from
-        d_unit (optional): allow user to override distance unit used in data file default='nm'
-
-    Returns:
-        pysimm.system.System object
-    """
-    f = kwargs.get('forcefield')
-    string = kwargs.get('string')
-    d_unit = kwargs.get('d_unit') or 'nm'
-
-    s = System()
-    if string:
-        root = Et.fromstring(string)
-    else:
-        tree = Et.parse(data_file)
-        root = tree.getroot()
-    config = root.find('configuration')
-    box = config.find('box')
-    dims = box.attrib
-    s.dim.xlo = -1*float(dims.get('lx'))/2
-    s.dim.xhi = float(dims.get('lx'))/2
-    s.dim.ylo = -1*float(dims.get('ly'))/2
-    s.dim.yhi = float(dims.get('ly'))/2
-    s.dim.zlo = -1*float(dims.get('lz'))/2
-    s.dim.zhi = float(dims.get('lz'))/2
-    if d_unit == 'nm':
-        s.dim.xlo *= 10
-        s.dim.xhi *= 10
-        s.dim.ylo *= 10
-        s.dim.yhi *= 10
-        s.dim.zlo *= 10
-        s.dim.zhi *= 10
-    position = config.find('position').text.split()
-    mass = config.find('mass').text.split() if config.find('mass') is not None else None
-    charge = config.find('charge').text.split() if config.find('charge') is not None else None
-    types = config.find('type').text.split()
-    bond = config.find('bond').text.split() if config.find('bond') is not None else None
-    angle = config.find('angle').text.split() if config.find('angle') is not None else None
-    dihedral = config.find('dihedral').text.split() if config.find('dihedral') is not None else None
-    improper = config.find('improper').text.split() if config.find('improper') is not None else None
-
-    nparticles = len(types)
-    nbonds = len(bond)/3 if bond else 0
-    nangles = len(angle)/4 if angle else 0
-    ndihedrals = len(dihedral)/5 if dihedral else 0
-    nimpropers = len(improper)/5 if improper else 0
-
-    ptypes = set()
-    for i in range(nparticles):
-        ptypes.add(types[i])
-        x = float(position[3*i])
-        y = float(position[3*i+1])
-        z = float(position[3*i+2])
-        if d_unit == 'nm':
-            x *= 10
-            y *= 10
-            z *= 10
-        p = Particle(tag=i+1, type=types[i], molecule=1, x=x, y=y, z=z, mass=mass[i])
-        s.particles.add(p)
-        if charge:
-            p.charge = charge[i]
-        else:
-            p.charge = 0.
-    ptypes = list(ptypes)
-
-    btypes = set()
-    for i in range(nbonds):
-        btypes.add(bond[3*i])
-        s.bonds.add(Bond(tag=i+1, type=bond[3*i], a=int(bond[3*i+1])+1, b=int(bond[3*i+2])+1))
-    btypes = list(btypes)
-
-    atypes = set()
-    for i in range(nangles):
-        atypes.add(angle[4*i])
-        s.angles.add(Angle(tag=i+1, type=angle[4*i], a=int(angle[4*i+1])+1, b=int(angle[4*i+2])+1,
-                           c=int(angle[4*i+3])+1))
-    atypes = list(atypes)
-
-    dtypes = set()
-    for i in range(ndihedrals):
-        dtypes.add(dihedral[5*i])
-        s.dihedrals.add(Dihedral(tag=i+1, type=dihedral[5*i], a=int(dihedral[5*i+1])+1, b=int(dihedral[5*i+2])+1,
-                                 c=int(dihedral[5*i+3])+1, d=int(dihedral[5*i+4])+1))
-    dtypes = list(dtypes)
-
-    itypes = set()
-    for i in range(nimpropers):
-        itypes.add(improper[5*i])
-        s.impropers.add(Improper(tag=i+1, type=improper[5*i], a=int(improper[5*i+1])+1, b=int(improper[5*i+2])+1,
-                                 c=int(improper[5*i+3])+1, d=int(improper[5*i+4])+1))
-    itypes = list(itypes)
-
-    nparticle_types = len(ptypes)
-    nbond_types = len(btypes)
-    nangle_types = len(atypes)
-    ndihedral_types = len(dtypes)
-    nimproper_types = len(itypes)
-
-    for i in range(nparticle_types):
-        s.particle_types.add(ParticleType(tag=i+1, name=ptypes[i]))
-
-    for i in range(nbond_types):
-        s.bond_types.add(BondType(tag=i+1, name=btypes[i]))
-
-    for i in range(nangle_types):
-        s.angle_types.add(AngleType(tag=i+1, name=atypes[i]))
-
-    for i in range(ndihedral_types):
-        s.dihedral_types.add(DihedralType(tag=i+1, name=dtypes[i]))
-
-    for i in range(nimproper_types):
-        s.improper_types.add(ImproperType(tag=i+1, name=itypes[i]))
-
-    if f:
-
-        for pt in s.particle_types:
-            if f.particle_types.get(pt.name):
-                tag = pt.tag
-                s.particle_types.remove(tag, update=False)
-                pt = f.particle_types.get(pt.name)[0].copy()
-                pt.tag = tag
-                s.particle_types.add(pt)
-
-        for bt in s.bond_types:
-            if f.bond_types.get(bt.name):
-                tag = bt.tag
-                s.bond_types.remove(tag, update=False)
-                bt = f.bond_types.get(bt.name)[0].copy()
-                bt.tag = tag
-                s.bond_types.add(bt)
-
-        for at in s.angle_types:
-            if f.angle_types.get(at.name):
-                tag = at.tag
-                s.angle_types.remove(tag, update=False)
-                at = f.angle_types.get(at.name)[0].copy()
-                at.tag = tag
-                s.angle_types.add(at)
-
-        for dt in s.dihedral_types:
-            if f.dihedral_types.get(dt.name):
-                tag = dt.tag
-                s.dihedral_types.remove(tag, update=False)
-                dt = f.dihedral_types.get(dt.name)[0].copy()
-                dt.tag = tag
-                s.dihedral_types.add(dt)
-
-        for it in s.improper_types:
-            if f.improper_types.get(it.name):
-                tag = it.tag
-                s.improper_types.remove(tag, update=False)
-                it = f.improper_types.get(it.name)[0].copy()
-                it.tag = tag
-                s.improper_types.add(it)
-
-    else:
-        warning_print('no forcefield supplied; types will be incomplete')
-
-    for p in s.particles:
-        for pt in s.particle_types:
-            if p.type == pt.name:
-                p.type = pt
-                p.type.mass = float(p.mass)
-                break
-
-    for b in s.bonds:
-        for bt in s.bond_types:
-            if b.type == bt.name:
-                b.type = bt
-                break
-
-    for a in s.angles:
-        for at in s.angle_types:
-            if a.type == at.name:
-                a.type = at
-                break
-
-    for d in s.dihedrals:
-        for dt in s.dihedral_types:
-            if d.type == dt.name:
-                d.type = dt
-                break
-
-    for i in s.impropers:
-        for it in s.improper_types:
-            if i.type == it.name:
-                i.type = it
-                break
-
-    s.objectify()
-
-    s.set_cog()
-    s.set_mass()
-    s.set_volume()
-    s.set_density()
-    s.set_velocity()
-
-    return s
-
-
-def read_pubchem_smiles(smiles, type_with=None):
+def read_pubchem_smiles(smiles, quiet=False, type_with=None):
     """pysimm.system.read_pubchem_smiles
 
     Interface with pubchem restful API to create molecular system from SMILES format
@@ -4721,16 +4550,17 @@ def read_pubchem_smiles(smiles, type_with=None):
     req = ('https://pubchem.ncbi.nlm.nih.gov/'
            'rest/pug/compound/smiles/%s/SDF/?record_type=3d' % smiles)
            
-    print('making request to pubchem RESTful API:')
-    print(req)
+    if not quiet:
+        print('making request to pubchem RESTful API:')
+        print(req)
 
     try:
         resp = urlopen(req)
         return read_mol(resp.read(), type_with=type_with)
     except HTTPError, URLError:
         print('Could not retrieve pubchem entry for smiles %s' % smiles)
-        
-        
+
+
 def read_pubchem_cid(cid, type_with=None):
     """pysimm.system.read_pubchem_smiles
 
@@ -4906,8 +4736,8 @@ def read_mol(mol_file, type_with=None, version='V2000'):
                   % type_with.ff_name)
 
     return s
-    
-    
+
+
 def read_prepc(prec_file):
     """pysimm.system.read_prepc
 
@@ -4952,7 +4782,8 @@ def read_prepc(prec_file):
     f.close()
     
     return s
-    
+
+
 def read_ac(ac_file):
     """pysimm.system.read_ac
 
@@ -5002,6 +4833,160 @@ def read_ac(ac_file):
 
     f.close()
     
+    return s
+
+
+def read_psf(psf_file):
+    if os.path.isfile(psf_file):
+        debug_print('reading file')
+        f = open(psf_file)
+    elif isinstance(psf_file, basestring):
+        debug_print('reading string')
+        f = StringIO(psf_file)
+    else:
+        raise PysimmError('pysimm.system.read_psf requires either '
+                          'file or string as argument')
+
+    s = System(name='read using pysimm.system.read_psf')
+    
+    for line in f:
+        if 'NATOM' in line:
+            nparticles = int(line.split()[0])
+            for n in range(nparticles):
+                line = f.next().split()
+                s.particles.add(
+                    Particle(
+                        tag = int(line[0]),
+                        type_name = line[5],
+                        charge = float(line[6]),
+                        mass = float(line[7])
+                    )
+                )
+        elif 'NBOND' in line:
+            nbonds = int(line.split()[0])
+            nlines = nbonds/4
+            for n in range(nlines):
+                line = f.next().split()
+                for _ in range(4):
+                    p1 = line.pop(0)
+                    p2 = line.pop(0)
+                    s.bonds.add(
+                        Bond(
+                            a=s.particles[int(p1)],
+                            b=s.particles[int(p2)]
+                        )
+                    )
+            if nbonds % 4 != 0:
+                extra = nbonds % 4
+                line = f.next().split()
+                for _ in range(extra):
+                    p1 = line.pop(0)
+                    p2 = line.pop(0)
+                    s.bonds.add(
+                        Bond(
+                            a=s.particles[int(p1)],
+                            b=s.particles[int(p2)]
+                        )
+                    )
+        elif 'NTHETA' in line:
+            nangles = int(line.split()[0])
+            nlines = nangles/3
+            for n in range(nlines):
+                line = f.next().split()
+                for _ in range(3):
+                    p1 = line.pop(0)
+                    p2 = line.pop(0)
+                    p3 = line.pop(0)
+                    s.angles.add(
+                        Angle(
+                            a=s.particles[int(p1)],
+                            b=s.particles[int(p2)],
+                            c=s.particles[int(p3)]
+                        )
+                    )
+            if nangles % 3 != 0:
+                extra = nangles % 3
+                line = f.next().split()
+                for _ in range(extra):
+                    p1 = line.pop(0)
+                    p2 = line.pop(0)
+                    p3 = line.pop(0)
+                    s.angles.add(
+                        Angle(
+                            a=s.particles[int(p1)],
+                            b=s.particles[int(p2)],
+                            c=s.particles[int(p3)]
+                        )
+                    )
+        elif 'NPHI' in line:
+            ndihedrals = int(line.split()[0])
+            nlines = ndihedrals/2
+            for n in range(nlines):
+                line = f.next().split()
+                for _ in range(2):
+                    p1 = line.pop(0)
+                    p2 = line.pop(0)
+                    p3 = line.pop(0)
+                    p4 = line.pop(0)
+                    s.dihedrals.add(
+                        Dihedral(
+                            a=s.particles[int(p1)],
+                            b=s.particles[int(p2)],
+                            c=s.particles[int(p3)],
+                            d=s.particles[int(p4)]
+                        )
+                    )
+            if ndihedrals % 2 != 0:
+                extra = ndihedrals % 2
+                line = f.next().split()
+                for _ in range(extra):
+                    p1 = line.pop(0)
+                    p2 = line.pop(0)
+                    p3 = line.pop(0)
+                    p4 = line.pop(0)
+                    s.dihedrals.add(
+                        Dihedral(
+                            a=s.particles[int(p1)],
+                            b=s.particles[int(p2)],
+                            c=s.particles[int(p3)],
+                            d=s.particles[int(p4)]
+                        )
+                    )
+        elif 'NIMPHI' in line:
+            nimpropers = int(line.split()[0])
+            nlines = nimpropers/2
+            for n in range(nlines):
+                line = f.next().split()
+                for _ in range(2):
+                    p1 = line.pop(0)
+                    p2 = line.pop(0)
+                    p3 = line.pop(0)
+                    p4 = line.pop(0)
+                    s.impropers.add(
+                        Improper(
+                            a=s.particles[int(p1)],
+                            b=s.particles[int(p2)],
+                            c=s.particles[int(p3)],
+                            d=s.particles[int(p4)]
+                        )
+                    )
+            if nimpropers % 2 != 0:
+                extra = nimpropers % 2
+                line = f.next().split()
+                for _ in range(extra):
+                    p1 = line.pop(0)
+                    p2 = line.pop(0)
+                    p3 = line.pop(0)
+                    p4 = line.pop(0)
+                    s.impropers.add(
+                        Improper(
+                            a=s.particles[int(p1)],
+                            b=s.particles[int(p2)],
+                            c=s.particles[int(p3)],
+                            d=s.particles[int(p4)]
+                        )
+                    )
+    f.close()
     return s
 
 
@@ -5155,22 +5140,16 @@ def get_types(*arg, **kwargs):
 
 
 def distance_to_origin(p):
+    """pysimm.system.distance_to_origin
+
+    Calculates distance of particle to origin.
+
+    Args:
+        p: Particle object with x, y, and z attributes
+    Returns:
+        Distance of particle to origin
+    """
     return sqrt(pow(p.x, 2) + pow(p.y, 2) + pow(p.z, 2))
-
-
-def cluster(s, cutoff=35):
-    s.clusters = ItemContainer()
-    for p in s.particles:
-        if p.cluster:
-            for p0 in s.particles:
-                if p0 is not p and calc.pbc_distance(p, p0) < cutoff:
-                    p.cluster.add(p0)
-        else:
-            p.cluster = ItemContainer()
-            s.clusters.add(p.cluster)
-            for p0 in s.particles:
-                if p0 is not p and calc.pbc_distance(p, p0) < cutoff:
-                    p.cluster.add(p0)
 
 
 def replicate(ref, nrep, s_=None, density=0.3, rand=True, print_insertions=True):

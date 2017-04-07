@@ -2,9 +2,6 @@
 # pysimm.__init__ module
 # ******************************************************************************
 #
-# error printing
-# default executable path for lammps
-#
 # ******************************************************************************
 # License
 # ******************************************************************************
@@ -30,11 +27,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from __future__ import print_function
-import os
-from distutils.spawn import find_executable
 
-__all__ = ['calc', 'forcefield', 'system', 'amber', 'lmps', 'utils', 'gasteiger', 'apps']
+from __future__ import print_function
+
+__version__ = '0.2.dev'
 
 error = True
 warning = True
@@ -47,5 +43,4 @@ verbose_print = lambda *a, **k: print('PySIMM:', *a) if verbose else lambda *a, 
 debug_print = lambda *a, **k: print('(debug) PySIMM:', *a) if debug else lambda *a, **k: None
 
 class PysimmError(Exception):
-    def __init__(self, *args, **kwargs):
-        Exception.__init__(self, *args, **kwargs)
+    pass
