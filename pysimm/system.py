@@ -2939,10 +2939,7 @@ class System(object):
         if outfile == 'string':
             out = StringIO()
         else:
-            if append:
-                out = open(outfile, 'a')
-            else:
-                out = open(outfile, 'w')
+            out = open(outfile, 'w')
         out.write('       1 !NTITLE\n')
         out.write(' REMARKS written using pysimm\n\n')
         
