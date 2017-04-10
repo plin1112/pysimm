@@ -2946,7 +2946,7 @@ class System(object):
         out.write('{:>8} !NATOMS\n'.format(self.particles.count))
         for p in self.particles:
             out.write(
-                '{:>8} P {:>4} {:>6}  {:<4} {:<5}{: 8f}     {:>7} {:>7}\n'.format(
+                '{:>8} P  {:>4} {:>6}  {:<4} {:<5}{: 8f}     {:>7} {:>7}\n'.format(
                     p.tag, p.molecule.tag, 'RES', p.name or 'None', p.type.name, p.charge, p.type.mass, '0'
                 )
             )
