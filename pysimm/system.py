@@ -592,6 +592,9 @@ class Dihedral(Item):
             return None
         else:
             return '{},{},{},{}'.format(self.a.type.name, self.b.type.name, self.c.type.name, self.d.type.name)
+            
+    def dihedral(self, radians=False):
+        return calc.dihedral(self.a, self.b, self.c, self.d, radians=radians)
 
 
 class DihedralType(Item):

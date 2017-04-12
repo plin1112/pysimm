@@ -177,6 +177,40 @@ def angle(p1, p2, p3, radians=False):
     if not radians:
         theta = theta * 180 / pi
     return theta
+    
+    
+def dihedral(p1, p2, p3, p4, radians=False):
+    b1 = np.array([
+        p2.x-p1.x,
+        p2.y-p1.y,
+        p2.z-p1.z
+    ])
+    b2 = np.array([
+        p3.x-p2.x,
+        p3.y-p2.y,
+        p3.z-p2.z
+    ])
+    b3 = np.array([
+        p4.x-p3.x,
+        p4.y-p3.y,
+        p4.z-p3.z
+    ])
+    
+    n1 = np.cross(b1, b2)
+    n1 /= np.linalg.norm(n1)
+    n2 = np.cross(b2, b3)
+    n2 /= np.linalg.norm(n2)
+    
+    m1 = np.cross(n1, b2/np.linalg.norm(b2))
+    
+    x = np.dot(n1, n2)
+    y = np.dot(m1, n2)
+    
+    theta = np.arctan2(y, x)
+    
+    if not radians:
+        theta = theta * 180 / pi
+    return theta
 
 
 def chiral_angle(a, b, c, d):
