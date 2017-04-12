@@ -637,6 +637,10 @@ class DihedralType(Item):
             return '{:4}\t{}\t{}\t{}\t# {}\n'.format(
                 self.tag, self.k, self.d, self.n, self.name
             )
+        elif style.startswith('charmm'):
+            return '{:4}\t{}\t{}\t{}\t{}\t# {}\n'.format(
+                self.tag, self.k, self.n, self.d, self.w, self.name
+            )
         elif style.startswith('fourier'):
             st = '{:4}\t{}'.format(self.tag, self.m)
             for k, n, d in zip(self.k, self.n, self.d):
@@ -4161,11 +4165,17 @@ def read_lammps(data_file, **kwargs):
                                                       k=map(float, k),
                                                       d=map(float, d),
                                                       n=map(int, n)))
+                
+                elif (dihedral_style and dihedral_style.lower().startswith('charmm')):
+                    s.dihedral_types.add(DihedralType(tag=tag, name=name,
+                                                      k=float(line[1]),
+                                                      n=int(line[2]),
+                                                      d=int(line[3])))
                 elif not dihedral_style:
                     if not quiet and i == 0:
                         warning_print('dihedral_style currently unknown - '
                                       'guessing based on number of parameters '
-                                      '(3=harmonic 6=class2 1+3n=fourier)')
+                                      '(3=harmonic 4=charmm 6=class2 1+3n=fourier)')
                     if len(line) == 4:
                         dihedral_style = 'harmonic'
                         s.dihedral_types.add(DihedralType(tag=tag, name=name,
@@ -4181,6 +4191,30 @@ def read_lammps(data_file, **kwargs):
                                                           phi2=float(line[4]),
                                                           k3=float(line[5]),
                                                           phi3=float(line[6])))
+                    elif len(line) == 5:
+                        try:
+                            int(line[1])
+                            dihedral_style = 'fourier'
+                            data = line[1:]
+                            m = int(data.pop(0))
+                            k=[]
+                            n=[]
+                            d=[]
+                            for i in range(m):
+                                k.append(data.pop(0))
+                                n.append(data.pop(0))
+                                d.append(data.pop(0))
+                            s.dihedral_types.add(DihedralType(tag=tag, name=name,
+                                                              m=m,
+                                                              k=map(float, k),
+                                                              d=map(float, d),
+                                                              n=map(int, n)))
+                        except:
+                            dihedral_style = 'charmm'
+                            s.dihedral_types.add(DihedralType(tag=tag, name=name,
+                                                              k=float(line[1]),
+                                                              n=int(line[2]),
+                                                              d=int(line[3])))
                     elif len(line) % 3 == 2:
                         dihedral_style = 'fourier'
                         data = line[1:]
