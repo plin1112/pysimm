@@ -199,6 +199,15 @@ class ParticleType(Item):
             return '{:4}\t{}\t{}\t# {}\n'.format(
                 self.tag, self.epsilon, self.sigma, self.name
             )
+        elif style.startswith('charmm'):
+            if self.epsilon_14 and self.sigma_14:
+                return '{:4}\t{}\t{}\t{}\t{}\t# {}\n'.format(
+                    self.tag, self.epsilon, self.sigma, self.epsilon_14, self.sigma_14, self.name
+                )
+            else:
+                return '{:4}\t{}\t{}\t# {}\n'.format(
+                    self.tag, self.epsilon, self.sigma, self.name
+                )
         elif style.startswith('class2'):
             return '{:4}\t{}\t{}\t# {}\n'.format(
                 self.tag, self.epsilon, self.sigma, self.name
@@ -511,7 +520,7 @@ class AngleType(Item):
         
         elif style.startswith('charmm'):
             return '{:4}\t{}\t{}\t{}\t{}\t# {}\n'.format(
-                self.tag, self.k, self.theta0, self.kub, self.rub, self.name
+                self.tag, self.k, self.theta0, self.k_ub, self.r_ub, self.name
             )
         
     def form(self, style='harmonic', d_range=None):
@@ -3950,6 +3959,24 @@ def read_lammps(data_file, **kwargs):
                                           epsilon=float(line[1]),
                                           sigma=float(line[2]))
                         s.particle_types.add(pt)
+                elif pair_style and pair_style.lower().startswith('charmm'):
+                    if s.particle_types[tag]:
+                        pt = s.particle_types[tag]
+                        if name is not None and pt.name is None:
+                            pt.name = name
+                        pt.epsilon = float(line[1])
+                        pt.sigma = float(line[2])
+                        if len(line) == 5:
+                            pt.epsilon_14 = float(line[3])
+                            pt.sigma_14 = float(line[4])
+                    else:
+                        pt = ParticleType(tag=tag, name=name,
+                                          epsilon=float(line[1]),
+                                          sigma=float(line[2]))
+                        if len(line) == 5:
+                            pt.epsilon_14 = float(line[3])
+                            pt.sigma_14 = float(line[4])
+                        s.particle_types.add(pt)
                 elif pair_style and pair_style.lower().startswith('buck'):
                     if s.particle_types[tag]:
                         pt = s.particle_types[tag]
@@ -4068,6 +4095,12 @@ def read_lammps(data_file, **kwargs):
                     s.angle_types.add(AngleType(tag=tag, name=name,
                                                 k=float(line[1]),
                                                 theta0=float(line[2])))
+                elif angle_style and angle_style.lower().startswith('charmm'):
+                    s.angle_types.add(AngleType(tag=tag, name=name,
+                                                k=float(line[1]),
+                                                theta0=float(line[2]),
+                                                k_ub=float(line[3]),
+                                                r_ub=float(line[4])))
                 elif angle_style and angle_style.lower().startswith('class2'):
                     s.angle_types.add(AngleType(tag=tag, name=name,
                                                 theta0=float(line[1]),
@@ -4170,7 +4203,8 @@ def read_lammps(data_file, **kwargs):
                     s.dihedral_types.add(DihedralType(tag=tag, name=name,
                                                       k=float(line[1]),
                                                       n=int(line[2]),
-                                                      d=int(line[3])))
+                                                      d=int(float(line[3])),
+                                                      w=float(line[4])))
                 elif not dihedral_style:
                     if not quiet and i == 0:
                         warning_print('dihedral_style currently unknown - '
@@ -4192,8 +4226,14 @@ def read_lammps(data_file, **kwargs):
                                                           k3=float(line[5]),
                                                           phi3=float(line[6])))
                     elif len(line) == 5:
-                        try:
-                            int(line[1])
+                        if '.' in line[1]:
+                            dihedral_style = 'charmm'
+                            s.dihedral_types.add(DihedralType(tag=tag, name=name,
+                                                              k=float(line[1]),
+                                                              n=int(line[2]),
+                                                              d=int(float(line[3])),
+                                                              w=float(line[4])))
+                        else:
                             dihedral_style = 'fourier'
                             data = line[1:]
                             m = int(data.pop(0))
@@ -4209,12 +4249,6 @@ def read_lammps(data_file, **kwargs):
                                                               k=map(float, k),
                                                               d=map(float, d),
                                                               n=map(int, n)))
-                        except:
-                            dihedral_style = 'charmm'
-                            s.dihedral_types.add(DihedralType(tag=tag, name=name,
-                                                              k=float(line[1]),
-                                                              n=int(line[2]),
-                                                              d=int(line[3])))
                     elif len(line) % 3 == 2:
                         dihedral_style = 'fourier'
                         data = line[1:]

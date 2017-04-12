@@ -506,6 +506,7 @@ class Simulation(object):
         self.special_bonds = kwargs.get('special_bonds')
         self.nonbond_mixing = kwargs.get('nonbond_mixing')
         self.cutoff = kwargs.get('cutoff') or 12.0
+        self.inner_cutoff = kwargs.get('inner_cutoff', 8.0)
 
         self.print_to_screen = kwargs.get('print_to_screen') if kwargs.get('print_to_screen') is not None else False
         self.name = kwargs.get('name') or False
@@ -593,10 +594,12 @@ class Simulation(object):
         self.input = ''
 
         if init:
-            self.input += write_init(self.system, atom_style=self.atom_style, kspace_style=self.kspace_style,
-                                     special_bonds=self.special_bonds, units=self.units,
-                                     nonbond_mixing=self.nonbond_mixing,
-                                     nb_cut=self.cutoff)
+            self.input += write_init(
+                self.system, atom_style=self.atom_style, kspace_style=self.kspace_style,
+                special_bonds=self.special_bonds, units=self.units,
+                nonbond_mixing=self.nonbond_mixing,
+                nb_cut=self.cutoff, inner_cutoff=self.inner_cutoff
+            )
 
         if self.log:
             self.input += 'log %s append\n' % self.log
@@ -1506,6 +1509,7 @@ def write_init(l, **kwargs):
     nb_cut = kwargs.get('nb_cut') or 12.0
     special_bonds = kwargs.get('special_bonds')
     nonbond_mixing = kwargs.get('nonbond_mixing')
+    inner_cutoff = kwargs.get('inner_cutoff', 8.0)
 
     output = ''
 
@@ -1563,8 +1567,12 @@ def write_init(l, **kwargs):
                 pair_style = 'buck/coul/long'
             else:
                 pair_style = 'buck'
+        elif l.pair_style.startswith('charmm'):
+            pair_style = 'lj/charmm/coul/long'
 
-    if pair_style:
+    if pair_style.startswith('lj/charmm'):
+        output += 'pair_style %s %s %s\n' % (pair_style, inner_cutoff, nb_cut)
+    elif pair_style:
         output += 'pair_style %s %s\n' % (pair_style, nb_cut)
     else:
         error_print('pair style probably not supported')
@@ -1621,8 +1629,10 @@ def write_init(l, **kwargs):
     if special_bonds:
         output += 'special_bonds %s\n' % special_bonds
     else:
-        if l.ff_class == '2':
+        if 'class2' in pair_style:
             output += 'special_bonds    lj 0 0 1 coul 0 0 1\n'
+        elif 'charmm' in pair_style:
+            output += 'special_bonds charmm\n'
         else:
             output += 'special_bonds amber\n'
 
