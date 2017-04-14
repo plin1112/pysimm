@@ -205,8 +205,8 @@ class ParticleType(Item):
                     self.tag, self.epsilon, self.sigma, self.epsilon_14, self.sigma_14, self.name
                 )
             else:
-                return '{:4}\t{}\t{}\t# {}\n'.format(
-                    self.tag, self.epsilon, self.sigma, self.name
+                return '{:4}\t{}\t{}\t{}\t{}\t# {}\n'.format(
+                    self.tag, self.epsilon, self.sigma, self.epsilon, self.sigma, self.name
                 )
         elif style.startswith('class2'):
             return '{:4}\t{}\t{}\t# {}\n'.format(
