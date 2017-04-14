@@ -34,8 +34,8 @@ __version__ = '0.2.dev'
 
 error = True
 warning = True
-verbose = True
-debug = True
+verbose = False
+debug = False
 
 error_print = lambda *a, **k: print('(error) PySIMM:', *a) if error else lambda *a, **k: None
 warning_print = lambda *a, **k: print('(warning) PySIMM:', *a) if warning else lambda *a, **k: None
