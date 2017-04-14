@@ -1654,10 +1654,13 @@ class System(object):
                 elif len(line.split()) > 1 and line.split()[1] == 'BOX':
                     self.dim.xlo, self.dim.xhi = map(float,
                                                      f.readline().split())
+                    self.dim.dx = self.dim.xhi - self.dim.xlo
                     self.dim.ylo, self.dim.yhi = map(float,
                                                      f.readline().split())
+                    self.dim.dy = self.dim.yhi - self.dim.ylo
                     self.dim.zlo, self.dim.zhi = map(float,
                                                      f.readline().split())
+                    self.dim.dz = self.dim.zhi- self.dim.zlo
                 elif (len(line.split()) > 1 and line.split()[1] == 'ATOMS' and
                       t_frame == frame):
                     for i in range(nparticles):
@@ -1674,9 +1677,9 @@ class System(object):
                         id_ = int(id_)
                         if self.particles[id_]:
                             updated += 1
-                            self.particles[id_].x = x
-                            self.particles[id_].y = y
-                            self.particles[id_].z = z
+                            self.particles[id_].x = x * self.dim.dx + self.dim.xlo
+                            self.particles[id_].y = y * self.dim.dy + self.dim.ylo
+                            self.particles[id_].z = z * self.dim.dz + self.dim.zlo
                 line = f.readline()
 
         verbose_print('updated particle positions for %s of %s particles from trajectory' % (updated, nparticles))
