@@ -267,6 +267,8 @@ class MolecularDynamics(object):
 
         self.input += 'run %s\n' % self.length
         self.input += 'unfix 1\n'
+        if self.shake and isinstance(self.shake, dict):
+            self.input += 'undump pysimm_shake\n'
         if self.dump:
             self.input += 'undump pysimm_dump\n'
 
@@ -350,6 +352,8 @@ class SteeredMolecularDynamics(MolecularDynamics):
         self.input += 'run %s\n' % self.length
         self.input += 'unfix 1\n'
         self.input += 'unfix steer\n'
+        if self.shake and isinstance(self.shake, dict):
+            self.input += 'undump pysimm_shake\n'
         if self.dump:
             self.input += 'undump pysimm_dump\n'
 
