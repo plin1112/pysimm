@@ -148,7 +148,7 @@ class ItemContainer(Sequence):
                 self._dict[_item.tag] = _item
                 self.count += 1
             else:
-                #debug_print('cannot add at index %s' % (_item.tag))
+                debug_print('cannot add at index %s' % (_item.tag))
                 return None
         else:
             if self.count == 0:
@@ -161,7 +161,7 @@ class ItemContainer(Sequence):
                 _item.tag = max_key
                 self._dict[max_key] = _item
             else:
-                #debug_print('cannot add at index %s' % (max_key+1))
+                debug_print('cannot add at index %s' % (max_key+1))
                 return None
         return _item
         
