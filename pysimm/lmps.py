@@ -1586,7 +1586,7 @@ def write_init(l, **kwargs):
         elif nonbond_mixing == 'geometric':
             output += 'pair_modify shift yes mix geometric\n'
         else:
-            if if 'class2' in pair_style::
+            if 'class2' in pair_style::
                 output += 'pair_modify shift yes mix sixthpower\n'
             else:
                 output += 'pair_modify shift yes mix arithmetic\n'
