@@ -103,7 +103,4 @@ def equil(s, **kwargs):
             sim.add_md(length=l, temp=tfinal, **settings)
             sim.add_md(length=l, ensemble='npt', temp=tfinal, pressure=p, **settings)
 
-    sim.run(np=np, nanohub=nanohub)
-
-    s.write_lammps('equil.lmps')
-    s.write_xyz('equil.xyz')
+    return sim
