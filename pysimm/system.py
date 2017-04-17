@@ -77,6 +77,8 @@ class Particle(Item):
     """
     def __init__(self, **kwargs):
         Item.__init__(self, **kwargs)
+        if not self.type:
+            self.type = ParticleType()
         
     def coords(self):
         return (self.x, self.y, self.z)
@@ -308,6 +310,8 @@ class Bond(Item):
     """
     def __init__(self, **kwargs):
         Item.__init__(self, **kwargs)
+        if not self.type:
+            self.type = BondType()
         
     def get_other_particle(self, p):
         if p is not self.a and p is not self.b:
@@ -446,6 +450,8 @@ class Angle(Item):
     """
     def __init__(self, **kwargs):
         Item.__init__(self, **kwargs)
+        if not self.type:
+            self.type = AngleType()
         
     def ptype_name(self):
         if self.a.type is None or self.b.type is None or self.c.type is None:
@@ -595,6 +601,8 @@ class Dihedral(Item):
     """
     def __init__(self, **kwargs):
         Item.__init__(self, **kwargs)
+        if not self.type:
+            self.type = DihedralType()
         
     def ptype_name(self):
         if self.a.type is None or self.b.type is None or self.c.type is None or self.d.type is None:
@@ -778,6 +786,8 @@ class Improper(Item):
     """
     def __init__(self, **kwargs):
         Item.__init__(self, **kwargs)
+        if not self.type:
+            self.type = ImproperType()
         
     def ptype_name(self):
         if self.a.type is None or self.b.type is None or self.c.type is None or self.d.type is None:
@@ -912,36 +922,37 @@ class Dimension(Item):
                 self.dz is not None):
             if self.center is True:
                 self.center = [0., 0., 0.]
-            self.xlo = -1*self.dx/2. + self.center[0]
-            self.xhi = self.dx/2. + self.center[0]
-            self.ylo = -1*self.dy/2. + self.center[1]
-            self.yhi = self.dy/2. + self.center[1]
-            self.zlo = -1*self.dz/2. + self.center[2]
-            self.zhi = self.dz/2. + self.center[2]
+            self.xlo = self.center[0] - self.dx/2.
+            self.xhi = self.center[0] + self.dx/2.
+            self.ylo = self.center[1] - self.dy/2.
+            self.yhi = self.center[1] + self.dy/2.
+            self.zlo = self.center[2] - self.dz/2.
+            self.zhi = self.center[2] + self.dz/2.
         if self.xhi is not None and self.xlo is not None:
             self.dx = self.xhi - self.xlo
         if self.yhi is not None and self.ylo is not None:
             self.dy = self.yhi - self.ylo
         if self.zhi is not None and self.zlo is not None:
             self.dz = self.zhi - self.zlo
+        if not self.check():
+            warning_print('Dimension creating but it is missing attributes')
 
     def check(self):
-        if ((self.xlo is not None and self.xhi is not None and
-                self.ylo is not None and self.yhi is not None and
-                self.zlo is not None and self.zhi is not None) and
-                (self.dx is not None and self.dy is not None and
-                 self.dz is not None)):
-            return True
-        elif self.center and self.dx and self.dy and self.dz:
-            return True
-        else:
+        if None in [self.xlo, self.xhi, self.dx, 
+                    self.ylo, self.yhi, self.dy, 
+                    self.zlo, self.zhi, self.dz]:
             return False
+        return True
             
     def size(self):
         self.dx = self.xhi - self.xlo
         self.dy = self.yhi - self.ylo
         self.dz = self.zhi - self.zlo
         return (self.dx, self.dy, self.dz)
+        
+    def volume(self):
+        dx, dy, dz = self.size()
+        return dx*dy*dz
 
 
 class System(object):
@@ -1383,6 +1394,9 @@ class System(object):
         Returns:
             None
         """
+        if not self.dim.check():
+            error_print('Cannot shift to origin because self.dim ill-defined')
+            return
         for p in self.particles:
             p.x -= self.dim.xlo
             p.y -= self.dim.ylo
@@ -1394,7 +1408,7 @@ class System(object):
         self.dim.ylo -= self.dim.ylo
         self.dim.zlo -= self.dim.zlo
 
-    def set_charge(self):
+    def calc_charge(self):
         """pysimm.system.System.set_charge
 
         Sets total charge of all Particle objects in System.particles
@@ -1408,24 +1422,6 @@ class System(object):
         self.charge = 0
         for p in self.particles:
             self.charge += p.charge
-
-    def zero_charge(self):
-        """pysimm.system.System.zero_charge
-
-        Enforces total System charge to be 0.0 by subtracting excess charge from last particle
-
-        Args:
-            None:
-
-        Returns:
-            None
-        """
-        charge = 0.
-        for p in self.particles:
-            charge += p.charge
-        if charge != 0:
-            p.charge -= charge
-        self.set_charge()
 
     def check_items(self):
         """pysimm.system.System.check_items
@@ -1502,65 +1498,6 @@ class System(object):
                     new.name = '%s@%s' % (linker, new.name)
                 self.particle_types.remove(pt.tag)
                 self.particle_types.add(new)
-
-    def make_linker_types(self):
-        """pysimm.system.System.make_linker_types
-
-        Identifies linker particles and creates duplicate ParticleType objects with new names.
-        Identification is performed by Particle.linker attribute.
-        New ParticleType name is prepended with [H or T]L@ to designate head or tail linker
-
-        Args:
-            None
-
-        Returns:
-            None
-        """
-        for p in self.particles:
-            if p.linker == 'head':
-                head_linker = self.particle_types.get('HL@%s' % p.type.name)
-                if head_linker:
-                    p.type = head_linker[0]
-                else:
-                    p.type = p.type.copy()
-                    p.type.name = 'HL@%s' % p.type.name
-                    self.particle_types.add(p.type)
-            elif p.linker == 'tail':
-                tail_linker = self.particle_types.get('TL@%s' % p.type.name)
-                if tail_linker:
-                    p.type = tail_linker[0]
-                else:
-                    p.type = p.type.copy()
-                    p.type.name = 'TL@%s' % p.type.name
-                    self.particle_types.add(p.type)
-            elif p.linker:
-                linker = self.particle_types.get('L@%s' % p.type.name)
-                if linker:
-                    p.type = linker[0]
-                else:
-                    p.type = p.type.copy()
-                    p.type.name = 'L@%s' % p.type.name
-                    self.particle_types.add(p.type)
-
-    def remove_linker_types(self):
-        """pysimm.system.System.remove_linker_types
-
-        Reassigns Particle.type references to original ParticleType objects without linker prepend
-
-        Args:
-            None
-
-        Returns:
-            None
-        """
-        for p in self.particles:
-            if p.type.name.find('@') >= 0:
-                pt = self.particle_types.get(p.type.name.split('@')[-1])
-                if pt:
-                    p.type = pt[0]
-                else:
-                    print('cannot find regular type for linker %s'
-                          % p.type.name)
                           
     def read_pdb_coords(self, fname):
         with open(fname) as f:
@@ -2966,7 +2903,7 @@ class System(object):
         for p in self.particles:
             out.write(
                 '{:>8} P  {:>4} {:>6}  {:<4} {:<5}{: 8f}     {:>7} {:>7}\n'.format(
-                    p.tag, p.molecule.tag, 'RES', p.name or 'None', p.type.name, p.charge, p.type.mass, '0'
+                    p.tag, p.molecule.tag, 'RES', p.name, p.type.name, p.charge, p.type.mass, '0'
                 )
             )
         out.write('\n')
