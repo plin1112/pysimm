@@ -934,8 +934,6 @@ class Dimension(Item):
             self.dy = self.yhi - self.ylo
         if self.zhi is not None and self.zlo is not None:
             self.dz = self.zhi - self.zlo
-        if not self.check():
-            warning_print('Dimension creating but it is missing attributes')
 
     def check(self):
         if None in [self.xlo, self.xhi, self.dx, 
