@@ -539,6 +539,8 @@ class Simulation(object):
             self.sim.append(template)
         else:
             error_print('you must add an object of type Qeq to Simulation')
+            
+        return self
 
     def add_md(self, template=None, **kwargs):
         """pysimm.lmps.Simulation.add_md
@@ -556,6 +558,8 @@ class Simulation(object):
             self.sim.append(template)
         else:
             error_print('you must add an object of type MolecularDynamics to Simulation')
+            
+        return self
 
     def add_min(self, template=None, **kwargs):
         """pysimm.lmps.Simulation.add_min
@@ -573,6 +577,8 @@ class Simulation(object):
             self.sim.append(template)
         else:
             error_print('you must add an object of type Minimization to Simulation')
+        
+        return self
 
     def add_custom(self, custom=''):
         """pysimm.lmps.Simulation.add_custom
@@ -583,6 +589,8 @@ class Simulation(object):
             custom: custom LAMMPS input string to add to Simulation
         """
         self.sim.append(CustomInput(custom))
+        
+        return self
 
     def write_input(self, init=True):
         """pysimm.lmps.Simulation.write_input
