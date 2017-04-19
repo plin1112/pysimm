@@ -66,31 +66,21 @@ def equil(s, **kwargs):
     
     sim_settings = kwargs.get('sim_settings') if 'sim_settings' in kwargs else {}
     
-    thermo = kwargs.get('thermo') if 'thermo' in kwargs else 1000
-    thermo_style = kwargs.get('thermo_style') if 'thermo_style' in kwargs else 'custom step time temp density vol press etotal emol epair'
+    thermo = kwargs.get('thermo', {
+        'freq': 1000,
+        'style': 'custom step time temp density vol press etotal emol epair'
+    })
 
-    nanohub = kwargs.get('nanohub')
-    np = kwargs.get('np')
-    kokkos = kwargs.get('kokkos')
+    p_list = kwargs.get('p_steps', [0.02*pmax, 0.6*pmax, pmax, 0.5*pmax, 0.1*pmax, 0.01*pmax, pfinal])
+    length_list = kwargs.get('length_list', [100000, 100000, 100000, 100000, 100000, 100000, 100000])
 
-    p_list = kwargs.get('p_steps')
+    dump = kwargs.get('dump', 1000)
 
-    if not p_list:
-        p_list = [0.02*pmax, 0.6*pmax, pmax, 0.5*pmax, 0.1*pmax, 0.01*pmax, pfinal]
-
-    length_list = kwargs.get('length_list')
-
-    if not length_list:
-        length_list = [100000, 100000, 100000, 100000, 100000, 100000, 100000]
-
-    dump = kwargs.get('dump') or 1000
-    dump_append = kwargs.get('dump_append') if kwargs.get('dump_append') is not None else True
-
-    scale_v = kwargs.get('scale_v') if kwargs.get('scale_v') is not None else True
+    velocity = kwargs.get('velocity', {'scale_v': True})
 
     settings = {
-        'dump': dump, 'cutoff': nb_cutoff, 'dump_append': dump_append,
-        'scale_v': scale_v, 'thermo': thermo, 'thermo_style': thermo_style
+        'dump': dump, 'cutoff': nb_cutoff,
+        'thermo': thermo, 'velocity': velocity
     }
 
     sim = lmps.Simulation(s, name='equil', **sim_settings)
