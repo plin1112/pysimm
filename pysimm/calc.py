@@ -39,7 +39,7 @@ from pysimm import error_print
 from pysimm import warning_print
 from pysimm import verbose_print
 from pysimm import debug_print
-from pysimm import PysimmError
+from pysimm.utils import PysimmError
 from pysimm.utils import Item
 from pysimm.utils import ItemContainer
 
