@@ -51,14 +51,9 @@ except ImportError:
     np = None
 
 from pysimm import calc
-from pysimm import debug_print
-from pysimm import PysimmError
-from pysimm import error_print
-from pysimm import warning_print
-from pysimm import verbose_print
 from pysimm.calc import rotate_vector
-import pysimm.utils as utils
 from pysimm.utils import PysimmError, Item, ItemContainer
+from pysimm import debug_print, error_print, warning_print, verbose_print
 
 
 class Particle(Item):
@@ -79,6 +74,16 @@ class Particle(Item):
         Item.__init__(self, **kwargs)
         if not self.type:
             self.type = ParticleType()
+        if not self.molecule:
+            self.molecule = Molecule(tag=0)
+        if not self.charge:
+            self.charge = 0.0
+        if not self.vx:
+            self.vx = 0.
+        if not self.vy:
+            self.vy = 0.
+        if not self.vz:
+            self.vz = 0
         
     def coords(self):
         return (self.x, self.y, self.z)
@@ -184,6 +189,58 @@ class ParticleType(Item):
     """
     def __init__(self, **kwargs):
         Item.__init__(self, **kwargs)
+        
+    @classmethod
+    def guess_style(cls, nparam):
+        if nparam == 2:
+            return 'lj'
+        elif nparam == 3:
+            return 'buck'
+        elif nparam == 4:
+            return 'charmm'
+        else:
+            raise PysimmError('Cannot guess pair style')
+    
+    @classmethod
+    def parse_lammps(cls, line, style):
+        tmp = line.split('#')
+        data = tmp.pop(0).strip().split()
+        name = ','.join(re.split(',|\s+', tmp[0].strip())) if tmp else None
+        if style == 'mass':
+            if len(data) != 2:
+                raise PysimmError('LAMMPS data improperly formatted for mass info')
+            return cls(tag=int(data[0]), name=name, mass=float(data[1]))
+        elif style.startswith('lj') or style.startswith('class2'):
+            if len(data) != 3:
+                raise PysimmError('LAMMPS data improperly formatted for LJ style')
+            return cls(
+                tag=int(data[0]), name=name,
+                epsilon=float(data[1]), sigma=float(data[2])
+            )
+        elif style.startswith('charmm'):
+            if len(data) == 3:
+                return cls(
+                    tag=int(data[0]), name=name,
+                    epsilon=float(data[1]), sigma=float(data[2]),
+                    epsilon_14=float(data[1]), sigma_14=float(data[2])
+                )
+            elif len(data) == 5:
+                return cls(
+                    tag=int(data[0]), name=name,
+                    epsilon=float(data[1]), sigma=float(data[2]),
+                    epsilon_14=float(data[3]), sigma_14=float(data[4])
+                )
+            else:
+                raise PysimmError('LAMMPS data improperly formatted for charmm style')
+        elif style.startswith('buck'):
+            if len(data) != 4:
+                raise PysimmError('LAMMPS data improperly formatted for buckingham style')
+            return cls(
+                tag=int(data[0]), name=name,
+                a=float(data[1]), rho=float(data[2]), c=float(data[1])
+            )
+        else:
+            raise PysimmError('LAMMPS pair style {} not supported yet'.format(style))
         
     def write_lammps(self, style='lj'):
         """pysimm.system.ParticleType.write_lammps
@@ -360,6 +417,38 @@ class BondType(Item):
         Item.__init__(self, **kwargs)
         if self.name:
             self.rname = ','.join(reversed(self.name.split(',')))
+        
+    @classmethod
+    def guess_style(cls, nparam):
+        if nparam == 2:
+            return 'harmonic'
+        elif nparam == 4:
+            return 'class2'
+        else:
+            raise PysimmError('Cannot guess bond style')
+    
+    @classmethod
+    def parse_lammps(cls, line, style):
+        tmp = line.split('#')
+        data = tmp.pop(0).strip().split()
+        name = ','.join(re.split(',|\s+', tmp[0].strip())) if tmp else None
+        if style.startswith('harm'):
+            if len(data) != 3:
+                raise PysimmError('LAMMPS data improperly formatted for harmonic bond')
+            return cls(
+                tag=int(data[0]), name=name,
+                k=float(data[1]), r0=float(data[2])
+            )
+        elif style.startswith('class2'):
+            if len(data) != 5:
+                raise PysimmError('LAMMPS data improperly formatted for class2 bond')
+            return cls(
+                tag=int(data[0]), name=name,
+                r0=float(data[1]), k2=float(data[2]),
+                k3=float(data[3]), k4=float(data[4])
+            )
+        else:
+            raise PysimmError('LAMMPS bond style {} not supported yet'.format(style))
             
     def write_lammps(self, style='harmonic'):
         """pysimm.system.BondType.write_lammps
@@ -490,6 +579,46 @@ class AngleType(Item):
         Item.__init__(self, **kwargs)
         if self.name:
             self.rname = ','.join(reversed(self.name.split(',')))
+        
+    @classmethod
+    def guess_style(cls, nparam):
+        if nparam == 2:
+            return 'harmonic'
+        #elif nparam == 4:
+            #could be class2 or charmm
+        else:
+            raise PysimmError('Cannot guess angle style')
+    
+    @classmethod
+    def parse_lammps(cls, line, style):
+        tmp = line.split('#')
+        data = tmp.pop(0).strip().split()
+        name = ','.join(re.split(',|\s+', tmp[0].strip())) if tmp else None
+        if style.startswith('harm'):
+            if len(data) != 3:
+                raise PysimmError('LAMMPS data improperly formatted for harmonic angle')
+            return cls(
+                tag=int(data[0]), name=name,
+                k=float(data[1]), theta0=float(data[2])
+            )
+        elif style.startswith('class2'):
+            if len(data) != 5:
+                raise PysimmError('LAMMPS data improperly formatted for class2 angle')
+            return cls(
+                tag=int(data[0]), name=name,
+                theta0=float(data[1]), k2=float(data[2]),
+                k3=float(data[3]), k4=float(data[4])
+            )
+        elif style.startswith('charmm'):
+            if len(data) != 5:
+                raise PysimmError('LAMMPS data improperly formatted for harmonic angle')
+            return cls(
+                tag=int(data[0]), name=name,
+                k=float(data[1]), theta0=float(data[2]),
+                k_ub=float(data[3]), r_ub=float(data[4])
+            )
+        else:
+            raise PysimmError('LAMMPS angle style {} not supported yet'.format(style))
             
     def write_lammps(self, style='harmonic', cross_term=None):
         """pysimm.system.AngleType.write_lammps
@@ -631,7 +760,67 @@ class DihedralType(Item):
         Item.__init__(self, **kwargs)
         if self.name:
             self.rname = ','.join(reversed(self.name.split(',')))
-            
+        
+    @classmethod
+    def guess_style(cls, nparam):
+        if nparam == 3:
+            return 'harmonic'
+        elif nparam != 4 and nparam % 3 == 1:
+            return 'fourier'
+        elif nparam == 6:
+            return 'class2'
+        else:
+            raise PysimmError('Cannot guess dihedral style')
+    
+    @classmethod
+    def parse_lammps(cls, line, style):
+        tmp = line.split('#')
+        data = tmp.pop(0).strip().split()
+        name = ','.join(re.split(',|\s+', tmp[0].strip())) if tmp else None
+        if style.startswith('harm'):
+            if len(data) != 4:
+                raise PysimmError('LAMMPS data improperly formatted for harmonic dihedral')
+            return cls(
+                tag=int(data[0]), name=name,
+                k=float(data[1]), d=int(data[2]), n=int(data[3])
+            )
+        elif style.startswith('fourier'):
+            if len(data) % 3 != 2:
+                raise PysimmError('LAMMPS data improperly formatted for fourier dihedral')
+            tag = int(data.pop(0))
+            m = int(data.pop(0))
+            k = []
+            n = []
+            d = []
+            for i in range(m):
+                k.append(data.pop(0))
+                n.append(data.pop(0))
+                d.append(data.pop(0))
+            return cls(
+                tag=tag, name=name,
+                m=m, k=map(float, k), n=map(int, n), d=map(float, d)
+            )
+        elif style.startswith('class2'):
+            if len(data) != 7:
+                raise PysimmError('LAMMPS data improperly formatted for class2 dihedral')
+            return cls(
+                tag=int(data[0]), name=name,
+                k1=float(data[1]), phi1=float(data[2]),
+                k2=float(data[3]), phi2=float(data[4]),
+                k3=float(data[5]), phi3=float(data[6]),
+            )
+        elif style.startswith('charmm'):
+            if len(data) != 5:
+                raise PysimmError('LAMMPS data improperly formatted for charmm dihedral')
+            return cls(
+                tag=int(data[0]), name=name,
+                k=float(data[1]), n=float(data[2]),
+                d=float(data[3]), w=float(data[4])
+            )
+        else:
+            raise PysimmError('LAMMPS dihedral style {} not supported yet'.format(style))
+                    
+        
     def write_lammps(self, style='harmonic', cross_term=None):
         """pysimm.system.DihedralType.write_lammps
 
@@ -812,6 +1001,37 @@ class ImproperType(Item):
         Item.__init__(self, **kwargs)
         if self.name:
             self.rname = ','.join(reversed(self.name.split(',')))
+        
+    @classmethod
+    def guess_style(cls, nparam):
+        #if nparam == 2:
+            #could be harmonic or class2
+        if nparam == 3:
+            return 'cvff'
+        else:
+            raise PysimmError('Cannot guess improper style')
+    
+    @classmethod
+    def parse_lammps(cls, line, style):
+        tmp = line.split('#')
+        data = tmp.pop(0).strip().split()
+        name = ','.join(re.split(',|\s+', tmp[0].strip())) if tmp else None
+        if style.startswith('harm') or style.startswith('class2'):
+            if len(data) != 3:
+                raise PysimmError('LAMMPS data improperly formatted for harmonic improper')
+            return cls(
+                tag=int(data[0]), name=name,
+                k=float(data[1]), x0=float(data[2])
+            )
+        elif style.startswith('cvff'):
+            if len(data) != 4:
+                raise PysimmError('LAMMPS data improperly formatted for harmonic improper')
+            return cls(
+                tag=int(data[0]), name=name,
+                k=float(data[1]), d=int(data[2]), n=int(data[3])
+            )
+        else:
+            raise PysimmError('LAMMPS improper style {} not supported yet'.format(style))
             
     def write_lammps(self, style='harmonic', cross_term=None):
         """pysimm.system.ImproperType.write_lammps
@@ -1619,7 +1839,7 @@ class System(object):
 
         verbose_print('updated particle positions for %s of %s particles from trajectory' % (updated, nparticles))
 
-    def read_xyz(self, xyz, frame=1, quiet=False):
+    def read_xyz(self, xyz, frame=1):
         """pysimm.system.System.read_xyz
 
         Updates particle positions and box size from xyz file at given frame
@@ -1627,14 +1847,12 @@ class System(object):
         Args:
             xyz: xyz trajectory file
             frame: sequential frame number default=1
-            quiet: True to print status default=False
 
         Returns:
             None
         """
-        if not quiet:
-            verbose_print('reading particle positions from %s' % xyz)
-            warning_print('particles are assumed to be in order in xyz file')
+        verbose_print('reading particle positions from %s' % xyz)
+        warning_print('particles are assumed to be in order in xyz file')
         t_frame = 0
         with open(xyz) as f:
             line = f.readline()
@@ -2670,6 +2888,28 @@ class System(object):
             None or string if data file if out_data='string'
         """
         empty = kwargs.get('empty')
+        
+        if self.dihedral_style == 'charmm':
+            charmm_dts = DihedralTypeContainer()
+            for dt in self.dihedral_types:
+                for k, n, d in zip(dt.k, dt.n, dt.d):
+                    charmm_dts.add(
+                        DihedralType(
+                            name=dt.name, rname=dt.rname, k=k, n=n, d=d, w=1
+                        )
+                    )
+            charmm_ds = ItemContainer()
+            for d in self.dihedrals:
+                dts = charmm_dts.by_name(d.ptype_name())
+                for dt in dts:
+                    if dt.name != dts[0].name:
+                        dts.remove(dt)
+                for dt in dts:
+                    charmm_ds.add(
+                        Dihedral(
+                            a=d.a, b=d.b, c=d.c, d=d.d, type=dt
+                        )
+                    )
 
         if out_data == 'string':
             out_file = StringIO()
@@ -2688,7 +2928,10 @@ class System(object):
             out_file.write('%s atoms\n' % self.particles.count)
             out_file.write('%s bonds\n' % self.bonds.count)
             out_file.write('%s angles\n' % self.angles.count)
-            out_file.write('%s dihedrals\n' % self.dihedrals.count)
+            if self.dihedral_style == 'charmm':
+                out_file.write('%s dihedrals\n' % charmm_ds.count)
+            else:
+                out_file.write('%s dihedrals\n' % self.dihedrals.count)
             out_file.write('%s impropers\n' % self.impropers.count)
 
         out_file.write('\n')
@@ -2699,7 +2942,10 @@ class System(object):
         if self.angle_types.count > 0:
             out_file.write('%s angle types\n' % self.angle_types.count)
         if self.dihedral_types.count > 0:
-            out_file.write('%s dihedral types\n' % self.dihedral_types.count)
+            if self.dihedral_style == 'charmm':
+                out_file.write('%s dihedral types\n' % charmm_dts.count)
+            else:
+                out_file.write('%s dihedral types\n' % self.dihedral_types.count)
         if self.improper_types.count > 0:
             out_file.write('%s improper types\n' % self.improper_types.count)
 
@@ -2714,9 +2960,6 @@ class System(object):
         if self.particle_types.count > 0:
             out_file.write('Masses\n\n')
             for pt in self.particle_types:
-                if not pt.mass:
-                    error_print('error: some particle types do not have masses')
-                    return
                 out_file.write(pt.write_lammps('mass'))
             out_file.write('\n')
 
@@ -2725,12 +2968,6 @@ class System(object):
             for pt in self.particle_types:
                 if self.pair_style:
                     out_file.write(pt.write_lammps(self.pair_style))
-                elif not self.pair_style and pt.sigma is not None and pt.epsilon is not None:
-                    out_file.write('%4d\t%s\t%s\t# %s\n'
-                                   % (pt.tag, pt.epsilon, pt.sigma, pt.name))
-                elif not self.pair_style and pt.a is not None and pt.rho is not None and pt.c is not None:
-                    out_file.write('%4d\t%s\t%s\t%s\t# %s\n'
-                                   % (pt.tag, pt.a, pt.rho, pt.c, pt.name))
                 else:
                     error_print('error: cannot understand your pair style')
                     return
@@ -2766,11 +3003,8 @@ class System(object):
 
         if self.dihedral_types.count > 0:
             out_file.write('Dihedral Coeffs\n\n')
-            for dt in self.dihedral_types:
-                if self.dihedral_style:
-                    out_file.write(dt.write_lammps(self.dihedral_style))
-                else:
-                    error_print('error: cannot understand your dihedral style')
+            for dt in charmm_dts if self.dihedral_style == 'charmm' else self.dihedral_types:
+                out_file.write(dt.write_lammps(self.dihedral_style))
             out_file.write('\n')
 
         if self.dihedral_types.count > 0 and self.dihedral_style == 'class2':
@@ -2811,65 +3045,61 @@ class System(object):
         if self.particles.count > 0 and not empty:
             out_file.write('Atoms\n\n')
             for p in self.particles:
-                if not p.molecule:
-                    p.molecule = Molecule()
-                    p.molecule.tag = 1
-                if not p.charge:
-                    p.charge = 0.
-                if isinstance(p.molecule, int):
-                    out_file.write('%4d\t%d\t%d\t%s\t%s\t%s\t%s\n'
-                                   % (p.tag, p.molecule, p.type.tag, p.charge,
-                                      p.x, p.y, p.z))
-                else:
-                    out_file.write('%4d\t%d\t%d\t%s\t%s\t%s\t%s\n'
-                                   % (p.tag, p.molecule.tag, p.type.tag, p.charge,
-                                      p.x, p.y, p.z))
+                out_file.write(
+                    '%4d\t%d\t%d\t%s\t%s\t%s\t%s\n' % (
+                        p.tag, p.molecule.tag, p.type.tag,
+                        p.charge, p.x, p.y, p.z
+                    )
+                )
             out_file.write('\n')
 
             out_file.write('Velocities\n\n')
             for p in self.particles:
-                if not p.vx:
-                    p.vx = 0.
-                if not p.vy:
-                    p.vy = 0.
-                if not p.vz:
-                    p.vz = 0
                 out_file.write('%4d\t%s\t%s\t%s\n' % (p.tag, p.vx, p.vy, p.vz))
             out_file.write('\n')
 
         if self.bonds.count > 0 and not empty:
             out_file.write('Bonds\n\n')
             for b in self.bonds:
-                out_file.write('%4d\t%d\t%d\t%d\n'
-                               % (b.tag, b.type.tag, b.a.tag, b.b.tag))
+                out_file.write(
+                    '%4d\t%d\t%d\t%d\n' % (b.tag, b.type.tag, b.a.tag, b.b.tag))
             out_file.write('\n')
 
         if self.angles.count > 0 and not empty:
             out_file.write('Angles\n\n')
             for a in self.angles:
-                out_file.write('%4d\t%d\t%d\t%d\t%d\n'
-                               % (a.tag, a.type.tag, a.a.tag, a.b.tag, a.c.tag))
+                out_file.write(
+                    '%4d\t%d\t%d\t%d\t%d\n' % (
+                        a.tag, a.type.tag, a.a.tag, a.b.tag, a.c.tag
+                    )
+                )
             out_file.write('\n')
 
         if self.dihedrals.count > 0 and not empty:
             out_file.write('Dihedrals\n\n')
-            for d in self.dihedrals:
-                out_file.write('%4d\t%d\t%d\t%d\t%d\t%d\n'
-                               % (d.tag, d.type.tag,
-                                  d.a.tag, d.b.tag, d.c.tag, d.d.tag))
+            for d in charmm_ds if self.dihedral_style == 'charmm' else self.dihedrals:
+                out_file.write(
+                    '%4d\t%d\t%d\t%d\t%d\t%d\n' % (
+                        d.tag, d.type.tag, d.a.tag, d.b.tag, d.c.tag, d.d.tag
+                    )
+                )
             out_file.write('\n')
 
         if self.impropers.count > 0 and not empty:
             out_file.write('Impropers\n\n')
             for i in self.impropers:
-                if self.ff_class == '2' or self.improper_style == 'class2':
-                    out_file.write('%4d\t%d\t%d\t%d\t%d\t%d\n'
-                                   % (i.tag, i.type.tag,
-                                      i.b.tag, i.a.tag, i.c.tag, i.d.tag))
+                if self.improper_style == 'class2':
+                    out_file.write(
+                        '%4d\t%d\t%d\t%d\t%d\t%d\n' % (
+                            i.tag, i.type.tag, i.b.tag, i.a.tag, i.c.tag, i.d.tag
+                        )
+                    )
                 else:
-                    out_file.write('%4d\t%d\t%d\t%d\t%d\t%d\n'
-                                   % (i.tag, i.type.tag,
-                                      i.a.tag, i.b.tag, i.c.tag, i.d.tag))
+                    out_file.write(
+                        '%4d\t%d\t%d\t%d\t%d\t%d\n' % (
+                            i.tag, i.type.tag, i.a.tag, i.b.tag, i.c.tag, i.d.tag
+                        )
+                    )
             out_file.write('\n')
 
         if out_data == 'string':
@@ -3495,6 +3725,41 @@ class Molecule(System):
     """
     def __init__(self, **kwargs):
         System.__init__(self, **kwargs)
+        
+
+def ff_styles(ff):
+    if ff in ['gaff', 'gaff2', 'amber', 'pcff', 'cgenff', 'charmm', 'dreiding']:
+        if ff.startswith('gaff') or ff.startswith('amber'):
+            pair_style = 'lj'
+            bond_style = 'harmonic'
+            angle_style = 'harmonic'
+            dihedral_style = 'fourier'
+            improper_style = 'cvff'
+            
+        elif ff.startswith('pcff'):
+            pair_style = 'class2'
+            bond_style = 'class2'
+            angle_style = 'class2'
+            dihedral_style = 'class2'
+            improper_style = 'class2'
+            
+        elif ff.startswith('cgenff') or ff.startswith('charmm'):
+            pair_style = 'charmm'
+            bond_style = 'harmonic'
+            angle_style = 'charmm'
+            dihedral_style = 'charmm'
+            improper_style = 'harmonic'
+            
+        elif ff.startswith('dreiding'):
+            pair_style = 'lj'
+            bond_style = 'harmonic'
+            angle_style = 'harmonic'
+            dihedral_style = 'harmonic'
+            improper_style = 'harmonic'
+    else:
+        pair_style, bond_style, angle_style, dihedral_style, improper_style = (None for _ in range(5))
+    
+    return pair_style, bond_style, angle_style, dihedral_style, improper_style
 
 
 def read_yaml(file_, **kwargs):
@@ -3673,12 +3938,10 @@ def read_xyz(file_, **kwargs):
 
     Args:
         file_: xyz file name
-        quiet(optional): if False, print status
 
     Returns:
         pysimm.system.System object
     """
-    quiet = kwargs.get('quiet')
 
     if os.path.isfile(file_):
         debug_print('reading file')
@@ -3708,8 +3971,7 @@ def read_xyz(file_, **kwargs):
             pt = ParticleType(elem=p.elem, name=p.elem)
             p.type = pt
             s.particle_types.add(pt)
-    if not quiet:
-        verbose_print('read %s particles' % s.particles.count)
+    verbose_print('read %s particles' % s.particles.count)
 
     s.set_box(padding=0.5)
 
@@ -3723,12 +3985,10 @@ def read_chemdoodle_json(file_, **kwargs):
 
     Args:
         file_: xyz file name
-        quiet(optional): if False, print status
 
     Returns:
         pysimm.system.System object
     """
-    quiet = kwargs.get('quiet')
 
     if os.path.isfile(file_):
         debug_print('reading file')
@@ -3765,7 +4025,6 @@ def read_lammps(data_file, **kwargs):
 
     Args:
         data_file: LAMMPS data file name
-        quiet(optional): if False, print status
         atom_style (optional): option to let user override (understands charge, molecular, full)
         pair_style (optional): option to let user override
         bond_style (optional): option to let user override
@@ -3779,35 +4038,34 @@ def read_lammps(data_file, **kwargs):
         pysimm.system.System object
     """
     atom_style = kwargs.get('atom_style')
-    pair_style = kwargs.get('pair_style')
-    bond_style = kwargs.get('bond_style')
-    angle_style = kwargs.get('angle_style')
-    dihedral_style = kwargs.get('dihedral_style')
-    improper_style = kwargs.get('improper_style')
-    set_types = kwargs.get('set_types') if kwargs.has_key('set_types') else True
+    ff = kwargs.get('forcefield')
+    pair_style, bond_style, angle_style, dihedral_style, improper_style = ff_styles(ff)
+    pair_style = kwargs.get('pair_style', pair_style)
+    bond_style = kwargs.get('bond_style', bond_style)
+    angle_style = kwargs.get('angle_style', angle_style)
+    dihedral_style = kwargs.get('dihedral_style', dihedral_style)
+    improper_style = kwargs.get('improper_style', improper_style)
+    set_types = kwargs.get('set_types', True)
     name = kwargs.get('name')
 
-    quiet = kwargs.get('quiet')
-
     if os.path.isfile(data_file):
-        if not quiet:
-            verbose_print('reading lammps data file "%s"' % data_file)
+        verbose_print('reading lammps data file "%s"' % data_file)
         f = file(data_file)
     elif isinstance(data_file, basestring):
-        if not quiet:
-            verbose_print('reading lammps data file from string')
+        verbose_print('reading lammps data file from string')
         f = StringIO(data_file)
     else:
         raise PysimmError('pysimm.system.read_lammps requires either '
                           'file or string as first argument')
 
     if name:
-        if not quiet:
-            verbose_print('creating pysimm.system.System object with name %s'
+        verbose_print('creating pysimm.system.System object with name %s'
                       % name)
         s = System(name=name)
     else:
         s = System(name=f.next().strip())
+        
+    s.forcefield = kwargs.get('forcefield')
 
     nparticles = nparticle_types = nbonds = nbond_types = 0
     nangles = nangle_types = ndihedrals = ndihedral_types = 0
@@ -3850,225 +4108,62 @@ def read_lammps(data_file, **kwargs):
         elif len(line) > 0 and line[0] == 'Masses':
             f.next()
             for i in range(nparticle_types):
-                line = f.next().split('#')
-                if len(line) == 2:
-                    line, name = line
-                    name = ','.join(re.split(',|\s+', name.strip()))
+                pt = ParticleType.parse_lammps(f.next(), 'mass')
+                if s.particle_types[pt.tag]:
+                    s.particle_types[pt.tag].mass = pt.mass
                 else:
-                    line = line[0]
-                    name = None
-                line = line.strip().split()
-                tag = int(line[0])
-                if s.particle_types[tag]:
-                    if name is not None:
-                        s.particle_types[tag].name = name
-                    s.particle_types[tag].mass = float(line[1])
-                else:
-                    s.particle_types.add(ParticleType(tag=tag, name=name,
-                                                      mass=float(line[1])))
-            if not quiet:
-                verbose_print('read masses for %s ParticleTypes'
-                              % s.particle_types.count)
+                    s.particle_types.add(pt)
+            verbose_print(
+                'read masses for {} ParticleTypes'.format(
+                    s.particle_types.count
+                )
+            )
         elif len(line) > 0 and line[0] == 'Pair':
-            if '#' in line and not pair_style:
-                line = ' '.join(line).split('#')
-                pair_style = line[1].strip()
             f.next()
             for i in range(nparticle_types):
-                line = f.next().split('#')
-                if len(line) == 2:
-                    line, name = line
-                    name = ','.join(re.split(',|\s+', name.strip()))
-                else:
-                    line = line[0]
-                    name = None
-                line = line.strip().split()
-                tag = int(line[0])
-                if pair_style and (pair_style.lower().startswith('lj') or
-                                   pair_style.lower().startswith('class2')):
-                    if s.particle_types[tag]:
-                        pt = s.particle_types[tag]
-                        if name is not None and pt.name is None:
-                            pt.name = name
-                        pt.epsilon = float(line[1])
-                        pt.sigma = float(line[2])
+                line = f.next()
+                if not pair_style:
+                    warning_print('unknown pair style - infering from number of parameters (2=lj 3=buck 4=charmm)')
+                    pair_style = ParticleType.guess_style(
+                        len(line.split('#')[0].split()[1:])
+                    )
+                if pair_style:
+                    pt = ParticleType.parse_lammps(line, pair_style)
+                    if s.particle_types[pt.tag]:
+                        s.particle_types[pt.tag].set(**vars(pt))
                     else:
-                        pt = ParticleType(tag=tag, name=name,
-                                          epsilon=float(line[1]),
-                                          sigma=float(line[2]))
                         s.particle_types.add(pt)
-                elif pair_style and pair_style.lower().startswith('charmm'):
-                    if s.particle_types[tag]:
-                        pt = s.particle_types[tag]
-                        if name is not None and pt.name is None:
-                            pt.name = name
-                        pt.epsilon = float(line[1])
-                        pt.sigma = float(line[2])
-                        if len(line) == 5:
-                            pt.epsilon_14 = float(line[3])
-                            pt.sigma_14 = float(line[4])
-                    else:
-                        pt = ParticleType(tag=tag, name=name,
-                                          epsilon=float(line[1]),
-                                          sigma=float(line[2]))
-                        if len(line) == 5:
-                            pt.epsilon_14 = float(line[3])
-                            pt.sigma_14 = float(line[4])
-                        s.particle_types.add(pt)
-                elif pair_style and pair_style.lower().startswith('buck'):
-                    if s.particle_types[tag]:
-                        pt = s.particle_types[tag]
-                        if name is not None and pt.name is None:
-                            pt.name = name
-                        pt.a = float(line[1])
-                        pt.rho = float(line[2])
-                        pt.c = float(line[3])
-                    else:
-                        pt = ParticleType(tag=tag, name=name, a=float(line[1]),
-                                          rho=float(line[2]), c=float(line[3]))
-                        s.particle_types.add(pt)
-                elif not pair_style:
-                    if not quiet and i == 0:
-                        warning_print('pair_style not explicitly provided - '
-                                      'guessing based on number of parameters '
-                                      '(2=lj 3=buck)')
-                    if len(line) == 3:
-                        pair_style = 'lj'
-                        if s.particle_types[tag]:
-                            pt = s.particle_types[tag]
-                            if name is not None and pt.name is None:
-                                pt.name = name
-                            pt.epsilon = float(line[1])
-                            pt.sigma = float(line[2])
-                        else:
-                            pt = ParticleType(tag=tag, name=name,
-                                              epsilon=float(line[1]),
-                                              sigma=float(line[2]))
-                            s.particle_types.add(pt)
-                    elif len(line) == 4:
-                        pair_style = 'buckingham'
-                        if s.particle_types[tag]:
-                            pt = s.particle_types[tag]
-                            if name is not None and pt.name is None:
-                                pt.name = name
-                            pt.a = float(line[1])
-                            pt.rho = float(line[2])
-                            pt.c = float(line[3])
-                        else:
-                            pt = ParticleType(tag=tag, name=name, a=float(line[1]),
-                                              rho=float(line[2]), c=float(line[3]))
-                            s.particle_types.add(pt)
-            if not quiet and pair_style:
-                verbose_print('read "%s" nonbonded parameters '
-                              'for %s ParticleTypes'
-                              % (pair_style, nparticle_types))
-            elif not quiet and not pair_style:
-                verbose_print('cannot determine pair_style - '
-                              'skipping nonbonded parameters')
+            verbose_print('read "%s" nonbonded parameters '
+                          'for %s ParticleTypes'
+                          % (pair_style, s.particle_types.count))
         elif len(line) > 0 and line[0] == 'Bond':
-            if '#' in line and not bond_style:
-                line = ' '.join(line).split('#')
-                bond_style = line[1].strip()
             f.next()
             for i in range(nbond_types):
-                line = f.next().split('#')
-                if len(line) == 2:
-                    line, name = line
-                    name = ','.join(re.split(',|\s+', name.strip()))
-                else:
-                    line = line[0]
-                    name = None
-                line = line.strip().split()
-                tag = int(line[0])
-                if bond_style and bond_style.lower().startswith('harm'):
-                    s.bond_types.add(BondType(tag=tag, name=name,
-                                              k=float(line[1]),
-                                              r0=float(line[2])))
-                elif bond_style and bond_style.lower().startswith('class2'):
-                    s.bond_types.add(BondType(tag=tag, name=name,
-                                              r0=float(line[1]),
-                                              k2=float(line[2]),
-                                              k3=float(line[3]),
-                                              k4=float(line[4])))
-                elif not bond_style:
-                    if not quiet and i == 0:
-                        warning_print('bond_style currently unknown - '
-                                      'guessing based on number of parameters '
-                                      '(2=harmonic 4=class2)')
-                    if len(line) == 3:
-                        bond_style = 'harmonic'
-                        s.bond_types.add(BondType(tag=tag, name=name,
-                                                  k=float(line[1]),
-                                                  r0=float(line[2])))
-                    elif len(line) == 5:
-                        bond_style = 'class2'
-                        s.bond_types.add(BondType(tag=tag, name=name,
-                                                  r0=float(line[1]),
-                                                  k2=float(line[2]),
-                                                  k3=float(line[3]),
-                                                  k4=float(line[4])))
-            if not quiet and bond_style:
-                verbose_print('read "%s" bond parameters '
-                              'for %s BondTypes'
-                              % (bond_style, nbond_types))
-            elif not quiet and not bond_style:
-                verbose_print('cannot determine bond_style - '
-                              'skipping bond parameters')
+                line = f.next()
+                if not bond_style:
+                    warning_print('unknown bond_style - infering from number of parameters (2=harmonic 4=class2)')
+                    bond_style = BondType.guess_style(
+                        len(line.split('#')[0].split()[1:])
+                    )
+                if bond_style:
+                    s.bond_types.add(BondType.parse_lammps(line, bond_style))
+            verbose_print('read "%s" bond parameters '
+                          'for %s BondTypes'
+                          % (bond_style, s.bond_types.count))
         elif len(line) > 0 and line[0] == 'Angle':
-            if '#' in line and not angle_style:
-                line = ' '.join(line).split('#')
-                angle_style = line[1].strip()
             f.next()
             for i in range(nangle_types):
-                line = f.next().split('#')
-                if len(line) == 2:
-                    line, name = line
-                    name = ','.join(re.split(',|\s+', name.strip()))
-                else:
-                    line = line[0]
-                    name = None
-                line = line.strip().split()
-                tag = int(line[0])
-                if angle_style and angle_style.lower().startswith('harm'):
-                    s.angle_types.add(AngleType(tag=tag, name=name,
-                                                k=float(line[1]),
-                                                theta0=float(line[2])))
-                elif angle_style and angle_style.lower().startswith('charmm'):
-                    s.angle_types.add(AngleType(tag=tag, name=name,
-                                                k=float(line[1]),
-                                                theta0=float(line[2]),
-                                                k_ub=float(line[3]),
-                                                r_ub=float(line[4])))
-                elif angle_style and angle_style.lower().startswith('class2'):
-                    s.angle_types.add(AngleType(tag=tag, name=name,
-                                                theta0=float(line[1]),
-                                                k2=float(line[2]),
-                                                k3=float(line[3]),
-                                                k4=float(line[4])))
-                elif not angle_style:
-                    if not quiet and i == 0:
-                        warning_print('angle_style currently unknown - '
-                                      'guessing based on number of parameters '
-                                      '(2=harmonic 4=class2)')
-                    if len(line) == 3:
-                        angle_style = 'harmonic'
-                        s.angle_types.add(AngleType(tag=tag, name=name,
-                                                    k=float(line[1]),
-                                                    theta0=float(line[2])))
-                    elif len(line) == 5:
-                        angle_style = 'class2'
-                        s.angle_types.add(AngleType(tag=tag, name=name,
-                                                    theta0=float(line[1]),
-                                                    k2=float(line[2]),
-                                                    k3=float(line[3]),
-                                                    k4=float(line[4])))
-            if not quiet and angle_style:
-                    verbose_print('read "%s" angle parameters '
-                                  'for %s AngleTypes'
-                                  % (angle_style, nangle_types))
-            elif not quiet and not angle_style:
-                verbose_print('cannot determine angle_style - '
-                              'skipping angle parameters')
+                line = f.next()
+                if not angle_style:
+                    warning_print('unknown angle_style - infering from number of parameters (2=harmonic)')
+                    angle_style = AngleType.guess_style(
+                        len(line.split('#')[0].split()[1:])
+                    )
+                if angle_style:
+                    s.angle_types.add(AngleType.parse_lammps(line, angle_style))
+            verbose_print('read "%s" angle parameters '
+                          'for %s AngleTypes'
+                          % (angle_style, s.angle_types.count))
         elif len(line) > 0 and line[0] == 'BondBond':
             f.next()
             for i in range(nangle_types):
@@ -4077,10 +4172,9 @@ def read_lammps(data_file, **kwargs):
                 s.angle_types[tag].m = float(line[1])
                 s.angle_types[tag].r1 = float(line[2])
                 s.angle_types[tag].r2 = float(line[3])
-            if not quiet and angle_style:
-                verbose_print('read "%s" angle (bond-bond) '
-                              'parameters for %s AngleTypes'
-                              % (angle_style, nangle_types))
+            verbose_print('read "%s" angle (bond-bond) '
+                          'parameters for %s AngleTypes'
+                          % (angle_style, s.angle_types.count))
         elif len(line) > 0 and line[0] == 'BondAngle':
             f.next()
             for i in range(nangle_types):
@@ -4088,128 +4182,44 @@ def read_lammps(data_file, **kwargs):
                 tag = int(line[0])
                 s.angle_types[tag].n1 = float(line[1])
                 s.angle_types[tag].n2 = float(line[2])
-            if not quiet and angle_style:
+                s.angle_types[tag].r1 = float(line[3])
+                s.angle_types[tag].r2 = float(line[4])
+            if angle_style:
                 verbose_print('read "%s" angle (bond-angle) '
                               'parameters for %s AngleTypes'
-                              % (angle_style, nangle_types))
+                              % (angle_style, s.angle_types.count))
         elif len(line) > 0 and line[0] == 'Dihedral':
-            if '#' in line and not dihedral_style:
-                line = ' '.join(line).split('#')
-                dihedral_style = line[1].strip()
             f.next()
             for i in range(ndihedral_types):
-                line = f.next().split('#')
-                if len(line) == 2:
-                    line, name = line
-                    name = ','.join(re.split(',|\s+', name.strip()))
-                else:
-                    line = line[0]
-                    name = None
-                line = line.strip().split()
-                tag = int(line[0])
-                if dihedral_style and dihedral_style.lower().startswith('harm'):
-                    s.dihedral_types.add(DihedralType(tag=tag, name=name,
-                                                      k=float(line[1]),
-                                                      d=int(line[2]),
-                                                      n=int(line[3])))
-                elif (dihedral_style and
-                        dihedral_style.lower().startswith('class2')):
-                    s.dihedral_types.add(DihedralType(tag=tag, name=name,
-                                                      k1=float(line[1]),
-                                                      phi1=float(line[2]),
-                                                      k2=float(line[3]),
-                                                      phi2=float(line[4]),
-                                                      k3=float(line[5]),
-                                                      phi3=float(line[6])))
-                elif (dihedral_style and dihedral_style.lower().startswith('fourier')):
-                    data = line[1:]
-                    m = int(data.pop(0))
-                    k=[]
-                    d=[]
-                    n=[]
-                    for i in range(m):
-                        k.append(data.pop(0))
-                        n.append(data.pop(0))
-                        d.append(data.pop(0))
-                    s.dihedral_types.add(DihedralType(tag=tag, name=name,
-                                                      m=m,
-                                                      k=map(float, k),
-                                                      d=map(float, d),
-                                                      n=map(int, n)))
-                
-                elif (dihedral_style and dihedral_style.lower().startswith('charmm')):
-                    s.dihedral_types.add(DihedralType(tag=tag, name=name,
-                                                      k=float(line[1]),
-                                                      n=int(line[2]),
-                                                      d=int(float(line[3])),
-                                                      w=float(line[4])))
-                elif not dihedral_style:
-                    if not quiet and i == 0:
-                        warning_print('dihedral_style currently unknown - '
-                                      'guessing based on number of parameters '
-                                      '(3=harmonic 4=charmm 6=class2 1+3n=fourier)')
-                    if len(line) == 4:
-                        dihedral_style = 'harmonic'
-                        s.dihedral_types.add(DihedralType(tag=tag, name=name,
-                                                          k=float(line[1]),
-                                                          d=int(line[2]),
-                                                          n=int(line[3])))
-                    elif len(line) == 7:
-                        dihedral_style = 'class2'
-                        s.dihedral_types.add(DihedralType(tag=tag, name=name,
-                                                          k1=float(line[1]),
-                                                          phi1=float(line[2]),
-                                                          k2=float(line[3]),
-                                                          phi2=float(line[4]),
-                                                          k3=float(line[5]),
-                                                          phi3=float(line[6])))
-                    elif len(line) == 5:
-                        if '.' in line[1]:
-                            dihedral_style = 'charmm'
-                            s.dihedral_types.add(DihedralType(tag=tag, name=name,
-                                                              k=float(line[1]),
-                                                              n=int(line[2]),
-                                                              d=int(float(line[3])),
-                                                              w=float(line[4])))
+                line = f.next()
+                if not dihedral_style:
+                    warning_print('unknown dihedral_style - infering from number of parameters (3=harmonic 6=class2 [7, 10]=fourier)')
+                    dihedral_style = DihedralType.guess_style(
+                        len(line.split('#')[0].split()[1:])
+                    )
+                if dihedral_style:
+                    dt = DihedralType.parse_lammps(line, dihedral_style)
+                    if dihedral_style == 'charmm':
+                        s_dt = s.dihedral_types.by_name(dt.name, exact=True)
+                        if s_dt:
+                            s_dt.m += 1
+                            s_dt.k.append(dt.k)
+                            s_dt.n.append(dt.n)
+                            s_dt.d.append(dt.d)
+                            s_dt.w.append(dt.w)
                         else:
-                            dihedral_style = 'fourier'
-                            data = line[1:]
-                            m = int(data.pop(0))
-                            k=[]
-                            n=[]
-                            d=[]
-                            for i in range(m):
-                                k.append(data.pop(0))
-                                n.append(data.pop(0))
-                                d.append(data.pop(0))
-                            s.dihedral_types.add(DihedralType(tag=tag, name=name,
-                                                              m=m,
-                                                              k=map(float, k),
-                                                              d=map(float, d),
-                                                              n=map(int, n)))
-                    elif len(line) % 3 == 2:
-                        dihedral_style = 'fourier'
-                        data = line[1:]
-                        m = int(data.pop(0))
-                        k=[]
-                        n=[]
-                        d=[]
-                        for i in range(m):
-                            k.append(data.pop(0))
-                            n.append(data.pop(0))
-                            d.append(data.pop(0))
-                        s.dihedral_types.add(DihedralType(tag=tag, name=name,
-                                                          m=m,
-                                                          k=map(float, k),
-                                                          d=map(float, d),
-                                                          n=map(int, n)))
-            if not quiet and dihedral_style:
-                verbose_print('read "%s" dihedral parameters '
-                              'for %s DihedralTypes'
-                              % (dihedral_style, ndihedral_types))
-            elif not quiet and not dihedral_style:
-                verbose_print('cannot determine dihedral_style - '
-                              'skipping bond parameters')
+                            dt.m = 1
+                            dt.k = [dt.k]
+                            dt.n = [dt.n]
+                            dt.d = [dt.d]
+                            dt.w = [dt.w]
+                            s.dihedral_types.add(dt)
+                    else:    
+                        s.dihedral_types.add(dt)
+            verbose_print('read "%s" dihedral parameters '
+                          'for %s DihedralTypes'
+                          % (dihedral_style, s.dihedral_types.count))
+        
         elif len(line) > 0 and line[0] == 'MiddleBondTorsion':
             f.next()
             for i in range(ndihedral_types):
@@ -4219,7 +4229,7 @@ def read_lammps(data_file, **kwargs):
                 s.dihedral_types[tag].a2 = float(line[2])
                 s.dihedral_types[tag].a3 = float(line[3])
                 s.dihedral_types[tag].r2 = float(line[4])
-            if not quiet and dihedral_style:
+            if dihedral_style:
                 verbose_print('read "%s" dihedral '
                               '(middle-bond-torsion parameters for '
                               '%s DihedralTypes'
@@ -4237,7 +4247,7 @@ def read_lammps(data_file, **kwargs):
                 s.dihedral_types[tag].c3 = float(line[6])
                 s.dihedral_types[tag].r1 = float(line[7])
                 s.dihedral_types[tag].r3 = float(line[8])
-            if not quiet and dihedral_style:
+            if dihedral_style:
                 verbose_print('read "%s" dihedral '
                               '(end-bond-torsion parameters for '
                               '%s DihedralTypes'
@@ -4255,7 +4265,7 @@ def read_lammps(data_file, **kwargs):
                 s.dihedral_types[tag].e3 = float(line[6])
                 s.dihedral_types[tag].theta1 = float(line[7])
                 s.dihedral_types[tag].theta2 = float(line[8])
-            if not quiet and dihedral_style:
+            if dihedral_style:
                     verbose_print('read "%s" dihedral '
                                   '(angle-torsion parameters for '
                                   '%s DihedralTypes'
@@ -4266,7 +4276,9 @@ def read_lammps(data_file, **kwargs):
                 line = f.next().strip().split()
                 tag = int(line[0])
                 s.dihedral_types[tag].m = float(line[1])
-            if not quiet and dihedral_style:
+                s.dihedral_types[tag].theta1 = float(line[2])
+                s.dihedral_types[tag].theta2 = float(line[3])
+            if dihedral_style:
                 verbose_print('read "%s" dihedral '
                               '(angle-angle-torsion parameters for '
                               '%s DihedralTypes'
@@ -4277,62 +4289,27 @@ def read_lammps(data_file, **kwargs):
                 line = f.next().strip().split()
                 tag = int(line[0])
                 s.dihedral_types[tag].n = float(line[1])
-            if not quiet and dihedral_style:
+                s.dihedral_types[tag].r1 = float(line[2])
+                s.dihedral_types[tag].r3 = float(line[3])
+            if dihedral_style:
                 verbose_print('read "%s" dihedral '
                               '(bond-bond-1-3 parameters for '
                               '%s DihedralTypes'
                               % (dihedral_style, ndihedral_types))
         elif len(line) > 0 and line[0] == 'Improper':
-            if '#' in line and not improper_style:
-                line = ' '.join(line).split('#')
-                improper_style = line[1].strip()
             f.next()
             for i in range(nimproper_types):
-                line = f.next().split('#')
-                if len(line) == 2:
-                    line, name = line
-                    name = ','.join(re.split(',|\s+', name.strip()))
-                else:
-                    line = line[0]
-                    name = None
-                line = line.strip().split()
-                tag = int(line[0])
-                if improper_style and improper_style.lower().startswith('harm'):
-                    s.improper_types.add(ImproperType(tag=tag, name=name,
-                                                      k=float(line[1]),
-                                                      x0=float(line[2])))
-                elif (improper_style and
-                      improper_style.lower().startswith('class2')):
-                    s.improper_types.add(ImproperType(tag=tag, name=name,
-                                                      k=float(line[1]),
-                                                      x0=float(line[2])))
-                elif (improper_style and
-                      improper_style.lower().startswith('cvff')):
-                    s.improper_types.add(ImproperType(tag=tag, name=name,
-                                                      k=float(line[1]),
-                                                      d=int(line[2]),
-                                                      n=int(line[3])))
-                elif not improper_style:
-                    if not quiet and i == 0:
-                            warning_print('cannot guess improper_style '
-                                          'from number of parameters - '
-                                          'will try to determine style later '
-                                          'based on other types')
-                    if len(line) == 3:
-                        s.improper_types.add(ImproperType(tag=tag, name=name,
-                                                          k=float(line[1]),
-                                                          x0=float(line[2])))
-                    elif len(line) == 4:
-                        improper_style = 'cvff'
-                        s.improper_types.add(ImproperType(tag=tag, name=name,
-                                                          k=float(line[1]),
-                                                          d=int(line[2]),
-                                                          n=int(line[3])))
-
-            if not quiet and improper_style:
-                verbose_print('read "%s" improper parameters '
-                              'for %s ImproperTypes'
-                              % (improper_style, nimproper_types))
+                line = f.next()
+                if not improper_style:
+                    warning_print('unknown improper_style - infering from number of parameters (3=cvff)')
+                    improper_style = ImproperType.guess_style(
+                        len(line.split('#')[0].split()[1:])
+                    )
+                if improper_style:
+                    s.improper_types.add(ImproperType.parse_lammps(line, improper_style))
+            verbose_print('read "%s" improper parameters '
+                          'for %s ImproperTypes'
+                          % (improper_style, s.improper_types.count))
         elif len(line) > 0 and line[0] == 'AngleAngle':
             improper_style = 'class2'
             f.next()
@@ -4345,7 +4322,7 @@ def read_lammps(data_file, **kwargs):
                 s.improper_types[tag].theta1 = float(line[4])
                 s.improper_types[tag].theta2 = float(line[5])
                 s.improper_types[tag].theta3 = float(line[6])
-            if not quiet and improper_style:
+            if improper_style:
                 verbose_print('read "%s" improper '
                               '(angle-angle parameters for '
                               '%s ImproperTypes'
@@ -4388,8 +4365,7 @@ def read_lammps(data_file, **kwargs):
                     p.frac_x = p.x / s.dim.dx
                     p.frac_y = p.y / s.dim.dy
                     p.frac_z = p.z / s.dim.dz
-            if not quiet:
-                verbose_print('read %s particles' % nparticles)
+            verbose_print('read %s particles' % nparticles)
         elif len(line) > 0 and line[0] == 'Velocities':
             f.next()
             for i in range(nparticles):
@@ -4404,8 +4380,7 @@ def read_lammps(data_file, **kwargs):
                     p = Particle(tag=tag, vx=float(line[1]), vy=float(line[2]),
                                  vz=float(line[3]))
                     s.particles.add(p)
-            if not quiet:
-                verbose_print('read velocities for %s particles' % nparticles)
+            verbose_print('read velocities for %s particles' % nparticles)
         elif len(line) > 0 and line[0] == 'Bonds':
             f.next()
             for i in range(nbonds):
@@ -4414,8 +4389,7 @@ def read_lammps(data_file, **kwargs):
                 b = Bond(tag=tag, type=int(line[1]),
                          a=int(line[2]), b=int(line[3]))
                 s.bonds.add(b)
-            if not quiet:
-                verbose_print('read %s bonds' % nbonds)
+            verbose_print('read %s bonds' % nbonds)
         elif len(line) > 0 and line[0] == 'Angles':
             f.next()
             for i in range(nangles):
@@ -4424,19 +4398,18 @@ def read_lammps(data_file, **kwargs):
                 a = Angle(tag=tag, type=int(line[1]),
                           a=int(line[2]), b=int(line[3]), c=int(line[4]))
                 s.angles.add(a)
-            if not quiet:
-                verbose_print('read %s angles' % nangles)
+            verbose_print('read %s angles' % nangles)
         elif len(line) > 0 and line[0] == 'Dihedrals':
             f.next()
             for i in range(ndihedrals):
                 line = f.next().strip().split()
                 tag = int(line[0])
-                d = Dihedral(tag=tag, type=int(line[1]),
-                             a=int(line[2]), b=int(line[3]),
-                             c=int(line[4]), d=int(line[5]))
-                s.dihedrals.add(d)
-            if not quiet:
-                verbose_print('read %s dihedrals' % ndihedrals)
+                if s.dihedral_types[int(line[1])]:
+                    d = Dihedral(tag=tag, type=int(line[1]),
+                                 a=int(line[2]), b=int(line[3]),
+                                 c=int(line[4]), d=int(line[5]))
+                    s.dihedrals.add(d)
+            verbose_print('read %s dihedrals' % ndihedrals)
         elif len(line) > 0 and line[0] == 'Impropers':
             f.next()
             for i in range(nimpropers):
@@ -4451,8 +4424,7 @@ def read_lammps(data_file, **kwargs):
                     s.impropers.add(Improper(tag=tag, type=int(line[1]),
                                              a=int(line[2]), b=int(line[3]),
                                              c=int(line[4]), d=int(line[5])))
-            if not quiet:
-                verbose_print('read %s impropers' % nimpropers)
+            verbose_print('read %s impropers' % nimpropers)
     f.close()
 
     s.atom_style = atom_style
@@ -4460,11 +4432,11 @@ def read_lammps(data_file, **kwargs):
     s.bond_style = bond_style
     s.angle_style = angle_style
     s.dihedral_style = dihedral_style
+    
     if improper_style:
         s.improper_style = improper_style
     elif not improper_style and s.impropers.count > 1:
-        if not quiet:
-            verbose_print('improper style not set explicitly '
+        verbose_print('improper style not set explicitly '
                           'but impropers exist in system, guessing style '
                           'based on other forcefield styles...')
         if (s.bond_style.startswith('harm') or
@@ -4478,14 +4450,12 @@ def read_lammps(data_file, **kwargs):
             improper_style = 'class2'
             s.improper_style = 'class2'
         if s.improper_style:
-            if not quiet:
-                verbose_print('setting improper style to "%s", '
+            verbose_print('setting improper style to "%s", '
                               'if this is incorrect try explicitly setting '
                               'improper_style as argument in '
                               'pysimm.system.read_lammps' % improper_style)
         else:
-            if not quiet:
-                error_print('still cannot determine improper style...')
+            error_print('still cannot determine improper style...')
 
     if pair_style and pair_style.startswith('lj'):
         if ((s.bond_style and s.bond_style.startswith('class2')) or
@@ -4501,8 +4471,7 @@ def read_lammps(data_file, **kwargs):
         s.ff_class = '1'
 
     if 'harmonic' in styles and 'class2' in styles:
-        if not quiet:
-            warning_print('it appears there is a mixture of class1 and class2 '
+        warning_print('it appears there is a mixture of class1 and class2 '
                           'forcefield styles in your system...this is usually '
                           'unadvised')
 
@@ -4540,7 +4509,7 @@ def read_lammps(data_file, **kwargs):
     return s
 
 
-def read_pubchem_smiles(smiles, quiet=False, type_with=None):
+def read_pubchem_smiles(smiles, type_with=None):
     """pysimm.system.read_pubchem_smiles
 
     Interface with pubchem restful API to create molecular system from SMILES format
@@ -4556,9 +4525,8 @@ def read_pubchem_smiles(smiles, quiet=False, type_with=None):
     req = ('https://pubchem.ncbi.nlm.nih.gov/'
            'rest/pug/compound/smiles/%s/SDF/?record_type=3d' % smiles)
            
-    if not quiet:
-        print('making request to pubchem RESTful API:')
-        print(req)
+    verbose_print('making request to pubchem RESTful API:')
+    verbose_print(req)
 
     try:
         resp = urlopen(req)
