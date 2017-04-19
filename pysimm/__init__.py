@@ -42,5 +42,9 @@ warning_print = lambda *a, **k: print('(warning) PySIMM:', *a) if warning else l
 verbose_print = lambda *a, **k: print('PySIMM:', *a) if verbose else lambda *a, **k: None
 debug_print = lambda *a, **k: print('(debug) PySIMM:', *a) if debug else lambda *a, **k: None
 
-class PysimmError(Exception):
-    pass
+def printing(e, w, v, d):
+    global error_print, warning_print, verbose_print, debug_print
+    error_print = lambda *a, **k: print('(error) PySIMM:', *a) if e else lambda *a, **k: None
+    warning_print = lambda *a, **k: print('(warning) PySIMM:', *a) if w else lambda *a, **k: None
+    verbose_print = lambda *a, **k: print('PySIMM:', *a) if v else lambda *a, **k: None
+    debug_print = lambda *a, **k: print('(debug) PySIMM:', *a) if d else lambda *a, **k: None
