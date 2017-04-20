@@ -2773,7 +2773,7 @@ class System(object):
         """
 
         self.ff_class = f.ff_class
-        self.ff_name = f.ff_name
+        self.forcefield = f.ff_name
         if update_ptypes:
             self.update_particle_types_from_forcefield(f)
             skip_ptypes = True
