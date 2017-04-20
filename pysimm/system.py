@@ -5167,6 +5167,7 @@ def replicate(ref, nrep, s_=None, density=0.3, rand=True, print_insertions=True)
 
     if s_ is None:
         s_ = System()
+    s_.forcefield = ref[0].forcefield
     s_.ff_class = ref[0].ff_class
     s_.pair_style = ref[0].pair_style
     s_.bond_style = ref[0].bond_style
