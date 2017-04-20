@@ -36,6 +36,7 @@ import json
 from random import random
 from StringIO import StringIO
 from itertools import permutations
+from xml.dom import minidom
 from xml.etree import ElementTree as Et
 from urllib2 import urlopen, HTTPError, URLError
 from math import sin, cos, sqrt, pi, acos, floor, ceil
@@ -3101,6 +3102,46 @@ class System(object):
             return s
         else:
             out_file.close()
+            
+    def write_cml(self, outfile='data.cml'):
+        """pysimm.system.System.write_cml
+
+        Write System data in psd format
+
+        Args:
+            outfile: where to write data, file name or 'string'
+
+        Returns:
+            None or string of data file if out_data='string'
+        """
+        mol = Et.Element('molecule', {'xmlns': 'http://www.xml-cml.org/schema'})
+        atom_array = Et.SubElement(mol, 'atomArray')
+        for p in self.particles:
+            a_attr = {
+                'id': 'a{}'.format(p.tag),
+                'x3': '{:8f}'.format(p.x),
+                'y3': '{:8f}'.format(p.y),
+                'z3': '{:8f}'.format(p.z),
+            }
+            if p.type.elem:
+                a_attr['elementType'] = p.type.elem
+            if p.type.name:
+                a_attr['label'] = p.type.name
+            atom = Et.SubElement(atom_array, 'atom', a_attr)
+        bond_array = Et.SubElement(mol, 'bondArray')
+        for b in self.bonds:
+            bond = Et.SubElement(bond_array, 'bond', {
+                'atomRefs2': 'a{} a{}'.format(b.a.tag, b.b.tag),
+                'order': '{}'.format(b.order or 1)
+            })
+            
+        root = Et.ElementTree(mol)
+        if outfile == 'string':
+            return minidom.parseString(Et.tostring(mol)).toprettyxml(indent="  ")
+        else:
+            with open(outfile, 'w') as f:
+                f.write(minidom.parseString(Et.tostring(mol)).toprettyxml(indent="  "))
+        
             
     def write_psf(self, outfile='data.psf'):
         """pysimm.system.System.write_psf
