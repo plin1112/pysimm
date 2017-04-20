@@ -365,7 +365,7 @@ class SteeredMolecularDynamics(MolecularDynamics):
         self.v = kwargs.get('v', 0.001)
         self.d = kwargs.get('d', 3.0)
     
-    def write(self, sim):
+    def write(self):
         """pysimm.lmps.SteeredMolecularDynamics.write
 
         Create LAMMPS input for a steered molecular dynamics simulation.
@@ -376,35 +376,14 @@ class SteeredMolecularDynamics(MolecularDynamics):
         Returns:
             input string
         """
-        self.input = ''
-
-        self.input += 'timestep {}\n'.format(self.timestep)
-        self.input += 'group p1 id {}\n'.format(self.p1.tag)
-        self.input += 'group p2 id {}\n'.format(self.p2.tag)
-        self.input += 'fix steer p1 smd cvel {} {} couple p2 auto auto auto {}\n'.format(self.k, self.v, self.d)
-        self.input += 'run %s\n' % self.length
+        
+        self.input += MolecularDynamics.write(self)
+        
+        self.input = 'fix steer p1 smd cvel {} {} couple p2 auto auto auto {}\n'.format(self.k, self.v, self.d) + self.input
+        self.input = 'group p2 id {}\n'.format(self.p2.tag) + self.input
+        self.input = 'group p1 id {}\n'.format(self.p1.tag) + self.input
+        
         self.input += 'unfix steer\n'
-        
-        self.input = Ensemble(
-            ensemble=self.ensemble, temp=self.temp,
-            pressure=self.pressure, limit=self.limit
-        ).write(self.input)
-        
-        self.input = Dump(
-            **self.dump
-        ).write(self.input)
-        
-        self.input = Shake(
-            **self.shake
-        ).write(self.input)
-        
-        self.input = Velocity(
-            temp=self.temp, **self.velocity
-        ).write(self.input)
-        
-        self.input = Thermo(
-            **self.thermo
-        ).write(self.input)
 
         return self.input
         
