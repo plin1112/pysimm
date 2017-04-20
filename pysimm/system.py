@@ -1700,32 +1700,6 @@ class System(object):
                             error_print('cannot find type with name {}'.format(tname))
                         self.particle_types.add(s_pt[0].copy())
                     self.particles[tag].type = self.particle_types.get(tname)[0]
-                    
-
-    def update_particle_types_from_forcefield(self, f):
-        """pysimm.system.System.update_types_from_forcefield
-
-        Updates ParticleType data from Forcefield object f based on ParticleType.name
-
-        Args:
-            f: pysimm.forcefield.Forcefield object reference
-
-        Returns:
-            None
-        """
-        for pt in self.particle_types:
-            name_ = pt.name.split('@')[-1]
-            linker = False
-            if pt.name.find('@') >= 0:
-                linker = pt.name.split('@')[0]
-            pt_ = f.particle_types.get(name_)
-            if pt_:
-                new = pt_[0].copy()
-                new.tag = pt.tag
-                if linker:
-                    new.name = '%s@%s' % (linker, new.name)
-                self.particle_types.remove(pt.tag)
-                self.particle_types.add(new)
                           
     def read_pdb_coords(self, fname):
         with open(fname) as f:
