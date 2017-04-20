@@ -279,6 +279,8 @@ class ParticleType(Item):
             return '{:4}\t{}\t{}\t{}\t# {}\n'.format(
                 self.tag, self.a, self.rho, self.c, self.name
             )
+        else:
+            raise PysimmError('cannot understand pair style {}'.format(style))
             
     def form(self, style='lj_12-6', d_range=None):
         """pysimm.system.ParticleType.form
@@ -470,6 +472,8 @@ class BondType(Item):
             return '{:4}\t{}\t{}\t{}\t{}\t# {}\n'.format(
                 self.tag, self.r0, self.k2, self.k3, self.k4, self.name
             )
+        else:
+            raise PysimmError('cannot understand pair style {}'.format(style))
 
     def form(self, style='harmonic', d_range=None):
         """pysimm.system.BondType.form
@@ -657,6 +661,8 @@ class AngleType(Item):
             return '{:4}\t{}\t{}\t{}\t{}\t# {}\n'.format(
                 self.tag, self.k, self.theta0, self.k_ub, self.r_ub, self.name
             )
+        else:
+            raise PysimmError('cannot understand pair style {}'.format(style))
         
     def form(self, style='harmonic', d_range=None):
         """pysimm.system.AngleType.form
@@ -898,6 +904,8 @@ class DihedralType(Item):
                     self.r1, self.r3,
                     self.name
                 )
+        else:
+            raise PysimmError('cannot understand pair style {}'.format(style))
 
     def form(self, style='harmonic', d_range=None):
         """pysimm.system.DihedralType.form
@@ -1067,6 +1075,9 @@ class ImproperType(Item):
                     self.theta1, self.theta2, self.theta3,
                     self.name
                 )
+        else:
+            raise PysimmError('cannot understand pair style {}'.format(style))
+            
     def form(self, style='harmonic', d_range=None):
         """pysimm.system.ImproperType.form
 
@@ -1199,8 +1210,7 @@ class System(object):
         self.objectified = False
 
         self.name = kwargs.get('name') or 'pySIMM System Object'
-        self.ff_class = kwargs.get('ff_class')
-        self.ff_name = kwargs.get('ff_name')
+        self.forcefield = kwargs.get('forcefield')
         self.dim = Dimension(xlo=kwargs.get('xlo'), xhi=kwargs.get('xhi'),
                              ylo=kwargs.get('ylo'), yhi=kwargs.get('yhi'),
                              zlo=kwargs.get('zlo'), zhi=kwargs.get('zhi'),
@@ -2888,6 +2898,15 @@ class System(object):
             None or string if data file if out_data='string'
         """
         empty = kwargs.get('empty')
+        
+        if self.forcefield:
+            (
+                self.pair_style, 
+                self.bond_style, 
+                self.angle_style, 
+                self.dihedral_style, 
+                self.improper_style
+            ) = ff_styles(self.forcefield)
         
         if self.dihedral_style == 'charmm':
             charmm_dts = DihedralTypeContainer()
