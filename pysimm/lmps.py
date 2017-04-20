@@ -1668,7 +1668,7 @@ def write_init(l, **kwargs):
         elif l.forcefield == 'amber' or (l.forcefield and l.forcefield.startswith('gaff')):
             output += 'special_bonds amber\n'
         elif l.forcefield == 'dreiding':
-            output += 'special_bonds amber\n'
+            output += 'special_bonds dreiding\n'
 
     output += 'read_data temp.lmps\n'
 
