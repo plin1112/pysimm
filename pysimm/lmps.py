@@ -158,6 +158,11 @@ class Shake(Item):
                     at_tags = ' '.join(map(str, [at.tag for at in self.angle_types]))
                 )
             t_inp +='\n'
+            
+            if self.velocity['new_v'] or self.velocity['scale_v']:
+                t_inp += 'run 0\n'
+                t_inp += 'velocity all scale {}\n'.format(self.temp.start)
+            
             inp = t_inp + inp + 'unfix pysimm_shake\n'
         return inp
         
@@ -323,8 +328,11 @@ class MolecularDynamics(object):
         """
         self.input = ''
 
-        self.input += 'timestep {}\n'.format(self.timestep)
         self.input += 'run {}\n'.format(self.length)
+        
+        self.input = Shake(
+            temp=self.temp, velocity=self.velocity, **self.shake
+        ).write(self.input)
         
         self.input = Ensemble(
             ensemble=self.ensemble, temp=self.temp,
@@ -335,9 +343,7 @@ class MolecularDynamics(object):
             **self.dump
         ).write(self.input)
         
-        self.input = Shake(
-            **self.shake
-        ).write(self.input)
+        self.input = 'timestep {}\n'.format(self.timestep) + self.input
         
         self.input = Velocity(
             temp=self.temp, **self.velocity
@@ -1569,6 +1575,8 @@ def write_init(l, **kwargs):
     output += 'atom_style %s\n' % atom_style
     pair_style = None
     charge = False
+    
+    l.write_lammps('temp.lmps')
 
     if l.charge is None:
         for p in l.particles:
@@ -1629,15 +1637,12 @@ def write_init(l, **kwargs):
         output += 'kspace_style %s\n' % kspace_style
 
     if not pair_style.startswith('buck'):
-        if nonbond_mixing == 'arithmetic':
-            output += 'pair_modify shift yes mix arithmetic\n'
+        if nonbond_mixing == 'arithmetic' or l.forcefield.lower() in ['amber', 'gaff', 'gaff2', 'dreiding', 'charmm', 'cgenff']:
+            output += 'pair_modify mix arithmetic\n'
         elif nonbond_mixing == 'geometric':
-            output += 'pair_modify shift yes mix geometric\n'
-        else:
-            if 'class2' in pair_style:
-                output += 'pair_modify shift yes mix sixthpower\n'
-            else:
-                output += 'pair_modify shift yes mix arithmetic\n'
+            output += 'pair_modify mix geometric\n'
+        elif 'class2' in pair_style or l.forcefield.lower() in ['pcff']:
+            output += 'pair_modify mix sixthpower\n'
 
     if l.bond_style:
         output += 'bond_style %s\n' % l.bond_style
@@ -1677,14 +1682,15 @@ def write_init(l, **kwargs):
     if special_bonds:
         output += 'special_bonds %s\n' % special_bonds
     else:
-        if 'class2' in pair_style:
+        if 'class2' in pair_style or l.forcefield == 'pcff':
             output += 'special_bonds    lj 0 0 1 coul 0 0 1\n'
-        elif 'charmm' in pair_style:
+        elif 'charmm' in pair_style or l.forcefield == 'charmm':
             output += 'special_bonds charmm\n'
-        else:
+        elif l.forcefield == 'amber' or l.forcefield.startswith('gaff'):
+            output += 'special_bonds amber\n'
+        elif l.forcefield == 'dreiding':
             output += 'special_bonds amber\n'
 
-    l.write_lammps('temp.lmps')
     output += 'read_data temp.lmps\n'
 
     if pair_style.startswith('buck'):
