@@ -847,17 +847,17 @@ class DihedralType(Item):
             LAMMPS formatted string with dihedral coefficients
         """
         if style.startswith('harm'):
-            return '{:4}\t{}\t{}\t{}\t# {}\n'.format(
+            return '{:4}\t{:f}\t{:d}\t{:d}\t# {}\n'.format(
                 self.tag, self.k, self.d, self.n, self.name
             )
         elif style.startswith('charmm'):
-            return '{:4}\t{}\t{}\t{}\t{}\t# {}\n'.format(
+            return '{:4}\t{:f}\t{:d}\t{:d}\t{:f}\t# {}\n'.format(
                 self.tag, self.k, self.n, self.d, self.w, self.name
             )
         elif style.startswith('fourier'):
-            st = '{:4}\t{}'.format(self.tag, self.m)
+            st = '{:4}\t{:d}'.format(self.tag, self.m)
             for k, n, d in zip(self.k, self.n, self.d):
-                st += '\t{}\t{}\t{}'.format(k, n, d)
+                st += '\t{:f}\t{:d}\t{:f}'.format(k, n, d)
             st += '\t# {}\n'.format(self.name)
             return st
         elif style.startswith('class2'):
@@ -3142,7 +3142,6 @@ class System(object):
             with open(outfile, 'w') as f:
                 f.write(minidom.parseString(Et.tostring(mol)).toprettyxml(indent="  "))
         
-            
     def write_psf(self, outfile='data.psf'):
         """pysimm.system.System.write_psf
 
@@ -4052,7 +4051,7 @@ def read_chemdoodle_json(file_, **kwargs):
     return s
 
 
-def read_lammps(data_file, **kwargs):
+def read_lammps(data_file, ff=None, **kwargs):
     """pysimm.system.read_lammps
 
     Interprets LAMMPS data file and creates pysimm.system.System object
@@ -4072,7 +4071,7 @@ def read_lammps(data_file, **kwargs):
         pysimm.system.System object
     """
     atom_style = kwargs.get('atom_style')
-    ff = kwargs.get('forcefield')
+    ff = kwargs.get('forcefield', ff)
     pair_style, bond_style, angle_style, dihedral_style, improper_style = ff_styles(ff)
     pair_style = kwargs.get('pair_style', pair_style)
     bond_style = kwargs.get('bond_style', bond_style)
