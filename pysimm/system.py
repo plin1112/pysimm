@@ -851,8 +851,8 @@ class DihedralType(Item):
                 self.tag, self.k, int(self.d), int(self.n), self.name
             )
         elif style.startswith('charmm'):
-            return '{:4}\t{:f}\t{:d}\t{}\t{:f}\t# {}\n'.format(
-                self.tag, self.k, int(self.n), self.d, self.w, self.name
+            return '{:4}\t{:f}\t{:d}\t{:d}\t{:f}\t# {}\n'.format(
+                self.tag, self.k, int(self.n), int(self.d), self.w, self.name
             )
         elif style.startswith('fourier'):
             st = '{:4}\t{:d}'.format(self.tag, self.m)
