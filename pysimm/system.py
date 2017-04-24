@@ -1757,7 +1757,7 @@ class System(object):
                             p.vz = vz
                 line = f.readline()
 
-    def read_lammpstrj(self, trj, frame=1):
+    def read_lammpstrj(self, trj, frame=1, scaled=False):
         """pysimm.system.System.read_lammpstrj
 
         Updates particle positions and box size from LAMMPS trajectory file at given frame.
@@ -1817,9 +1817,14 @@ class System(object):
                         id_ = int(id_)
                         if self.particles[id_]:
                             updated += 1
-                            self.particles[id_].x = x * self.dim.dx + self.dim.xlo
-                            self.particles[id_].y = y * self.dim.dy + self.dim.ylo
-                            self.particles[id_].z = z * self.dim.dz + self.dim.zlo
+                            if scaled:
+                                self.particles[id_].x = x * self.dim.dx + self.dim.xlo
+                                self.particles[id_].y = y * self.dim.dy + self.dim.ylo
+                                self.particles[id_].z = z * self.dim.dz + self.dim.zlo
+                            else:
+                                self.particles[id_].x = x
+                                self.particles[id_].y = y
+                                self.particles[id_].z = z
                 line = f.readline()
 
         verbose_print('updated particle positions for %s of %s particles from trajectory' % (updated, nparticles))
