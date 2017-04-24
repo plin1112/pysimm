@@ -848,16 +848,16 @@ class DihedralType(Item):
         """
         if style.startswith('harm'):
             return '{:4}\t{:f}\t{:d}\t{:d}\t# {}\n'.format(
-                self.tag, self.k, self.d, self.n, self.name
+                self.tag, self.k, int(self.d), int(self.n), self.name
             )
         elif style.startswith('charmm'):
-            return '{:4}\t{:f}\t{:d}\t{:d}\t{:f}\t# {}\n'.format(
-                self.tag, self.k, self.n, self.d, self.w, self.name
+            return '{:4}\t{:f}\t{:d}\t{}\t{:f}\t# {}\n'.format(
+                self.tag, self.k, int(self.n), self.d, self.w, self.name
             )
         elif style.startswith('fourier'):
             st = '{:4}\t{:d}'.format(self.tag, self.m)
             for k, n, d in zip(self.k, self.n, self.d):
-                st += '\t{:f}\t{:d}\t{:f}'.format(k, n, d)
+                st += '\t{}\t{:d}\t{}'.format(k, int(n), d)
             st += '\t# {}\n'.format(self.name)
             return st
         elif style.startswith('class2'):
