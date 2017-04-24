@@ -199,7 +199,7 @@ def copolymer(m, nmon, s_=None, **kwargs):
             if isinstance(sim, lmps.Simulation):
                 sim.system = s
                 sim.name = 'relax_%03d' % (temp_nmon)
-                sim.run(np=settings.get('np'))
+                sim.run(np=settings.get('np'), gpu_gpus=settings.get('gpu_gpus'))
 
             if unwrap:
                 s.unwrap()
@@ -352,7 +352,7 @@ def random_walk(m, nmon, s_=None, **kwargs):
         if isinstance(sim, lmps.Simulation):
             sim.system = s
             sim.name = 'relax_%03d' % (insertion+2)
-            sim.run(np=settings.get('np'))
+            sim.run(np=settings.get('np'), gpu_gpus=settings.get('gpu_gpus'))
 
         if unwrap:
             if not s.unwrap():
