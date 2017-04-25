@@ -24,5 +24,8 @@ setup(
         'forcefield/dat/*.json', 
         'forcefield/dat/*.xml',
         'apps/solvate/dat/*.json'
-    ]}
+    ]},
+    install_requires=[
+        'numpy',
+    ]
 )
