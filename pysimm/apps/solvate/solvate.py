@@ -88,7 +88,7 @@ def water_box():
     box.angle_style = 'harmonic'
     box.dim = system.Dimension(center=True, dx=dim, dy=dim, dz=dim)
     cfile = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                         os.pardir, os.pardir, 'dat', 'water', 'water_coords.json')
+                         'dat', 'water_coords.json')
     with file(cfile) as f:
         water_coords = json.loads(f.read())
 
