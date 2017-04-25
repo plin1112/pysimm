@@ -182,59 +182,6 @@ class Dump(Item):
                 t_inp += 'dump_modify pysimm_dump append yes\n'
             inp = t_inp + inp + 'undump pysimm_dump\n'
         return inp
-
-
-class Qeq(object):
-    """pysimm.lmps.MolecularDynamics
-
-    Template object to contain LAMMPS qeq settings
-
-    Attributes:
-        cutoff: distance cutoff for charge equilibration
-        tol: tolerance (precision) for charge equilibration
-        max_iter: maximum iterations
-        qfile: file with qeq parameters (leave undefined for defaults)
-    """
-    def __init__(self, **kwargs):
-        self.cutoff = kwargs.get('cutoff', 10)
-        self.tol = kwargs.get('tol', 1.0e-6)
-        self.max_iter = kwargs.get('max_iter', 200)
-        self.qfile = kwargs.get('qfile')
-        
-        self.input = ''
-        
-    def write(self, sim):
-        """pysimm.lmps.Qeq.write
-
-        Create LAMMPS input for a charge equilibration calculation
-
-        Args:
-            sim: pysimm.lmps.Simulation object reference
-
-        Returns:
-            input string
-        """
-        if self.qfile is None:
-            param_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                      os.pardir, 'dat', 'qeq', 'hcno.json')
-            with file(param_file) as f:
-                qeq_params = json.loads(f.read())
-            with file('pysimm.qeq.tmp', 'w') as f:
-                for pt in sim.system.particle_types:
-                    f.write('{}\t{}\t{}\t{}\t{}\t{}\n'.format(pt.tag, 
-                                                  qeq_params[pt.elem]['chi'],
-                                                  qeq_params[pt.elem]['eta']*2,
-                                                  qeq_params[pt.elem]['gamma'],
-                                                  qeq_params[pt.elem]['zeta'],
-                                                  qeq_params[pt.elem]['qcore']))
-            self.qfile = 'pysimm.qeq.tmp'
-        
-        self.input = ''
-        self.input += 'fix 1 all qeq/point 1 {} {} {} {}\n'.format(self.cutoff, self.tol, self.max_iter, self.qfile)
-        self.input += 'run 0\n'
-        self.input += 'unfix 1\n'
-        
-        return self.input
         
     
 class MolecularDynamics(object):
@@ -544,24 +491,6 @@ class Simulation(object):
         self.sim = kwargs.get('sim', [])
         
         self.results = []
-        
-    def add_qeq(self, template=None, **kwargs):
-        """pysimm.lmps.Simulation.add_qeq
-
-        Add pysimm.lmps.Qeq template to simulation
-
-        Args:
-            template: pysimm.lmps.Qeq object reference
-            **kwargs: if template is None these are passed to pysimm.lmps.Qeq constructor to create new template
-        """
-        if template is None:
-            self.sim.append(Qeq(**kwargs))
-        elif isinstance(template, Qeq):
-            self.sim.append(template)
-        else:
-            error_print('you must add an object of type Qeq to Simulation')
-            
-        return self
 
     def add_md(self, template=None, **kwargs):
         """pysimm.lmps.Simulation.add_md
@@ -807,9 +736,6 @@ def call_lammps(simulation, np, kokkos_gpus, gpu_gpus, nanohub):
     except OSError as e:
         print e
         
-    if os.path.isfile('pysimm.qeq.tmp'):
-        os.remove('pysimm.qeq.tmp')
-        
     try:
         os.remove('pysimm.dump.tmp')
         if simulation.name:
@@ -823,24 +749,6 @@ def call_lammps(simulation, np, kokkos_gpus, gpu_gpus, nanohub):
             raise PysimmError('%s simulation using LAMMPS UNsuccessful' % simulation.name)
         else:
             raise PysimmError('molecular dynamics using LAMMPS UNsuccessful')
-
-
-def qeq(s, np=None, nanohub=None, **kwargs):
-    """pysimm.lmps.qeq
-
-    Convenience function to call a qeq calculation. kwargs are passed to Qeq constructor
-
-    Args:
-        s: system to perform simulation on
-        np: number of threads to use
-        nanohub: dictionary containing nanohub resource information default=None
-
-    Returns:
-        None
-    """
-    sim = Simulation(s, **kwargs)
-    sim.add_qeq(**kwargs)
-    sim.run(np, nanohub)
 
 
 def quick_md(s, np=None, nanohub=None, **kwargs):
