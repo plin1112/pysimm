@@ -1,0 +1,13 @@
+from distutils.core import setup
+
+setup(
+    name = 'pysimm',
+    packages = ['pysimm'],
+    version = '0.2dev',
+    description = 'python simulation interface for molecular modeling',
+    author = 'Michael E. Fortunato',
+    author_email = 'mef231@gmail.com',
+    url = 'https://github.com/polysimtools/pysimm',
+    download_url = 'https://github.com/polysimtools/pysimm/archive/0.1.tar.gz',
+    scripts = ['bin/pysimm']
+)
