@@ -53,7 +53,7 @@ class Cgenff(Forcefield):
     def __init__(self, db_file=None):
         if not db_file and db_file is not False:
             db_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                   os.pardir, os.pardir, 'dat', 'forcefields', 'cgenff.json')
+                                   'dat', 'cgenff.json')
         Forcefield.__init__(self, db_file)
         self.ff_name = 'cgenff'
         self.pair_style = 'lj'
