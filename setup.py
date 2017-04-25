@@ -7,6 +7,7 @@ setup(
         'pysimm.apps',
         'pysimm.apps.solvate',
         'pysimm.forcefield',
+        'pysimm.models',
         'pysimm.models.monomers',
         'pysimm.models.monomers.gaff',
         'pysimm.models.monomers.gaff2',
