@@ -43,11 +43,11 @@ class Cgenff(Forcefield):
 
     Attributes:
         ff_name: cgenff
-        pair_style: lj
+        pair_style: charmm
         bond_style: harmonic
-        angle_style: harmonic
-        dihedral_style: fourier
-        improper_style: cvff
+        angle_style: charmm
+        dihedral_style: charmm
+        improper_style: harmonic
         ff_class: 1
     """
     def __init__(self, db_file=None):
@@ -56,10 +56,10 @@ class Cgenff(Forcefield):
                                    'dat', 'cgenff.json')
         Forcefield.__init__(self, db_file)
         self.ff_name = 'cgenff'
-        self.pair_style = 'lj'
+        self.pair_style = 'charmm'
         self.bond_style = 'harmonic'
-        self.angle_style = 'harmonic'
-        self.dihedral_style = 'fourier'
+        self.angle_style = 'charmm'
+        self.dihedral_style = 'charmm'
         self.improper_style = 'harmonic'
         self.ff_class = '1'
 
