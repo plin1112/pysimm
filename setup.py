@@ -13,7 +13,7 @@ setup(
         'pysimm.models.monomers.gaff2',
         'pysimm.models.monomers.dreiding'
     ],
-    version = '0.2dev',
+    version = '0.2.1dev',
     description = 'python simulation interface for molecular modeling',
     author = 'Michael E. Fortunato',
     author_email = 'mef231@gmail.com',
@@ -26,6 +26,6 @@ setup(
         'apps/solvate/dat/*.json'
     ]},
     install_requires=[
-        'numpy',
+        'numpy'
     ]
 )
