@@ -2889,12 +2889,22 @@ class System(object):
             ) = ff_styles(self.forcefield)
         
         if self.dihedral_style == 'charmm':
+            for d in self.dihedrals:
+                for d2 in self.dihedrals[d.tag+1:]:
+                    if (d.a == d2.a and d.d == d2.d) or (d.a == d2.d and d.d == d2.a):
+                        d.type.w = 0.5
+                for a in self.angles:
+                    if (d.a == a.a and d.d == a.c) or (d.a == a.c and d.d == a.a):
+                        d.type.w = 0.0
+                for b in self.bonds:
+                    if (d.a == b.a and d.d == b.b) or (d.a == b.b and d.d == b.a):
+                        d.type.w = 0.0
             charmm_dts = DihedralTypeContainer()
             for dt in self.dihedral_types:
                 for k, n, d in zip(dt.k, dt.n, dt.d):
                     charmm_dts.add(
                         DihedralType(
-                            name=dt.name, rname=dt.rname, k=k, n=n, d=d, w=1
+                            name=dt.name, rname=dt.rname, k=k, n=n, d=d, w=dt.w
                         )
                     )
             charmm_ds = ItemContainer()
