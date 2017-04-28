@@ -2878,6 +2878,7 @@ class System(object):
             None or string if data file if out_data='string'
         """
         empty = kwargs.get('empty')
+        calc_charmm_dih_weights = kwargs.get('calc_charmm_dih_weights', True)
         
         if self.forcefield:
             (
@@ -2888,17 +2889,56 @@ class System(object):
                 self.improper_style
             ) = ff_styles(self.forcefield)
         
-        if self.dihedral_style == 'charmm':
+        if self.dihedral_style == 'charmm' and calc_charmm_dih_weights:
             for d in self.dihedrals:
                 for d2 in self.dihedrals[d.tag+1:]:
                     if (d.a == d2.a and d.d == d2.d) or (d.a == d2.d and d.d == d2.a):
-                        d.type.w = 0.5
+                        d.w = 0.5
+                        d2.w = 0.5
+                        if d.type.w != 0.5:
+                            poss_dt = self.dihedral_types.by_name(d.type.name, wildcard=None)
+                            for dt in poss_dt:
+                                if dt.w == 0.5:
+                                    d.type = dt
+                                    break
+                            if d.type.w != 0.5:
+                                d.type = self.dihedral_types.add(d.type.copy())
+                                d.type.w = 0.5
+                        if d2.type.w != 0.5:
+                            poss_dt = self.dihedral_types.by_name(d2.type.name, wildcard=None)
+                            for dt in poss_dt:
+                                if dt.w == 0.5:
+                                    d2.type = dt
+                                    break
+                            if d2.type.w != 0.5:
+                                d2.type = self.dihedral_types.add(d2.type.copy())
+                                d2.type.w = 0.5
                 for a in self.angles:
                     if (d.a == a.a and d.d == a.c) or (d.a == a.c and d.d == a.a):
-                        d.type.w = 0.0
+                        d.w = 0.0
+                        if d.type.w != 0.0:
+                            poss_dt = self.dihedral_types.by_name(d.type.name, wildcard=None)
+                            for dt in poss_dt:
+                                if dt.w == 0.0:
+                                    d.type = dt
+                                    break
+                            if d.type.w != 0.0:
+                                d.type = self.dihedral_types.add(d.type.copy())
+                                d.type.w = 0.0
                 for b in self.bonds:
                     if (d.a == b.a and d.d == b.b) or (d.a == b.b and d.d == b.a):
-                        d.type.w = 0.0
+                        d.w = 0.0
+                        if d.type.w != 0.0:
+                            poss_dt = self.dihedral_types.by_name(d.type.name, wildcard=None)
+                            for dt in poss_dt:
+                                if dt.w == 0.0:
+                                    d.type = dt
+                                    break
+                            if d.type.w != 0.0:
+                                d.type = self.dihedral_types.add(d.type.copy())
+                                d.type.w = 0.0
+                        
+        if self.dihedral_style == 'charmm':
             charmm_dts = DihedralTypeContainer()
             for dt in self.dihedral_types:
                 for k, n, d in zip(dt.k, dt.n, dt.d):
@@ -2909,16 +2949,17 @@ class System(object):
                     )
             charmm_ds = ItemContainer()
             for d in self.dihedrals:
-                dts = charmm_dts.by_name(d.ptype_name())
+                dts = charmm_dts.by_name(d.type.name)
                 for dt in dts:
                     if dt.name != dts[0].name:
                         dts.remove(dt)
                 for dt in dts:
-                    charmm_ds.add(
-                        Dihedral(
-                            a=d.a, b=d.b, c=d.c, d=d.d, type=dt
+                    if d.w is None or d.w == dt.w:
+                        charmm_ds.add(
+                            Dihedral(
+                                a=d.a, b=d.b, c=d.c, d=d.d, type=dt
+                            )
                         )
-                    )
 
         if out_data == 'string':
             out_file = StringIO()
@@ -3138,6 +3179,8 @@ class System(object):
                 'y3': '{:8f}'.format(p.y),
                 'z3': '{:8f}'.format(p.z),
             }
+            if p.elem:
+                a_attr['elementType'] = p.elem
             if p.type.elem:
                 a_attr['elementType'] = p.type.elem
             if p.type.name:
