@@ -943,6 +943,9 @@ class DihedralType(Item):
         elif style == 'class2':
             e = np.array([calc.class2_dihedral(self, d) for d in d_range])
             return d_range, e
+        elif style == 'opls':
+            e = np.array([calc.opls_dihedral(self, d) for d in d_range])
+            return d_range, e
 
 
 class DihedralTypeContainer(ItemContainer):
