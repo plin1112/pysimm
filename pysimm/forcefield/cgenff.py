@@ -57,6 +57,7 @@ class Cgenff(Forcefield):
         Forcefield.__init__(self, db_file)
         self.ff_name = 'cgenff'
         self.pair_style = 'charmm'
+        self.mixing_rule = 'arithmetic'
         self.bond_style = 'harmonic'
         self.angle_style = 'charmm'
         self.dihedral_style = 'charmm'

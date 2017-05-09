@@ -57,6 +57,7 @@ class Gaff2(Forcefield):
         Forcefield.__init__(self, db_file)
         self.ff_name = 'gaff2'
         self.pair_style = 'lj'
+        self.mixing_rule = 'arithmetic'
         self.bond_style = 'harmonic'
         self.angle_style = 'harmonic'
         self.dihedral_style = 'fourier'

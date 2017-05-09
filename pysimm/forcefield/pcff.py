@@ -60,7 +60,7 @@ class Pcff(Forcefield):
         self.angle_style = 'class2'
         self.dihedral_style = 'class2'
         self.improper_style = 'class2'
-        self.nb_mixing = 'sixth'
+        self.mixing_rule = 'sixthpower'
 
     def assign_ptypes(self, s):
         """pysimm.forcefield.Pcff.assign_ptypes
