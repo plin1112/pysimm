@@ -405,6 +405,14 @@ def class2_dihedral(dt, d):
         dt.k3*(1-np.cos(np.radians(d)-np.radians(dt.phi3)))
     )
     
+def opls_dihedral(dt, d):
+    return (
+        0.5*dt.k1*(1+np.cos(np.radians(d))) +
+        0.5*dt.k2*(1-np.cos(2*np.radians(d))) +
+        0.5*dt.k3*(1+np.cos(3*np.radians(d))) +
+        0.5*dt.k4*(1-np.cos(4*np.radians(d)))
+    )
+    
 def fourier_dihedral(dt, d):
     return np.sum(
         [k*(1 + np.cos(n*np.radians(d)-d_)) for k, n, d_ in zip(dt.k, dt.n, dt.d)]

@@ -35,4 +35,4 @@ from gaff import Gaff
 from gaff2 import Gaff2
 from pcff import Pcff
 from tip3p import Tip3p
-from oplsaa import Oplsaa
+from opls import Opls

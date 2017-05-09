@@ -31,23 +31,24 @@ import os
 from itertools import permutations, combinations
 
 import gasteiger
+from pysimm import error_print
 from pysimm.system import Angle, Dihedral, Improper
 from forcefield import Forcefield
 
 
-class Oplsaa(Forcefield):
+class Opls(Forcefield):
     """pysimm.forcefield.Oplsaa
 
     Forcefield object with typing rules for Oplsaa model.
     By default reads data file in forcefields subdirectory.
 
     Attributes:
-        ff_name: oplsaa
+        ff_name: opls
         pair_style: lj
         bond_style: harmonic
         angle_style: harmonic
         dihedral_style: opls
-        improper_style: ?
+        improper_style: cvff
         ff_class: 1
     """
     def __init__(self, db_file=None):
@@ -55,12 +56,13 @@ class Oplsaa(Forcefield):
             db_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                    'dat', 'oplsaa.json')
         Forcefield.__init__(self, db_file)
-        self.ff_name = 'oplsaa'
+        self.ff_name = 'opls'
         self.pair_style = 'lj'
+        self.mixing_rule = 'geometric'
         self.bond_style = 'harmonic'
         self.angle_style = 'harmonic'
         self.dihedral_style = 'opls'
-        self.improper_style = ''
+        self.improper_style = 'cvff'
         self.ff_class = '1'
 
     def assign_ptypes(self, s):

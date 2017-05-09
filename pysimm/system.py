@@ -824,6 +824,14 @@ class DihedralType(Item):
                 k=float(data[1]), n=float(data[2]),
                 d=float(data[3]), w=float(data[4])
             )
+        elif style.startswith('opls'):
+            if len(data) != 5:
+                raise PysimmError('LAMMPS data improperly formatted for opls dihedral')
+            return cls(
+                tag=int(data[0]), name=name,
+                k1=float(data[1]), k2=float(data[2]),
+                k3=float(data[3]), k4=float(data[4])
+            )
         else:
             raise PysimmError('LAMMPS dihedral style {} not supported yet'.format(style))
                     
@@ -853,6 +861,10 @@ class DihedralType(Item):
         elif style.startswith('charmm'):
             return '{:4}\t{:f}\t{:d}\t{:d}\t{:f}\t# {}\n'.format(
                 self.tag, self.k, int(self.n), int(self.d), self.w, self.name
+            )
+        elif style.startswith('opls'):
+            return '{:4}\t{:f}\t{:f}\t{:f}\t{:f}\t# {}\n'.format(
+                self.tag, self.k1, self.k2, self.k3, self.k4, self.name
             )
         elif style.startswith('fourier'):
             st = '{:4}\t{:d}'.format(self.tag, self.m)

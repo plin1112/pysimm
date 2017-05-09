@@ -1524,11 +1524,11 @@ def write_init(l, **kwargs):
         output += 'kspace_style %s\n' % kspace_style
 
     if not pair_style.startswith('buck'):
-        if nonbond_mixing == 'arithmetic' or (l.forcefield and l.forcefield.lower() in ['amber', 'gaff', 'gaff2', 'dreiding', 'charmm', 'cgenff']):
+        if nonbond_mixing == 'arithmetic' or l.mixing_rule.startswith('arith') or (l.forcefield and l.forcefield.lower() in ['amber', 'gaff', 'gaff2', 'dreiding', 'charmm', 'cgenff']):
             output += 'pair_modify mix arithmetic\n'
-        elif nonbond_mixing == 'geometric':
+        elif nonbond_mixing == 'geometric' or l.mixing_rule.startswith('geo') or (l.forcefield and l.forcefield.lower() in ['opls']):
             output += 'pair_modify mix geometric\n'
-        elif 'class2' in pair_style or (l.forcefield and l.forcefield.lower() in ['pcff']):
+        elif 'class2' in pair_style or l.mixing_rule.startswith('sixth') or (l.forcefield and l.forcefield.lower() in ['pcff']):
             output += 'pair_modify mix sixthpower\n'
 
     if l.bond_style:
@@ -1577,6 +1577,8 @@ def write_init(l, **kwargs):
             output += 'special_bonds amber\n'
         elif l.forcefield == 'dreiding':
             output += 'special_bonds dreiding\n'
+        elif l.forcefield == 'opls':
+            output += 'special_bonds lj 0 0 0.5 coul 0 0 0.5\n'
 
     output += 'read_data temp.lmps\n'
 
