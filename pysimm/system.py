@@ -383,7 +383,10 @@ class Bond(Item):
         if self.a.type is None or self.b.type is None:
             return None
         else:
-            return '{},{}'.format(self.a.type.name, self.b.type.name)
+            return '{},{}'.format(
+                self.a.type.eq_bond or self.a.type.name,
+                self.b.type.eq_bond or self.b.type.name
+            )
 
     def distance(self):
         """pysimm.system.Bond.distance
@@ -551,7 +554,11 @@ class Angle(Item):
         if self.a.type is None or self.b.type is None or self.c.type is None:
             return None
         else:
-            return '{},{},{}'.format(self.a.type.name, self.b.type.name, self.c.type.name)
+            return '{},{},{}'.format(
+                self.a.type.eq_angle or self.a.type.name,
+                self.b.type.eq_angle or self.b.type.name,
+                self.c.type.eq_angle or self.c.type.name
+            )
 
     def angle(self, radians=False):
         """pysimm.system.Angle.angle
@@ -744,7 +751,12 @@ class Dihedral(Item):
         if self.a.type is None or self.b.type is None or self.c.type is None or self.d.type is None:
             return None
         else:
-            return '{},{},{},{}'.format(self.a.type.name, self.b.type.name, self.c.type.name, self.d.type.name)
+            return '{},{},{},{}'.format(
+                self.a.type.eq_dihedral or self.a.type.name,
+                self.b.type.eq_dihedral or self.b.type.name,
+                self.c.type.eq_dihedral or self.c.type.name,
+                self.d.type.eq_dihedral or self.d.type.name
+            )
             
     def dihedral(self, radians=False):
         return calc.dihedral(self.a, self.b, self.c, self.d, radians=radians)
@@ -1006,7 +1018,12 @@ class Improper(Item):
         if self.a.type is None or self.b.type is None or self.c.type is None or self.d.type is None:
             return None
         else:
-            return '{},{},{},{}'.format(self.a.type.name, self.b.type.name, self.c.type.name, self.d.type.name)
+            return '{},{},{},{}'.format(
+                self.a.type.eq_dihedral or self.a.type.name,
+                self.b.type.eq_dihedral or self.b.type.name,
+                self.c.type.eq_dihedral or self.c.type.name,
+                self.d.type.eq_dihedral or self.d.type.name
+            )
 
 
 class ImproperType(Item):
@@ -2892,8 +2909,12 @@ class System(object):
         Returns:
             None or string if data file if out_data='string'
         """
+        define_box = kwargs.get('set_box', True)
         empty = kwargs.get('empty')
         calc_charmm_dih_weights = kwargs.get('calc_charmm_dih_weights', True)
+        
+        if not self.dim.check():
+            self.set_box()
         
         if self.forcefield:
             (
@@ -3840,7 +3861,7 @@ class Molecule(System):
         
 
 def ff_styles(ff):
-    if ff in ['gaff', 'gaff2', 'amber', 'pcff', 'cgenff', 'charmm', 'dreiding']:
+    if ff in ['gaff', 'gaff2', 'amber', 'pcff', 'cgenff', 'charmm', 'dreiding', 'opls']:
         if ff.startswith('gaff') or ff.startswith('amber'):
             pair_style = 'lj'
             bond_style = 'harmonic'
@@ -3868,6 +3889,13 @@ def ff_styles(ff):
             angle_style = 'harmonic'
             dihedral_style = 'harmonic'
             improper_style = 'harmonic'
+        
+        elif ff.startswith('opls'):
+            pair_style = 'lj'
+            bond_style = 'harmonic'
+            angle_style = 'harmonic'
+            dihedral_style = 'opls'
+            improper_style = 'cvff'
     else:
         pair_style, bond_style, angle_style, dihedral_style, improper_style = (None for _ in range(5))
     
