@@ -168,6 +168,10 @@ class ItemContainer(Sequence):
     def all(self):
         return self._dict.values()
         
+    def first(self):
+        for item in self:
+            return item
+        
     def by_item_name(self, name, exact=False, order=False, wildcard='X', improper_type=False):
         found = []
         for item in self:
