@@ -177,18 +177,18 @@ class Opls(Forcefield):
                                 unique = False
                         if unique:
                             at = self.angle_types.get('%s,%s,%s'
-                                                      % (p1.type.name,
-                                                         p.type.name,
-                                                         p2.type.name))
+                                                      % (p1.type.eq_angle or p1.type.name,
+                                                         p.type.eq_angle or p.type.name,
+                                                         p2.type.eq_angle or p2.type.name))
                             if at:
                                 s.angles.add(Angle(type_name=at[0].name,
                                                    a=p1, b=p, c=p2))
                                 all_types.add(at[0])
                             else:
                                 print ('I cant type this angle %s,%s,%s'
-                                       % (p1.type.name,
-                                          p.type.name,
-                                          p2.type.name))
+                                       % (p1.type.eq_angle or p1.type.name,
+                                          p.type.eq_angle or p.type.name,
+                                          p2.type.eq_angle or p2.type.name))
 
         for at in all_types:
             at = at.copy()
@@ -228,10 +228,10 @@ class Opls(Forcefield):
                                 d.c == b.a and d.d == p1)):
                             unique = False
                     if unique:
-                        p1_name = p1.type.name
-                        a_name = b.a.type.name
-                        b_name = b.b.type.name
-                        p2_name = p2.type.name
+                        p1_name = p1.type.eq_dihedral or p1.type.name
+                        a_name = b.a.type.eq_dihedral or b.a.type.name
+                        b_name = b.b.type.eq_dihedral or b.b.type.name
+                        p2_name = p2.type.eq_dihedral or p2.type.name
                         dt = self.dihedral_types.get('%s,%s,%s,%s'
                                                      % (p1_name, a_name,
                                                         b_name, p2_name))
