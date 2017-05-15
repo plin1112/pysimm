@@ -18,7 +18,7 @@ setup(
     author = 'Michael E. Fortunato',
     author_email = 'mef231@gmail.com',
     url = 'https://github.com/polysimtools/pysimm',
-    download_url = 'https://github.com/polysimtools/pysimm/archive/0.1.tar.gz',
+    download_url = 'https://github.com/polysimtools/pysimm/archive/0.2dev.tar.gz',
     scripts = ['bin/pysimm'],
     package_data = {'pysimm': [
         'forcefield/dat/*.json', 
