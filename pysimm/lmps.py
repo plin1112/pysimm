@@ -77,57 +77,111 @@ def check_lmps_exec():
             
 check_lmps_exec()
 
-class Qeq(object):
-    """pysimm.lmps.MolecularDynamics
 
-    Template object to contain LAMMPS qeq settings
-
-    Attributes:
-        cutoff: distance cutoff for charge equilibration
-        tol: tolerance (precision) for charge equilibration
-        max_iter: maximum iterations
-        qfile: file with qeq parameters (leave undefined for defaults)
-    """
+class Thermo(Item):
     def __init__(self, **kwargs):
-        self.cutoff = kwargs.get('cutoff') if kwargs.has_key('cutoff') else 10
-        self.tol = kwargs.get('tol') if kwargs.has_key('tol') else 1.0e-6
-        self.max_iter = kwargs.get('max_iter') if kwargs.has_key('max_iter') else 200
-        self.qfile = kwargs.get('qfile')
+        Item.__init__(self, **kwargs)
+    
+    def write(self, inp):
+        if self.freq is not None:
+            inp = 'thermo {}\n'.format(self.freq) + inp
+        if self.style:
+            inp = 'thermo_style {}\n'.format(self.style) + inp
+        return inp
         
-        self.input = ''
-        
-    def write(self, sim):
-        """pysimm.lmps.Qeq.write
 
-        Create LAMMPS input for a charge equilibration calculation
-
-        Args:
-            sim: pysimm.lmps.Simulation object reference
-
-        Returns:
-            input string
-        """
-        if self.qfile is None:
-            param_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                      os.pardir, 'dat', 'qeq', 'hcno.json')
-            with file(param_file) as f:
-                qeq_params = json.loads(f.read())
-            with file('pysimm.qeq.tmp', 'w') as f:
-                for pt in sim.system.particle_types:
-                    f.write('{}\t{}\t{}\t{}\t{}\t{}\n'.format(pt.tag, 
-                                                  qeq_params[pt.elem]['chi'],
-                                                  qeq_params[pt.elem]['eta']*2,
-                                                  qeq_params[pt.elem]['gamma'],
-                                                  qeq_params[pt.elem]['zeta'],
-                                                  qeq_params[pt.elem]['qcore']))
-            self.qfile = 'pysimm.qeq.tmp'
+class Ensemble(Item):
+    def __init__(self, **kwargs):
+        Item.__init__(self, **kwargs)
         
-        self.input = ''
-        self.input += 'fix 1 all qeq/point 1 {} {} {} {}\n'.format(self.cutoff, self.tol, self.max_iter, self.qfile)
-        self.input += 'run 0\n'
-        self.input += 'unfix 1\n'
+    def write(self, inp):
+        t_inp = ''
+        if self.ensemble == 'nvt':
+            t_inp += 'fix pysimm_md all nvt temp {} {} {}\n'.format(
+                self.temp.start, self.temp.stop, self.temp.damp
+            )
+        elif self.ensemble == 'npt':
+            iso = 'iso' if self.pressure.iso else 'aniso'
+            t_inp += 'fix pysimm_md all npt temp {} {} {} {} {} {} {}\n'.format(
+                self.temp.start, self.temp.stop, self.temp.damp,
+                iso, self.pressure.start, self.pressure.stop, 
+                self.pressure.damp
+            )
+        elif self.ensemble == 'nve':
+            if self.limit is not None:
+                t_inp += 'fix pysimm_md all nve/limit {}\n'.format(self.limit)
+            else:
+                t_inp += 'fix pysimm_md all nve\n'
+        if t_inp:
+            return t_inp + inp + 'unfix pysimm_md\n'
+        else:
+            return inp
+
+class Velocity(Item):
+    def __init__(self, **kwargs):
+        Item.__init__(self, **kwargs)
         
-        return self.input
+    def write(self, inp):
+        t_inp = ''
+        if self.new_v:
+            t_inp += 'velocity all create {} {}\n'.format(
+                self.temp.start, self.seed
+            )
+        elif self.scale_v:
+            t_inp += 'velocity all scale {}\n'.format(
+                self.temp.start
+            )
+        return t_inp + inp
+            
+            
+class Shake(Item):
+    def __init__(self, **kwargs):
+        Item.__init__(self, **kwargs)
+        self.tol = 0.0001 if 'tol' not in kwargs else self.tol
+        self.itr = 20 if 'itr' not in kwargs else self.itr
+        self.stats = 10 if 'stats' not in kwargs else self.stats
+        
+    def write(self, inp):
+        t_inp = ''
+        if self.bond_types or self.angle_types:
+            t_inp += 'fix pysimm_shake all shake {tol} {itr} {stats}'.format(
+                tol=self.tol,
+                itr=self.itr,
+                stats=self.stats
+            )
+            if self.bond_types:
+                t_inp += ' b {bt_tags}'.format(
+                    bt_tags = ' '.join(map(str, [bt.tag for bt in self.bond_types]))
+                )
+            if self.angle_types:
+                t_inp += ' a {at_tags}'.format(
+                    at_tags = ' '.join(map(str, [at.tag for at in self.angle_types]))
+                )
+            t_inp +='\n'
+            
+            if self.velocity['new_v'] or self.velocity['scale_v']:
+                t_inp += 'run 0\n'
+                t_inp += 'velocity all scale {}\n'.format(self.temp.start)
+            
+            inp = t_inp + inp + 'unfix pysimm_shake\n'
+        return inp
+        
+        
+class Dump(Item):
+    def __init__(self, **kwargs):
+        Item.__init__(self, **kwargs)
+        
+    def write(self, inp):
+        t_inp = ''
+        name = '{}.lammpstrj'.format(self.name) or 'pysimm_dump.lammpstrj'
+        if self.freq is not None:
+            t_inp += 'dump pysimm_dump all custom {} {} id q x y z vx vy vz\n'.format(
+                self.freq, name
+            )
+            if self.append:
+                t_inp += 'dump_modify pysimm_dump append yes\n'
+            inp = t_inp + inp + 'undump pysimm_dump\n'
+        return inp
         
     
 class MolecularDynamics(object):
@@ -139,8 +193,8 @@ class MolecularDynamics(object):
         timestep: timestep value to use during MD
         ensemble: 'nvt' or 'npt' or 'nve'
         limit: numerical value to use with nve when limiting particle displacement
-        temp: temperature for use with 'nvt' and 'npt' or new_v
-        pressure: pressure for use with 'npt'
+        temp: temperature dictionary {start, stop, damp}
+        pressure: pressure dictionary {start, stop, iso, damp}
         pressure_iso: True to require box dimensions change isotropically, False to allow dimensions to change independently (False by default)
         new_v: True to have LAMMPS generate new velocities
         seed: seed value for RNG (random by default)
@@ -154,103 +208,98 @@ class MolecularDynamics(object):
     """
     def __init__(self, **kwargs):
 
-        self.timestep = kwargs.get('timestep') or 1
-        self.ensemble = kwargs.get('ensemble') or 'nvt'
+        self.timestep = kwargs.get('timestep', 1)
+        self.ensemble = kwargs.get('ensemble', 'nvt')
         self.limit = kwargs.get('limit')
-        self.temp = kwargs.get('temp')
-        self.pressure = kwargs.get('pressure') or 1.
-        self.pressure_iso = kwargs.get('pressure_iso')
-        self.new_v = kwargs.get('new_v')
-        self.seed = kwargs.get('seed') or randint(10000, 99999)
-        self.scale_v = kwargs.get('scale_v')
-        self.length = kwargs.get('length') if kwargs.has_key('length') else 2000
-        self.thermo = kwargs.get('thermo') or 1000
-        self.thermo_style = kwargs.get('thermo_style')
-        self.dump = kwargs.get('dump') or False
-        self.dump_name = kwargs.get('dump_name')
-        self.dump_append = kwargs.get('dump_append')
+        self.length = kwargs.get('length', 2000)
         
-        if self.temp is None:
-            self.t_start = kwargs.get('t_start')
-            self.t_stop = kwargs.get('t_stop')
-            if self.t_start is None:
-                self.t_start = 300.
-            if self.t_stop is None:
-                self.t_stop = self.t_start
+        if isinstance(kwargs.get('thermo'), int):
+            self.thermo = {'freq': kwargs.get('thermo')}
         else:
-            self.t_start = self.temp
-            self.t_stop = self.temp
-            
-        if self.pressure is None:
-            self.p_start = kwargs.get('p_start')
-            self.p_stop = kwargs.get('p_stop')
-            if self.p_start is None:
-                self.p_start = 1.
-            if self.p_stop is None:
-                self.p_stop = 1.
+            self.thermo = kwargs.get('thermo', {
+                'freq': 1000,
+                'style': 'custom step time temp density vol press etotal emol epair'
+            })
+        
+        self.dump = {
+            'name': 'pysimm.dump.tmp',
+            'append': False
+        }
+        self.dump.update(kwargs.get('dump', {}))
+        
+        if isinstance(kwargs.get('temp'), int) or isinstance(kwargs.get('temp'), float):
+            t_value = kwargs.get('temp')
         else:
-            self.p_start = self.pressure
-            self.p_stop = self.pressure
-            
-        if self.pressure_iso:
-            self.p_iso = 'iso'
+            t_value = 300
+        
+        self.temp = Item(**{
+            'start': t_value,
+            'stop': t_value,
+            'damp': 100
+        })
+        
+        if isinstance(kwargs.get('temp'), dict):
+            self.temp.set(**kwargs.get('temp'))
+        
+        if isinstance(kwargs.get('pressure'), int) or isinstance(kwargs.get('pressure'), float):
+            p_value = kwargs.get('pressure')
         else:
-            self.p_iso = 'aniso'
-
+            p_value = 1
+        
+        self.pressure = Item(**{
+            'start': p_value,
+            'stop': p_value,
+            'iso': False,
+            'damp': 1000
+        })
+        if isinstance(kwargs.get('pressure'), dict):
+            self.pressure.set(**kwargs.get('pressure', {}))
+        
+        self.seed = kwargs.get('seed', randint(10000, 99999))
+        self.velocity = {'seed': self.seed}
+        self.velocity.update(kwargs.get('velocity', {}))
+        
+        self.shake = kwargs.get('shake', {})
         self.input = ''
 
-    def write(self, sim):
+    def write(self):
         """pysimm.lmps.MolecularDynamics.write
 
         Create LAMMPS input for a molecular dynamics simulation.
 
         Args:
-            sim: pysimm.lmps.Simulation object reference
+            None
 
         Returns:
             input string
         """
         self.input = ''
-        if self.thermo:
-            self.input += 'thermo %s\n' % int(self.thermo)
-        if self.thermo_style:
-            self.input += 'thermo_style %s\n' % self.thermo_style
 
-        self.input += 'timestep %s\n' % self.timestep
-
-        if self.ensemble == 'nvt':
-            self.input += 'fix 1 all %s temp %s %s 100\n' % (self.ensemble, self.t_start, self.t_stop)
-        elif self.ensemble == 'npt':
-            self.input += ('fix 1 all %s temp %s %s 100 %s %s %s 100\n'
-                           % (self.ensemble, self.t_start, self.t_stop, self.p_iso, self.p_start, self.p_stop))
-        elif self.ensemble == 'nve' and self.limit:
-            self.input += 'fix 1 all %s/limit %s\n' % (self.ensemble, self.limit)
-        elif self.ensemble == 'nve':
-            self.input += 'fix 1 all %s\n' % self.ensemble
-
-        if self.new_v:
-            self.input += 'velocity all create %s %s\n' % (self.t_start, self.seed)
-        elif self.scale_v:
-            self.input += 'velocity all scale %s\n' % self.t_start
-
-        if self.dump:
-            if self.dump_name:
-                self.input += ('dump pysimm_dump all atom %s %s.lammpstrj\n'
-                               % (self.dump, self.dump_name))
-            elif sim.name:
-                self.input += ('dump pysimm_dump all atom %s %s.lammpstrj\n'
-                               % (self.dump, '_'.join(sim.name.split())))
-            else:
-                self.input += ('dump pysimm_dump all atom %s pysimm_dump.lammpstrj\n'
-                               % self.dump)
-            if self.dump_append:
-                self.input += 'dump_modify pysimm_dump append yes\n'
-
-        self.input += 'run %s\n' % self.length
-        self.input += 'unfix 1\n'
-        if self.dump:
-            self.input += 'undump pysimm_dump\n'
-
+        self.input += 'run {}\n'.format(self.length)
+        
+        self.input = Shake(
+            temp=self.temp, velocity=self.velocity, **self.shake
+        ).write(self.input)
+        
+        self.input = Ensemble(
+            ensemble=self.ensemble, temp=self.temp,
+            pressure=self.pressure, limit=self.limit
+        ).write(self.input)
+        
+        self.input = Dump(
+            **self.dump
+        ).write(self.input)
+        
+        self.input = 'timestep {}\n'.format(self.timestep) + self.input
+        
+        self.input = Velocity(
+            temp=self.temp, **self.velocity
+        ).write(self.input)
+        
+        self.input = Thermo(
+            **self.thermo
+        ).write(self.input)
+        
         return self.input
         
         
@@ -259,11 +308,11 @@ class SteeredMolecularDynamics(MolecularDynamics):
         MolecularDynamics.__init__(self, **kwargs)
         self.p1 = kwargs.get('p1')
         self.p2 = kwargs.get('p2')
-        self.k = kwargs.get('k') if kwargs.has_key('k') else 20.0
-        self.v = kwargs.get('v') if kwargs.has_key('v') else 0.001
-        self.d = kwargs.get('d') if kwargs.has_key('d') else 3.0
+        self.k = kwargs.get('k', 20.0)
+        self.v = kwargs.get('v', 0.001)
+        self.d = kwargs.get('d', 3.0)
     
-    def write(self, sim):
+    def write(self):
         """pysimm.lmps.SteeredMolecularDynamics.write
 
         Create LAMMPS input for a steered molecular dynamics simulation.
@@ -274,53 +323,17 @@ class SteeredMolecularDynamics(MolecularDynamics):
         Returns:
             input string
         """
-        self.input = ''
-        if self.thermo:
-            self.input += 'thermo %s\n' % int(self.thermo)
-        if self.thermo_style:
-            self.input += 'thermo_style %s\n' % self.thermo_style
-
-        self.input += 'timestep %s\n' % self.timestep
-
-        if self.ensemble == 'nvt':
-            self.input += 'fix 1 all %s temp %s %s 100\n' % (self.ensemble, self.t_start, self.t_stop)
-        elif self.ensemble == 'npt':
-            self.input += ('fix 1 all %s temp %s %s 100 iso %s %s 100\n'
-                           % (self.ensemble, self.t_start, self.t_stop, self.p_start, self.p_stop))
-        elif self.ensemble == 'nve':
-            self.input += 'fix 1 all %s\n' % self.ensemble
-
-        if self.new_v:
-            self.input += 'velocity all create %s %s\n' % (self.t_start, self.seed)
-        elif self.scale_v:
-            self.input += 'velocity all scale %s\n' % self.t_start
-
-        if self.dump:
-            if self.dump_name:
-                self.input += ('dump pysimm_dump all atom %s %s.lammpstrj\n'
-                               % (self.dump, self.dump_name))
-            elif sim.name:
-                self.input += ('dump pysimm_dump all atom %s %s.lammpstrj\n'
-                               % (self.dump, '_'.join(sim.name.split())))
-            else:
-                self.input += ('dump pysimm_dump all atom %s pysimm_dump.lammpstrj\n'
-                               % self.dump)
-            if self.dump_append:
-                self.input += 'dump_modify pysimm_dump append yes\n'
-                
-        self.input += 'group p1 id {}\n'.format(self.p1.tag)
-        self.input += 'group p2 id {}\n'.format(self.p2.tag)
-        self.input += 'fix steer p1 smd cvel {} {} couple p2 auto auto auto {}\n'.format(self.k, self.v, self.d)
-
-        self.input += 'run %s\n' % self.length
-        self.input += 'unfix 1\n'
+        
+        self.input += MolecularDynamics.write(self)
+        
+        self.input = 'fix steer p1 smd cvel {} {} couple p2 auto auto auto {}\n'.format(self.k, self.v, self.d) + self.input
+        self.input = 'group p2 id {}\n'.format(self.p2.tag) + self.input
+        self.input = 'group p1 id {}\n'.format(self.p1.tag) + self.input
+        
         self.input += 'unfix steer\n'
-        if self.dump:
-            self.input += 'undump pysimm_dump\n'
 
         return self.input
         
-
 
 class Minimization(object):
     """pysimm.lmps.Minimization
@@ -341,38 +354,48 @@ class Minimization(object):
     """
     def __init__(self, **kwargs):
 
-        self.min_style = kwargs.get('min_style') or 'fire'
+        self.min_style = kwargs.get('min_style', 'fire')
         self.dmax = kwargs.get('dmax')
-        self.etol = kwargs.get('etol') or 1.0e-3
-        self.ftol = kwargs.get('ftol') or 1.0e-3
-        self.maxiter = kwargs.get('maxiter') or 10000
-        self.maxeval = kwargs.get('maxeval') or 100000
-        self.thermo = kwargs.get('thermo') or 1000
-        self.thermo_style = kwargs.get('thermo_style')
-        self.dump = kwargs.get('dump') or False
-        self.dump_name = kwargs.get('dump_name')
-        self.dump_append = kwargs.get('dump_append')
+        self.etol = kwargs.get('etol', 1.0e-3)
+        self.ftol = kwargs.get('ftol', 1.0e-3)
+        self.maxiter = kwargs.get('maxiter', 10000)
+        self.maxeval = kwargs.get('maxeval', 100000)
         
-        self.temp = kwargs.get('temp')
-        
-        if self.temp is None:
-            self.t_start = kwargs.get('t_start')
-            self.t_stop = kwargs.get('t_stop')
-            if self.t_start is None:
-                self.t_start = 300.
-            if self.t_stop is None:
-                self.t_stop = self.t_start
+        if isinstance(kwargs.get('thermo'), int):
+            self.thermo = {'freq': kwargs.get('thermo')}
         else:
-            self.t_start = self.temp
-            self.t_stop = self.temp
+            self.thermo = kwargs.get('thermo', {
+                'freq': 1000,
+                'style': 'custom step time temp density vol press etotal emol epair'
+            })
         
-        self.new_v = kwargs.get('new_v')
+        self.dump = {
+            'name': 'pysimm.dump.tmp',
+            'append': False
+        }
+        self.dump.update(kwargs.get('dump', {}))
+        
+        if isinstance(kwargs.get('temp'), int) or isinstance(kwargs.get('temp'), float):
+            t_value = kwargs.get('temp')
+        else:
+            t_value = 300
+        
+        self.temp = Item(**{
+            'start': t_value,
+            'stop': t_value,
+            'damp': 100
+        })
+        
+        if isinstance(kwargs.get('temp'), dict):
+            self.temp.set(**kwargs.get('temp'))
+        
         self.seed = kwargs.get('seed') or randint(10000, 99999)
-        self.scale_v = kwargs.get('scale_v')
+        self.velocity = {'seed': self.seed}
+        self.velocity.update(kwargs.get('velocity', {}))
 
         self.input = ''
 
-    def write(self, sim):
+    def write(self):
         """pysimm.lmps.Minimization.write
 
         Create LAMMPS input for an energy minimization simulation.
@@ -384,36 +407,20 @@ class Minimization(object):
             input string
         """
         self.input = ''
-        if self.thermo:
-            self.input += 'thermo %s\n' % int(self.thermo)
-        if self.thermo_style:
-            self.input += 'thermo_style %s\n' % self.thermo_style
-            
-        if self.new_v:
-            self.input += 'velocity all create %s %s\n' % (self.t_start, self.seed)
-        elif self.scale_v:
-            self.input += 'velocity all scale %s\n' % self.t_start
-
-        if self.dump:
-            if self.dump_name:
-                self.input += ('dump pysimm_dump all atom %s %s.lammpstrj\n'
-                               % (self.dump, self.dump_name))
-            elif sim.name:
-                self.input += ('dump pysimm_dump all atom %s %s.lammpstrj\n'
-                               % (self.dump, '_'.join(sim.name.split())))
-            else:
-                self.input += ('dump pysimm_dump all atom %s pysimm_dump.lammpstrj\n'
-                               % self.dump)
-            if self.dump_append:
-                self.input += 'dump_modify pysimm_dump append yes\n'
 
         self.input += 'min_style %s\n' % self.min_style
         if self.dmax:
             self.input += 'min_modify dmax %s\n' % self.dmax
         self.input += ('minimize %s %s %s %s\n' % (self.etol, self.ftol,
                                                    self.maxiter, self.maxeval))
-        if self.dump:
-            self.input += 'undump pysimm_dump\n'
+            
+        self.input = Velocity(
+            temp=self.temp, **self.velocity
+        ).write(self.input)
+        
+        self.input = Thermo(
+            **self.thermo
+        ).write(self.input)
 
         return self.input
 
@@ -429,7 +436,7 @@ class CustomInput(object):
     def __init__(self, custom_input):
         self.input = '{}\n'.format(custom_input)
 
-    def write(self, sim):
+    def write(self):
         """pysimm.lmps.CustomInput.write
 
         Create LAMMPS input for a custom simulation.
@@ -465,40 +472,25 @@ class Simulation(object):
 
         self.system = s
 
-        self.atom_style = kwargs.get('atom_style') or 'full'
-        self.kspace_style = kwargs.get('kspace_style') or 'pppm 1e-4'
-        self.units = kwargs.get('units') or 'real'
+        self.atom_style = kwargs.get('atom_style', 'full')
+        self.kspace_style = kwargs.get('kspace_style', 'pppm 1e-4')
+        self.units = kwargs.get('units', 'real')
         self.special_bonds = kwargs.get('special_bonds')
         self.nonbond_mixing = kwargs.get('nonbond_mixing')
-        self.cutoff = kwargs.get('cutoff') or 12.0
+        self.cutoff = kwargs.get('cutoff', 12.0)
+        self.inner_cutoff = kwargs.get('inner_cutoff', 8.0)
 
-        self.print_to_screen = kwargs.get('print_to_screen') if kwargs.get('print_to_screen') is not None else False
-        self.name = kwargs.get('name') or False
+        self.print_to_screen = kwargs.get('print_to_screen', False)
+        self.name = kwargs.get('name')
         self.log = kwargs.get('log')
-        self.write = kwargs.get('write') or False
+        self.write = kwargs.get('write')
 
         self.input = ''
         self.custom = kwargs.get('custom')
 
-        self.sim = kwargs.get('sim') if kwargs.get('sim') is not None else []
+        self.sim = kwargs.get('sim', [])
         
         self.results = []
-        
-    def add_qeq(self, template=None, **kwargs):
-        """pysimm.lmps.Simulation.add_qeq
-
-        Add pysimm.lmps.Qeq template to simulation
-
-        Args:
-            template: pysimm.lmps.Qeq object reference
-            **kwargs: if template is None these are passed to pysimm.lmps.Qeq constructor to create new template
-        """
-        if template is None:
-            self.sim.append(Qeq(**kwargs))
-        elif isinstance(template, Qeq):
-            self.sim.append(template)
-        else:
-            error_print('you must add an object of type Qeq to Simulation')
 
     def add_md(self, template=None, **kwargs):
         """pysimm.lmps.Simulation.add_md
@@ -516,6 +508,8 @@ class Simulation(object):
             self.sim.append(template)
         else:
             error_print('you must add an object of type MolecularDynamics to Simulation')
+            
+        return self
 
     def add_min(self, template=None, **kwargs):
         """pysimm.lmps.Simulation.add_min
@@ -533,6 +527,8 @@ class Simulation(object):
             self.sim.append(template)
         else:
             error_print('you must add an object of type Minimization to Simulation')
+        
+        return self
 
     def add_custom(self, custom=''):
         """pysimm.lmps.Simulation.add_custom
@@ -543,6 +539,8 @@ class Simulation(object):
             custom: custom LAMMPS input string to add to Simulation
         """
         self.sim.append(CustomInput(custom))
+        
+        return self
 
     def write_input(self, init=True):
         """pysimm.lmps.Simulation.write_input
@@ -558,10 +556,12 @@ class Simulation(object):
         self.input = ''
 
         if init:
-            self.input += write_init(self.system, atom_style=self.atom_style, kspace_style=self.kspace_style,
-                                     special_bonds=self.special_bonds, units=self.units,
-                                     nonbond_mixing=self.nonbond_mixing,
-                                     nb_cut=self.cutoff)
+            self.input += write_init(
+                self.system, atom_style=self.atom_style, kspace_style=self.kspace_style,
+                special_bonds=self.special_bonds, units=self.units,
+                nonbond_mixing=self.nonbond_mixing,
+                nb_cut=self.cutoff, inner_cutoff=self.inner_cutoff
+            )
 
         if self.log:
             self.input += 'log %s append\n' % self.log
@@ -571,11 +571,11 @@ class Simulation(object):
             self.input += 'log log.lammps append\n'
 
         for template in self.sim:
-            self.input += template.write(self)
+            self.input += template.write()
             
         self.input += 'write_dump all custom pysimm.dump.tmp id q x y z vx vy vz\n'
-
         self.input += 'quit\n'
+        return self
 
     def run(self, np=None, kokkos_gpus=None, gpu_gpus=None, nanohub=None, rewrite=True, init=True, write_input=True):
         """pysimm.lmps.Simulation.run
@@ -736,9 +736,6 @@ def call_lammps(simulation, np, kokkos_gpus, gpu_gpus, nanohub):
     except OSError as e:
         print e
         
-    if os.path.isfile('pysimm.qeq.tmp'):
-        os.remove('pysimm.qeq.tmp')
-        
     try:
         os.remove('pysimm.dump.tmp')
         if simulation.name:
@@ -752,24 +749,6 @@ def call_lammps(simulation, np, kokkos_gpus, gpu_gpus, nanohub):
             raise PysimmError('%s simulation using LAMMPS UNsuccessful' % simulation.name)
         else:
             raise PysimmError('molecular dynamics using LAMMPS UNsuccessful')
-
-
-def qeq(s, np=None, nanohub=None, **kwargs):
-    """pysimm.lmps.qeq
-
-    Convenience function to call a qeq calculation. kwargs are passed to Qeq constructor
-
-    Args:
-        s: system to perform simulation on
-        np: number of threads to use
-        nanohub: dictionary containing nanohub resource information default=None
-
-    Returns:
-        None
-    """
-    sim = Simulation(s, **kwargs)
-    sim.add_qeq(**kwargs)
-    sim.run(np, nanohub)
 
 
 def quick_md(s, np=None, nanohub=None, **kwargs):
@@ -826,7 +805,7 @@ def energy(s, all=False, np=None, **kwargs):
         total energy or disctionary of energy components
     """
     sim = Simulation(s, log='pysimm_calc.tmp.log', **kwargs)
-    sim.add_md(length=0, thermo=1, thermo_style='custom step etotal epair emol evdwl ecoul ebond eangle edihed eimp', **kwargs)
+    sim.add_md(length=0, thermo={'freq': 1, 'style': 'custom step etotal epair emol evdwl ecoul ebond eangle edihed eimp'}, **kwargs)
     sim.run(np)
     with file('pysimm_calc.tmp.log') as f:
         line = f.next()
@@ -1471,6 +1450,7 @@ def write_init(l, **kwargs):
     nb_cut = kwargs.get('nb_cut') or 12.0
     special_bonds = kwargs.get('special_bonds')
     nonbond_mixing = kwargs.get('nonbond_mixing')
+    inner_cutoff = kwargs.get('inner_cutoff', 8.0)
 
     output = ''
 
@@ -1482,6 +1462,8 @@ def write_init(l, **kwargs):
     output += 'atom_style %s\n' % atom_style
     pair_style = None
     charge = False
+    
+    l.write_lammps('temp.lmps')
 
     if l.charge is None:
         for p in l.particles:
@@ -1528,8 +1510,12 @@ def write_init(l, **kwargs):
                 pair_style = 'buck/coul/long'
             else:
                 pair_style = 'buck'
+        elif l.pair_style.startswith('charmm'):
+            pair_style = 'lj/charmm/coul/long'
 
-    if pair_style:
+    if pair_style.startswith('lj/charmm'):
+        output += 'pair_style %s %s %s\n' % (pair_style, inner_cutoff, nb_cut)
+    elif pair_style:
         output += 'pair_style %s %s\n' % (pair_style, nb_cut)
     else:
         error_print('pair style probably not supported')
@@ -1538,15 +1524,12 @@ def write_init(l, **kwargs):
         output += 'kspace_style %s\n' % kspace_style
 
     if not pair_style.startswith('buck'):
-        if nonbond_mixing == 'arithmetic':
-            output += 'pair_modify shift yes mix arithmetic\n'
-        elif nonbond_mixing == 'geometric':
-            output += 'pair_modify shift yes mix geometric\n'
-        else:
-            if l.ff_class == '2':
-                output += 'pair_modify shift yes mix sixthpower\n'
-            else:
-                output += 'pair_modify shift yes mix arithmetic\n'
+        if nonbond_mixing == 'arithmetic' or (l.mixing_rule and l.mixing_rule.startswith('arith')) or (l.forcefield and l.forcefield.lower() in ['amber', 'gaff', 'gaff2', 'dreiding', 'charmm', 'cgenff']):
+            output += 'pair_modify mix arithmetic\n'
+        elif nonbond_mixing == 'geometric' or (l.mixing_rule and l.mixing_rule.startswith('geo')) or (l.forcefield and l.forcefield.lower() in ['opls']):
+            output += 'pair_modify mix geometric\n'
+        elif 'class2' in pair_style or (l.mixing_rule and l.mixing_rule.startswith('sixth')) or (l.forcefield and l.forcefield.lower() in ['pcff']):
+            output += 'pair_modify mix sixthpower\n'
 
     if l.bond_style:
         output += 'bond_style %s\n' % l.bond_style
@@ -1586,12 +1569,17 @@ def write_init(l, **kwargs):
     if special_bonds:
         output += 'special_bonds %s\n' % special_bonds
     else:
-        if l.ff_class == '2':
+        if 'class2' in pair_style or l.forcefield == 'pcff':
             output += 'special_bonds    lj 0 0 1 coul 0 0 1\n'
-        else:
+        elif 'charmm' in pair_style or l.forcefield == 'charmm':
+            output += 'special_bonds charmm\n'
+        elif l.forcefield == 'amber' or (l.forcefield and l.forcefield.startswith('gaff')):
             output += 'special_bonds amber\n'
+        elif l.forcefield == 'dreiding':
+            output += 'special_bonds dreiding\n'
+        elif l.forcefield == 'opls':
+            output += 'special_bonds lj 0 0 0.5 coul 0 0 0.5\n'
 
-    l.write_lammps('temp.lmps')
     output += 'read_data temp.lmps\n'
 
     if pair_style.startswith('buck'):

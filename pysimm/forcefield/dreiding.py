@@ -49,10 +49,11 @@ class Dreiding(Forcefield):
     def __init__(self, db_file=None):
         if not db_file and db_file is not False:
             db_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                   os.pardir, os.pardir, 'dat', 'forcefields', 'dreiding.xml')
+                                   'dat', 'dreiding.json')
         Forcefield.__init__(self, db_file)
         self.ff_name = 'dreiding'
         self.pair_style = 'buck'
+        self.mixing_rule = 'arithmetic'
         self.bond_style = 'harmonic'
         self.angle_style = 'harmonic'
         self.dihedral_style = 'harmonic'
@@ -74,8 +75,8 @@ class Dreiding(Forcefield):
         """
         s.pair_style = self.pair_style
         all_types = set()
+        s.add_particle_bonding()
         for p in s.particles:
-            p.bonded_to = [x.a if p is x.b else x.b for x in p.bonds]
             p.bond_orders = [x.order for x in p.bonds]
             if len(set(p.bond_orders)) == 1 and p.bond_orders[0] is None:
                 error_print('error: bond orders are not set')
@@ -200,8 +201,8 @@ class Dreiding(Forcefield):
         """
         all_types = set()
         s.angle_style = self.angle_style
+        s.add_particle_bonding()
         for p in s.particles:
-            p.bonded_to = [x.a if p is x.b else x.b for x in p.bonds]
             for p1 in p.bonded_to:
                 for p2 in p.bonded_to:
                     if p1 is not p2:

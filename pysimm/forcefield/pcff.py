@@ -51,7 +51,7 @@ class Pcff(Forcefield):
     def __init__(self, db_file=None):
         if not db_file and db_file is not False:
             db_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                   os.pardir, os.pardir, 'dat', 'forcefields', 'pcff.json')
+                                   'dat', 'pcff.json')
         Forcefield.__init__(self, db_file)
         self.ff_name = 'pcff'
         self.ff_class = '2'
@@ -60,7 +60,7 @@ class Pcff(Forcefield):
         self.angle_style = 'class2'
         self.dihedral_style = 'class2'
         self.improper_style = 'class2'
-        self.nb_mixing = 'sixth'
+        self.mixing_rule = 'sixthpower'
 
     def assign_ptypes(self, s):
         """pysimm.forcefield.Pcff.assign_ptypes
@@ -77,6 +77,7 @@ class Pcff(Forcefield):
         """
         all_types = set()
         s.pair_style = self.pair_style
+        s.add_particle_bonding()
         for p in s.particles:
             p.bond_orders = [x.order for x in p.bonds]
             p.bond_elements = [x.a.elem if p is x.b else x.b.elem for x in
@@ -232,8 +233,8 @@ class Pcff(Forcefield):
         """
         all_types = set()
         s.angle_style = self.angle_style
+        s.add_particle_bonding()
         for p in s.particles:
-            p.bonded_to = [x.a if p is x.b else x.b for x in p.bonds]
             for p1 in p.bonded_to:
                 for p2 in p.bonded_to:
                     if p1 is not p2:

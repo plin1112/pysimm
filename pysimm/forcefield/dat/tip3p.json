@@ -1,0 +1,51 @@
+{
+    "dihedral_style": null, 
+    "angle_types": [
+        {
+            "theta0": 104.52, 
+            "tag": "hw,ow,hw", 
+            "k": 55.0, 
+            "rname": "hw,ow,hw", 
+            "name": "hw,ow,hw"
+        }
+    ], 
+    "angle_style": null, 
+    "improper_style": null, 
+    "bond_style": null, 
+    "improper_types": [], 
+    "ff_name": "tip3p", 
+    "bond_types": [
+        {
+            "q1": -0.415, 
+            "rname": "hw,ow", 
+            "q2": 0.415, 
+            "r0": 0.9572, 
+            "name": "ow,hw", 
+            "k": 450.0, 
+            "tag": "ow,hw"
+        }
+    ], 
+    "ff_class": "1", 
+    "particle_types": [
+        {
+            "name": "ow", 
+            "epsilon": 0.102, 
+            "elem": "O", 
+            "tag": "ow", 
+            "mass": 15.99491, 
+            "sigma": 3.188, 
+            "desc": "tip3p water oxygen atom"
+        }, 
+        {
+            "name": "hw", 
+            "epsilon": 0.0, 
+            "elem": "H", 
+            "tag": "hw", 
+            "mass": 1.00797, 
+            "sigma": 0.0, 
+            "desc": "tip3p water hydrogen atom"
+        }
+    ], 
+    "pair_style": "lj", 
+    "dihedral_types": []
+}

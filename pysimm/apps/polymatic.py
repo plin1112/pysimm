@@ -392,3 +392,63 @@ def lmps_cycle_npt_md(s, bonds, settings):
         shutil.move(log_name, 'logs')
 
     return result
+
+
+def make_linker_types(s):
+    """pysimm.apps.polymatic.make_linker_types
+
+    Identifies linker particles and creates duplicate ParticleType objects with new names.
+    Identification is performed by Particle.linker attribute.
+    New ParticleType name is prepended with [H or T]L@ to designate head or tail linker
+
+    Args:
+        s: system to modify
+
+    Returns:
+        None
+    """
+    for p in s.particles:
+        if p.linker == 'head':
+            head_linker = s.particle_types.get('HL@%s' % p.type.name)
+            if head_linker:
+                p.type = head_linker[0]
+            else:
+                p.type = p.type.copy()
+                p.type.name = 'HL@%s' % p.type.name
+                s.particle_types.add(p.type)
+        elif p.linker == 'tail':
+            tail_linker = s.particle_types.get('TL@%s' % p.type.name)
+            if tail_linker:
+                p.type = tail_linker[0]
+            else:
+                p.type = p.type.copy()
+                p.type.name = 'TL@%s' % p.type.name
+                s.particle_types.add(p.type)
+        elif p.linker:
+            linker = s.particle_types.get('L@%s' % p.type.name)
+            if linker:
+                p.type = linker[0]
+            else:
+                p.type = p.type.copy()
+                p.type.name = 'L@%s' % p.type.name
+                s.particle_types.add(p.type)
+
+def remove_linker_types(s):
+    """pysimm.apps.polymatic.remove_linker_types
+
+    Reassigns Particle.type references to original ParticleType objects without linker prepend
+
+    Args:
+        s: system to modify
+
+    Returns:
+        None
+    """
+    for p in s.particles:
+        if p.type.name.find('@') >= 0:
+            pt = s.particle_types.get(p.type.name.split('@')[-1])
+            if pt:
+                p.type = pt[0]
+            else:
+                warning_print('cannot find regular type for linker %s'
+                      % p.type.name)

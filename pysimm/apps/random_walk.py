@@ -95,12 +95,6 @@ def copolymer(m, nmon, s_=None, **kwargs):
 
     for m_ in m:
         m_.add_particle_bonding()
-        for p in m_.particles:
-            if p.type.name.find('@') >= 0 and p.type.name.split('@')[0].find('H'):
-                p.linker = 'head'
-            elif p.type.name.find('@') >= 0 and p.type.name.split('@')[0].find('T'):
-                p.linker = 'tail'
-        m_.remove_linker_types()
 
     if s_ is None:
         s = system.replicate(m[0], 1, density=density/nmon)
@@ -205,7 +199,7 @@ def copolymer(m, nmon, s_=None, **kwargs):
             if isinstance(sim, lmps.Simulation):
                 sim.system = s
                 sim.name = 'relax_%03d' % (temp_nmon)
-                sim.run(np=settings.get('np'))
+                sim.run(np=settings.get('np'), gpu_gpus=settings.get('gpu_gpus'))
 
             if unwrap:
                 s.unwrap()
@@ -279,14 +273,6 @@ def random_walk(m, nmon, s_=None, **kwargs):
     sim = kwargs.get('sim')
 
     m.add_particle_bonding()
-
-    for p in m.particles:
-        if p.type.name.find('@') >= 0 and p.type.name.split('@')[0].find('H'):
-            p.linker = 'head'
-        elif p.type.name.find('@') >= 0 and p.type.name.split('@')[0].find('T'):
-            p.linker = 'tail'
-
-    m.remove_linker_types()
 
     if s_ is None:
         s = system.replicate(m, 1, density=density/nmon)
@@ -366,7 +352,7 @@ def random_walk(m, nmon, s_=None, **kwargs):
         if isinstance(sim, lmps.Simulation):
             sim.system = s
             sim.name = 'relax_%03d' % (insertion+2)
-            sim.run(np=settings.get('np'), kokkos=settings.get('kokkos'))
+            sim.run(np=settings.get('np'), gpu_gpus=settings.get('gpu_gpus'))
 
         if unwrap:
             if not s.unwrap():

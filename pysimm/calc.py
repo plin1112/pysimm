@@ -39,7 +39,7 @@ from pysimm import error_print
 from pysimm import warning_print
 from pysimm import verbose_print
 from pysimm import debug_print
-from pysimm import PysimmError
+from pysimm.utils import PysimmError
 from pysimm.utils import Item
 from pysimm.utils import ItemContainer
 
@@ -174,6 +174,40 @@ def angle(p1, p2, p3, radians=False):
     p23 = distance(p2, p3)
     p13 = distance(p1, p3)
     theta = acos((pow(p12, 2)+pow(p23, 2)-pow(p13, 2))/(2*p12*p23))
+    if not radians:
+        theta = theta * 180 / pi
+    return theta
+    
+    
+def dihedral(p1, p2, p3, p4, radians=False):
+    b1 = np.array([
+        p2.x-p1.x,
+        p2.y-p1.y,
+        p2.z-p1.z
+    ])
+    b2 = np.array([
+        p3.x-p2.x,
+        p3.y-p2.y,
+        p3.z-p2.z
+    ])
+    b3 = np.array([
+        p4.x-p3.x,
+        p4.y-p3.y,
+        p4.z-p3.z
+    ])
+    
+    n1 = np.cross(b1, b2)
+    n1 /= np.linalg.norm(n1)
+    n2 = np.cross(b2, b3)
+    n2 /= np.linalg.norm(n2)
+    
+    m1 = np.cross(n1, b2/np.linalg.norm(b2))
+    
+    x = np.dot(n1, n2)
+    y = np.dot(m1, n2)
+    
+    theta = np.arctan2(y, x)
+    
     if not radians:
         theta = theta * 180 / pi
     return theta
@@ -369,6 +403,14 @@ def class2_dihedral(dt, d):
         dt.k1*(1-np.cos(np.radians(d)-np.radians(dt.phi1))) +
         dt.k2*(1-np.cos(np.radians(d)-np.radians(dt.phi2))) +
         dt.k3*(1-np.cos(np.radians(d)-np.radians(dt.phi3)))
+    )
+    
+def opls_dihedral(dt, d):
+    return (
+        0.5*dt.k1*(1+np.cos(np.radians(d))) +
+        0.5*dt.k2*(1-np.cos(2*np.radians(d))) +
+        0.5*dt.k3*(1+np.cos(3*np.radians(d))) +
+        0.5*dt.k4*(1-np.cos(4*np.radians(d)))
     )
     
 def fourier_dihedral(dt, d):

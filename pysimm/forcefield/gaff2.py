@@ -53,10 +53,11 @@ class Gaff2(Forcefield):
     def __init__(self, db_file=None):
         if not db_file and db_file is not False:
             db_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                   os.pardir, os.pardir, 'dat', 'forcefields', 'gaff2.json')
+                                   'dat', 'gaff2.json')
         Forcefield.__init__(self, db_file)
         self.ff_name = 'gaff2'
         self.pair_style = 'lj'
+        self.mixing_rule = 'arithmetic'
         self.bond_style = 'harmonic'
         self.angle_style = 'harmonic'
         self.dihedral_style = 'fourier'
@@ -80,8 +81,8 @@ class Gaff2(Forcefield):
         """
         all_types = set()
         s.pair_style = self.pair_style
+        s.add_particle_bonding()
         for p in s.particles:
-            p.bonded_to = [x.a if p is x.b else x.b for x in p.bonds]
             p.bond_orders = [x.order for x in p.bonds]
             if None in p.bond_orders:
                 error_print('error: bond orders are not set')
@@ -289,8 +290,8 @@ class Gaff2(Forcefield):
         """
         all_types = set()
         s.angle_style = self.angle_style
+        s.add_particle_bonding()
         for p in s.particles:
-            p.bonded_to = [x.a if p is x.b else x.b for x in p.bonds]
             for p1 in p.bonded_to:
                 for p2 in p.bonded_to:
                     if p1 is not p2:

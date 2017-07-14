@@ -1,5 +1,5 @@
 # ******************************************************************************
-# pysimm.forcefield.cgenff module
+# pysimm.forcefield.oplsaa module
 # ******************************************************************************
 #
 # ******************************************************************************
@@ -31,43 +31,44 @@ import os
 from itertools import permutations, combinations
 
 import gasteiger
+from pysimm import error_print
 from pysimm.system import Angle, Dihedral, Improper
 from forcefield import Forcefield
 
 
-class Cgenff(Forcefield):
-    """pysimm.forcefield.Cgenff
+class Opls(Forcefield):
+    """pysimm.forcefield.Oplsaa
 
-    Forcefield object with typing rules for Cgenff model.
+    Forcefield object with typing rules for Oplsaa model.
     By default reads data file in forcefields subdirectory.
 
     Attributes:
-        ff_name: cgenff
-        pair_style: charmm
+        ff_name: opls
+        pair_style: lj
         bond_style: harmonic
-        angle_style: charmm
-        dihedral_style: charmm
-        improper_style: harmonic
+        angle_style: harmonic
+        dihedral_style: opls
+        improper_style: cvff
         ff_class: 1
     """
     def __init__(self, db_file=None):
         if not db_file and db_file is not False:
             db_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                   'dat', 'cgenff.json')
+                                   'dat', 'opls.json')
         Forcefield.__init__(self, db_file)
-        self.ff_name = 'cgenff'
-        self.pair_style = 'charmm'
-        self.mixing_rule = 'arithmetic'
+        self.ff_name = 'opls'
+        self.pair_style = 'lj'
+        self.mixing_rule = 'geometric'
         self.bond_style = 'harmonic'
-        self.angle_style = 'charmm'
-        self.dihedral_style = 'charmm'
-        self.improper_style = 'harmonic'
+        self.angle_style = 'harmonic'
+        self.dihedral_style = 'opls'
+        self.improper_style = 'cvff'
         self.ff_class = '1'
 
     def assign_ptypes(self, s):
-        """pysimm.forcefield.Gaff2.assign_ptypes
+        """pysimm.forcefield.Oplsaa.assign_ptypes
 
-        Gaff2 specific particle typing rules.
+        OPLS-AA specific particle typing rules.
         Requires System object Particle objects have Particle.bonds defined.
         *** use System.add_particle_bonding() to ensure this ***
 
@@ -91,174 +92,10 @@ class Cgenff(Forcefield):
             p.nbonds = len(p.bond_elements)
             if p.linker:
                 p.nbonds += 1
-        for p in s.particles:
+        '''for p in s.particles:
             if p.elem == 'H':
                 if 'O' in p.bond_elements:
                     p.type_name = 'HGP1'
-                elif 'N' in p.bond_elements:
-                    p.type_name = 'HGP1'
-                elif 'S' in p.bond_elements:
-                    p.type_name = 'HGP3'
-                elif 'C' in p.bond_elements:
-                    for pb in p.bonded_to:
-                        if pb.elem == 'C':
-                            if 2 in pb.bond_orders:
-                                if pb.bond_elements.count('H') == 1:
-                                    p.type_name = 'HGA4'
-                                elif pb.bond_elements.count('H') == 2:
-                                    p.type_name = 'HGA5'
-                            elif 4 in pb.bond_orders or 'A' in pb.bond_orders:
-                                p.type_name = 'HGR61'
-                            elif pb.nbonds == 4:
-                                if pb.bond_elements.count('F') == 1:
-                                    p.type_name = 'HGA6'
-                                elif pb.bond_elements.count('F') == 2:
-                                    p.type_name = 'HGA7'
-                                elif pb.bond_elements.count('H') == 1:
-                                    p.type_name = 'HGA1'
-                                elif pb.bond_elements.count('H') == 2:
-                                    p.type_name = 'HGA2'
-                                elif pb.bond_elements.count('H') == 3:
-                                    p.type_name = 'HGA3'
-                                elif pb.bond_elements.count('H') == 4:
-                                    p.type_name = 'HGA3'
-            elif p.elem == 'C':
-                if p.nbonds == 3 and 'O' in p.bond_elements:
-                    if p.bond_elements.count('N') == 1:
-                        p.type_name = 'CG2O1'
-                    elif p.bond_elements.count('O') == 1:
-                        if p.bond_elements.count('H') >= 1:
-                            p.type_name = 'CG2O4'
-                        else:
-                            p.type_name = 'CG2O5'
-                    elif p.bond_elements.count('O') == 2:
-                        p.type_name = 'CG2O2'
-                    elif p.bond_elements.count('O') == 3 or p.bond_elements.count('N') == 2:
-                        p.type_name = 'CG2O6'
-                elif 4 in p.bond_orders or 'A' in p.bond_orders:
-                    p.type_name = 'CG2R61'
-                elif p.nbonds == 4:
-                    if p.bond_elements.count('H') == 0:
-                        if p.bond_elements.count('F') == 3:
-                            p.type_name = 'CG302'
-                        else:
-                            p.type_name = 'CG301'
-                    elif p.bond_elements.count('H') == 1:
-                        if p.bond_elements.count('F') == 2:
-                            p.type_name = 'CG312'
-                        else:
-                            p.type_name = 'CG311'
-                    elif p.bond_elements.count('H') == 2:
-                        if p.bond_elements.count('F') == 1:
-                            p.type_name = 'CG322'
-                        else:
-                            p.type_name = 'CG321'
-                    elif p.bond_elements.count('H') >= 3:
-                        p.type_name = 'CG331'
-                elif p.nbonds == 3 and not 'O' in p.bond_elements:
-                        if p.bond_elements.count('H') == 2:
-                            p.type_name = 'CG2DC3'
-                        else:
-                            p.type_name = 'CG2DC1'
-                elif p.nbonds == 2:
-                    if p.bond_elements.count('N') == 1:
-                        p.type_name = 'CG1N1'
-                    elif p.bond_elements.count('H') == 0:
-                        p.type_name = 'CG1T1'
-                    else:
-                        p.type_name = 'CG1T2'
-            elif p.elem == 'N':
-                if 3 in p.bond_orders and p.bond_elements.count('C') == 1:
-                    p.type_name = 'NG1T1'
-                elif 2 in p.bond_orders and p.nbonds == 1 and p.bond_elements.count('N') == 1 and p.bonded_to[0].bond_elements.count('N') == 1:
-                    p.type_name = 'NG1D1'
-                elif p.nbonds <= 3:
-                    amide = False
-                    aromatic_ring = False
-                    for pb in p.bonded_to:
-                        if pb.elem == 'C':
-                            if 4 in pb.bond_orders or 'A' in pb.bond_orders:
-                                aromatic_ring = True
-                            for b in pb.bonds:
-                                bp = b.a if pb is b.b else b.b
-                                if bp.elem == 'O' and b.order == 2:
-                                    amide = True
-                    if amide:
-                        if p.bond_elements.count('H') == 2:
-                            p.type_name = 'NG2S2'
-                        else:
-                            p.type_name = 'NG2S1'
-                    elif aromatic_ring:
-                        p.type_name = 'NG2R60'
-                    elif p.nbonds == 3:
-                        if p.bond_elements.count('C') == 3:
-                            p.type_name = 'NG301'
-                        elif p.bond_elements.count('C') == 2:
-                            p.type_name = 'NG311'
-                        elif p.bond_elements.count('C') == 1:
-                            p.type_name = 'NG321'
-                        elif p.bond_elements.count('H') == 3:
-                            p.type_name == 'NG331'
-                else:
-                    print(p.elem, p.nbonds, p.bond_elements, p.bond_orders)
-            elif p.elem == 'O':
-                if p.nbonds == 1 and p.bond_elements.count('C') == 1:
-                    pb = p.bonded_to[0]
-                    if pb.bond_elements.count('H') == 1:
-                        p.type_name = 'OG2D3'
-                    else:
-                        p.type_name = 'OG2D1'
-                elif p.bond_elements.count('H') == 1:
-                    p.type_name = 'OG311'
-                elif p.nbonds == 2:
-                    for pb in p.bonded_to:
-                        if pb.elem == 'C':
-                            if pb.bond_elements.count('O') == 2 and pb.bond_orders.count(2) == 1:
-                                for b in pb.bonds:
-                                    if b.a.elem == 'O' and b.b.elem == 'C' and b.order == 2:
-                                        p.type_name = 'OG302'
-                                    elif b.a.elem == 'C' and b.a.elem == 'O' and b.order == 2:
-                                        p.type_name = 'OG302'
-                    if not p.type_name:
-                        p.type_name = 'OG301'
-            elif p.elem == 'S':
-                if p.nbonds == 1:
-                    if p.bond_elements.count('C') == 2:
-                        p.type_name = 'SG3O3'
-                    else:
-                        p.type_name = 'SG2D1'
-                elif len(set(p.bond_orders)) == 1 and p.bond_orders[0] == 1 and p.nbonds == 2:
-                    p.type_name = 'SG311'
-            elif p.elem == 'Cl':
-                pb = p.bonded_to[0]
-                if pb.elem == 'C' and pb.bond_elements.count('Cl') == 1 or pb.bond_elements.count('Cl') == 2:
-                    p.type_name = 'CLGA1'
-                elif pb.elem == 'C' and pb.bond_elements.count('Cl') == 3:
-                    p.type_name = 'CLGA3'
-                elif pb.elem == 'C' and pb.bond_orders.count('A') == 1 or pb.bond_orders.count(4) == 1:
-                    p.type_name = 'CLGR1'
-            elif p.elem == 'Br':
-                pb = p.bonded_to[0]
-                if pb.elem == 'C' and pb.bond_elements.count('Br') == 1:
-                    p.type_name == 'BRGA1'
-                elif pb.elem == 'C' and pb.bond_elements.count('Br') == 2:
-                    p.type_name == 'BRGA2'
-                elif pb.elem == 'C' and pb.bond_elements.count('Br') == 3:
-                    p.type_name == 'BRGA3'
-                elif pb.elem == 'C' and pb.bond_orders.count('A') == 1 or pb.bond_orders.count(4) == 1:
-                    p.type_name = 'BRGR1'
-            elif p.elem == 'I':
-                pb = p.bonded_to[0]
-                if pb.elem == 'C' and pb.bond_orders.count('A') == 1 or pb.bond_orders.count(4) == 1:
-                    p.type_name = 'IGR1'
-            elif p.elem == 'F':
-                pb = p.bonded_to[0]
-                if pb.elem == 'C' and pb.bond_elements.count('F') == 1:
-                    p.type_name == 'FGA1'
-                elif pb.elem == 'C' and pb.bond_elements.count('F') == 2:
-                    p.type_name == 'FGA2'
-                elif pb.elem == 'C' and pb.bond_elements.count('F') == 3:
-                    p.type_name == 'FGA3'
             else:
                 print 'cant type particle %s' % p.tag
                 return p
@@ -276,10 +113,10 @@ class Cgenff(Forcefield):
         for p in s.particles:
             pt = s.particle_types.get(p.type_name)
             if pt:
-                p.type = pt[0]
+                p.type = pt[0]'''
 
     def assign_btypes(self, s):
-        """pysimm.forcefield.Gaff2.assign_btypes
+        """pysimm.forcefield.Oplsaa.assign_btypes
 
         Gaff2 specific bond typing rules.
         Requires System object Particle objects have Particle.bonds, Particle.type
@@ -295,15 +132,11 @@ class Cgenff(Forcefield):
         all_types = set()
         s.bond_style = self.bond_style
         for b in s.bonds:
-            if b.a.type.name == 'CG2DC1' and b.b.type.name == 'CG2DC1' and b.order == 1:
-                bt = self.bond_types.get('%s,%s' % (b.a.type.name, 'CG2DC2'))
-            else:
-                bt = self.bond_types.get('%s,%s' % (b.a.type.name, b.b.type.name))
+            bt = self.bond_types.by_name(b.ptype_name())
             if bt:
                 b.type_name = bt[0].name
             else:
-                print ('couldnt type this bond %s,%s'
-                       % (b.a.type.name, b.b.type.name))
+                print ('couldnt type this bond {}'.format(b.ptype_name()))
                 return b
             all_types.add(self.bond_types.get(b.type_name)[0])
 
@@ -344,18 +177,18 @@ class Cgenff(Forcefield):
                                 unique = False
                         if unique:
                             at = self.angle_types.get('%s,%s,%s'
-                                                      % (p1.type.name,
-                                                         p.type.name,
-                                                         p2.type.name))
+                                                      % (p1.type.eq_angle or p1.type.name,
+                                                         p.type.eq_angle or p.type.name,
+                                                         p2.type.eq_angle or p2.type.name))
                             if at:
                                 s.angles.add(Angle(type_name=at[0].name,
                                                    a=p1, b=p, c=p2))
                                 all_types.add(at[0])
                             else:
                                 print ('I cant type this angle %s,%s,%s'
-                                       % (p1.type.name,
-                                          p.type.name,
-                                          p2.type.name))
+                                       % (p1.type.eq_angle or p1.type.name,
+                                          p.type.eq_angle or p.type.name,
+                                          p2.type.eq_angle or p2.type.name))
 
         for at in all_types:
             at = at.copy()
@@ -395,10 +228,10 @@ class Cgenff(Forcefield):
                                 d.c == b.a and d.d == p1)):
                             unique = False
                     if unique:
-                        p1_name = p1.type.name
-                        a_name = b.a.type.name
-                        b_name = b.b.type.name
-                        p2_name = p2.type.name
+                        p1_name = p1.type.eq_dihedral or p1.type.name
+                        a_name = b.a.type.eq_dihedral or b.a.type.name
+                        b_name = b.b.type.eq_dihedral or b.b.type.name
+                        p2_name = p2.type.eq_dihedral or p2.type.name
                         dt = self.dihedral_types.get('%s,%s,%s,%s'
                                                      % (p1_name, a_name,
                                                         b_name, p2_name))

@@ -38,7 +38,8 @@ from pysimm import error_print, warning_print, debug_print
 from pysimm.utils import PysimmError, Item, ItemContainer, compare
 from pysimm.system import (ParticleType, BondType, AngleType,
     DihedralType, ImproperType, ParticleTypeContainer, BondTypeContainer, 
-    AngleTypeContainer, DihedralTypeContainer, ImproperTypeContainer)
+    AngleTypeContainer, DihedralTypeContainer, ImproperTypeContainer,
+    Angle, Dihedral, Improper)
 
 
 element_names_by_mass = {1: 'H', 4: 'He', 7: 'Li', 9: 'Be', 11: 'B', 12: 'C',
@@ -253,3 +254,116 @@ class Forcefield(object):
             f.write(
                 minidom.parseString(Et.tostring(ff_elem, 'utf-8')).toprettyxml(
                     indent="  "))
+                    
+    def assign_bond_types(self, s, order=False):
+        untypable = ItemContainer()
+        s.bond_style = self.bond_style
+        for b in s.bonds:
+            bt = self.bond_types.by_name(b.ptype_name(), order=order)
+            if bt:
+                s_bt = s.bond_types.by_name(bt[0].name, exact=True, order=order)
+                if s_bt:
+                    b.type = s_bt
+                else:
+                    b.type = s.bond_types.add(bt[0].copy())
+            else:
+                untypable.add(b)
+        return untypable
+                
+    def assign_angle_types(self, s, order=False):
+        untypable = ItemContainer()
+        s.angle_style = self.angle_style
+        for p in s.particles:
+            try:
+                p.bonded_to.count
+            except:
+                raise PysimmError('bonded_to not defined for particle {}: run System.add_particle_bonding() first'.format(p.tag))
+            for p1 in p.bonded_to:
+                for p2 in p.bonded_to:
+                    if p2.tag > p1.tag:
+                        at = self.angle_types.by_name('{},{},{}'.format(
+                            p1.type.eq_angle or p1.type.name,
+                            p.type.eq_angle or p.type.name,
+                            p2.type.eq_angle or p2.type.name
+                        ), order=order)
+                        if at:
+                            a = s.angles.add(Angle(a=p1, b=p, c=p2))
+                            s_at = s.angle_types.by_name(at[0].name, exact=True, order=order)
+                            if s_at:
+                                a.type = s_at
+                            else:
+                                a.type = s.angle_types.add(at[0].copy())
+                        else:
+                            untypable.add(Angle(a=p1, b=p, c=p2))
+        return untypable
+        
+    def assign_dihedral_types(self, s, order=False):
+        untypable = ItemContainer()
+        s.dihedral_style = self.dihedral_style
+        for b in s.bonds:
+            try:
+                b.a.bonded_to.count
+            except:
+                raise PysimmError('bonded_to not defined for particle {}: run System.add_particle_bonding() first'.format(b.a.tag))
+            
+            try:
+                b.b.bonded_to.count
+            except:
+                raise PysimmError('bonded_to not defined for particle {}: run System.add_particle_bonding() first'.format(b.b.tag))
+            for p1 in b.a.bonded_to:
+                for p2 in b.b.bonded_to:
+                    if (p1 is not b.b and p2 is not b.a):
+                        p1_name = p1.type.eq_dihedral or p1.type.name
+                        a_name = b.a.type.eq_dihedral or b.a.type.name
+                        b_name = b.b.type.eq_dihedral or b.b.type.name
+                        p2_name = p2.type.eq_dihedral or p2.type.name
+                        dt = self.dihedral_types.by_name(
+                            '{},{},{},{}'.format(
+                                p1_name, a_name, b_name, p2_name
+                            ), order=order
+                        )
+                        if dt:
+                            d = s.dihedrals.add(
+                                Dihedral(
+                                    a=p1, b=b.a, c=b.b, d=p2
+                                )
+                            )
+                            s_dt = s.dihedral_types.by_name(dt[0].name, exact=True, order=order)
+                            if s_dt:
+                                d.type = s_dt
+                            else:
+                                d.type = s.dihedral_types.add(dt[0].copy())
+                        else:
+                            untypable.add(Dihedral(a=p1, b=b.a, c=b.b, d=p2))
+        return untypable
+        
+    def assign_improper_types(self, s, order=True):
+        s.improper_style = self.improper_style
+        for p in s.particles:
+            try:
+                p.bonded_to.count
+            except:
+                raise PysimmError('bonded_to not defined for particle {}: run System.add_particle_bonding() first'.format(p.tag))
+            if len(p.bonded_to) == 3:
+                for perm in permutations(p.bonded_to, 3):
+                    p_name = p.type.eq_improper or p.type.name
+                    p1_name = perm[0].type.eq_improper or perm[0].type.name
+                    p2_name = perm[1].type.eq_improper or perm[1].type.name
+                    p3_name = perm[2].type.eq_improper or perm[2].type.name
+                    it = self.improper_types.by_name(
+                        ','.join([
+                            p_name, p1_name, p2_name, p3_name
+                        ]), order=order
+                    )
+                    if it:
+                        i = s.impropers.add(
+                            Improper(
+                                a=p, b=perm[0], c=perm[1], d=perm[2]
+                            )
+                        )
+                        s_it = s.improper_types.by_name(it[0].name, exact=True, order=order)
+                        if s_it:
+                            i.type = s_it
+                        else:
+                            i.type = s.improper_types.add(it[0].copy())
+                        break

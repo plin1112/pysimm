@@ -168,6 +168,10 @@ class ItemContainer(Sequence):
     def all(self):
         return self._dict.values()
         
+    def first(self):
+        for item in self:
+            return item
+        
     def by_item_name(self, name, exact=False, order=False, wildcard='X', improper_type=False):
         found = []
         for item in self:
@@ -184,7 +188,10 @@ class ItemContainer(Sequence):
             else:
                 return None
         else:
-            return sorted(found, key=lambda x: x.name.count(wildcard))
+            if wildcard:
+                return sorted(found, key=lambda x: x.name.count(wildcard))
+            else:
+                return found
     
     def by_item_attr(self, attr, value):
         found = []
@@ -280,6 +287,7 @@ class Item(object):
     def set(self, **kwargs):
         for k, v in kwargs.items():
             setattr(self, k, v)
+        return self
 
 
 def compare(query, item, query_wildcard=None, item_wildcard='X', order=False,
