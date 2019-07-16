@@ -3309,7 +3309,7 @@ class System(object):
         file format: line, format, contents
         1: 38X, 3F8.3 :	- length of the three cell parameters (a, b, and c) in angstroms.  
         2: 21X, 3F8.3, 4X, 'SPGR =', I3, 1X, A11 : - a, b, g in degrees, space group number, space group name.  
-        3: 2I4, 1X, A60 : - Number of atoms stored, coordinate system flag (0=fractional, 1=orthogonal coordinates in Å), first title.  
+        3: 2I4, 1X, A60 : - Number of atoms stored, coordinate system flag (0=fractional, 1=orthogonal coordinates in Angstrom), first title.  
         4: A53 : - A line of text that can be used to describe the file.  
         5-: I4, 1X, A4, 2X, 3(F9.5.1X), 8I4, 1X, F7.3 : - Atom serial number, atom name, x, y, z coordinates, bonding connectivities (max 8), charge.
         Note: The atom name is a concatenation of the element symbol and the atom serial number.  
@@ -3326,7 +3326,7 @@ class System(object):
             out = open(outfile, 'w+')
 
         out.write('%s%8.3f%8.3f%8.3f\n' % (38*' ', self.dim.dx, self.dim.dy, self.dim.dz))
-        out.write('%s%8.3f%8.3f%8.3f    'SPGR='%3d %s\n' % (21*' ', 90.0, 90.0, 90.0, 1, 'P 1'))
+        out.write('%s%8.3f%8.3f%8.3f     SPGR= %3d %s\n' % (21*' ', 90.0, 90.0, 90.0, 1, 'P 1'))
         out.write('%4d%4d %s\n' % (self.particles.count, flag, 'CSSR written using pySIMM system module'))
         out.write('%s\n' % self.name)
         for p in self.particles:
@@ -3340,25 +3340,28 @@ class System(object):
             elif p.type:
                 name = p.type.tag
 
-           if flag == 0:
-               x = p.x/self.dim.dx
-               y = p.y/self.dim.dy
-               z = p.z/self.dim.dz
-           else:
-               x = p.x
-               y = p.y
-               z = p.z
+            if flag == 0:
+                x = p.x/self.dim.dx
+                y = p.y/self.dim.dy
+                z = p.z/self.dim.dz
+            else:
+                x = p.x
+                y = p.y
+                z = p.z
 
-           bonds = ''
-           n_bonds = 0
-           if p.bonds:
-                for t in sorted([x.a.tag if p is x.b else x.b.tag for x in p.bonds]):
-                    bonds = bonds + '{:4d}'.format(t)
-                    n_bonds = n_bonds + 1
-                for i in range(n_bonds+1, 9):
-                    bonds = bonds + '{:4d}'.format(0)
-
-           out.write('%4d %4s  %9.5f %9.5f %9.5f %s %7.3f\n' 
+            bonds = ''
+            n_bonds = 0
+            for b in p.bonds:
+                if p is b.a:
+                    bonds += ' {:4d}'.format(b.b.tag)
+                else:
+                    bonds += ' {:4d}'.format(b.a.tag)
+                n_bonds += 1
+ 
+            for i in range(n_bonds+1, 9):
+                bonds = bonds + ' {:4d}'.format(0)
+ 
+            out.write('%4d %4s  %9.5f %9.5f %9.5f %s %7.3f\n' 
                      % (p.tag, name, x, y, z, bonds, p.charge))
 
         out.write('\n')
