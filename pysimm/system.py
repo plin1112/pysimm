@@ -3302,7 +3302,7 @@ class System(object):
         with file(file_, 'w') as f:
             f.write(json.dumps(s, indent=4, separators=(',', ': ')))
 
-    def write_cssr(self, outfile='data.cssr', flag=1):
+    def write_cssr(self, outfile='data.cssr', **kwargs):
         """pysimm.system.System.write_cssr
 
         Write :class:`~pysimm.system.System` data in cssr format
@@ -3316,6 +3316,8 @@ class System(object):
 
         Args:
             outfile: where to write data, file name or 'string'
+            frac: 0 for using fractional coordinates
+            aname: 0 for using element as atom name; else using atom type name
 
         Returns:
             None or string of data file if out_data='string'
@@ -3325,22 +3327,35 @@ class System(object):
         else:
             out = open(outfile, 'w+')
 
+        frac = kwargs.get('frac', 1)
+        aname = kwargs.get('aname', 0)
+
         out.write('%s%8.3f%8.3f%8.3f\n' % (38*' ', self.dim.dx, self.dim.dy, self.dim.dz))
         out.write('%s%8.3f%8.3f%8.3f     SPGR= %3d %s\n' % (21*' ', 90.0, 90.0, 90.0, 1, 'P 1'))
-        out.write('%4d%4d %s\n' % (self.particles.count, flag, 'CSSR written using pySIMM system module'))
+        out.write('%4d%4d %s\n' % (self.particles.count, frac, 'CSSR written using pySIMM system module'))
         out.write('%s\n' % self.name)
+
         for p in self.particles:
             if not p.charge:
                 p.charge = 0.0
 
-            if p.type and p.type.elem:
-                name = p.type.elem
-            elif p.elem:
-                name = p.elem
-            elif p.type:
-                name = p.type.tag
+            if p.type:
+                if aname == 0:
+                    if p.type.elem:
+                        name = p.type.elem
+                    elif p.elem:
+                        name = p.elem
+                    else:
+                        name = p.type.tag
+                else:
+                    if p.type.name:
+                        name = p.type.name
+                    else:
+                        name = p.type.tag
+            else:
+                name = p.tag
 
-            if flag == 0:
+            if frac == 0:
                 x = p.x/self.dim.dx
                 y = p.y/self.dim.dy
                 z = p.z/self.dim.dz
