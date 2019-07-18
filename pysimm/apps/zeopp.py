@@ -71,18 +71,18 @@ def network(s, **kwargs):
         probe_radius: radius of a probe used in sampling of surface (1.2 A)
         chan_radius: radius of a probe used to determine accessibility of void space (1.2 A)
         num_samples: number of Monte Carlo samples per unit cell (50000)
-        option to include in the simulation:
-            "-ha" for using high accuracy, 
-            "-res" for diameters of the largest included sphere, the largest free sphere and the largest included sphere along free sphere path
-            "-chan" for channel systems characterized by dimensionality as well as Di, Df and Dif
-            "-sa" for surface area accessible to a spherical probe, characterized by 
+        option to include in the simulation: set True to activate
+            ha: default=True, for using high accuracy,
+            res: default=True, for diameters of the largest included sphere, the largest free sphere and the largest included sphere along free sphere path
+            chan: default=True, for channel systems characterized by dimensionality as well as Di, Df and Dif
+            sa: default=True, for surface area accessible to a spherical probe, characterized by
                       accessible surface area (ASA) and non-accessible surface area (NASA)
-            "-vol" for accessible volume (AV) and non-accessible volume (NAV)
-            "-volpo" for accessible proce-occupiable volume (POAV) and non-accessible probe-occupiable volume (PONAV)
-            "-psd" for the "deriviative distribution" (change of AV w.r.t probe size) reported in the histogram file with 1000 bins of size of 0.1 Ang
-            "-ray_atom" 
-            "-block"
-            "-gridG" and "-gridBOV"
+            vol: default=True, for accessible volume (AV) and non-accessible volume (NAV)
+            volpo: default=False, for accessible proce-occupiable volume (POAV) and non-accessible probe-occupiable volume (PONAV)
+            psd: default=True, for the "deriviative distribution" (change of AV w.r.t probe size) reported in the histogram file with 1000 bins of size of 0.1 Ang
+            ray_atom: default=False
+            block: default=False
+            extra: user provided options, such as -gridG, -gridBOV, -strinfo, -oms, etc.
             
     ZEOpp_EXEC: path to zeo++ executable (network)
 
