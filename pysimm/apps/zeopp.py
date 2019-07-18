@@ -107,7 +107,7 @@ def network(s, **kwargs):
     sa = kwargs.get('sa', True)
     vol = kwargs.get('vol', True)
     psd = kwargs.get('psd', True)
-    volpo = kwargs.get('psd', False)
+    volpo = kwargs.get('volpo', False)
     ray_atom = kwargs.get('ray_atom', False)
     block = kwargs.get('block', False)
     extra = kwargs.get('extra')
