@@ -41,6 +41,7 @@ from urllib.request import urlopen
 from urllib.error import HTTPError, URLError
 from itertools import permutations
 from math import sin, cos, sqrt, pi, acos, floor, ceil
+from typing import Optional, List, Dict, Any, Tuple, Union
 
 try:
     from subprocess import call
@@ -48,12 +49,16 @@ except ImportError:
     call = None
 try:
     import numpy as np
+    NDArray = np.ndarray
 except ImportError:
     np = None
+    NDArray = Any
 try:
     import pandas as pd
+    DataFrame = pd.DataFrame
 except ImportError:
     pd = None
+    DataFrame = Any
 
 from pysimm import calc
 from pysimm import error_print
@@ -78,19 +83,54 @@ class Particle(Item):
     Attributes usually used are given below.
     
     Attributes:
-        x: x coordinate
-        y: y coordinate
-        z: z coordinate
+        pos: numpy array of x, y, z coordinates
         charge: partial charge
         type: :class:`~ParticleType` object reference
     """
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
+        x = kwargs.pop('x', None)
+        y = kwargs.pop('y', None)
+        z = kwargs.pop('z', None)
         Item.__init__(self, **kwargs)
-        
-    def coords(self):
-        return (self.x, self.y, self.z)
+        if x is not None and y is not None and z is not None:
+            self.pos: Optional[NDArray[np.float64]] = np.array([float(x), float(y), float(z)], dtype=float)
+        else:
+            self.pos = None
 
-    def check(self, style='full'):
+    @property
+    def x(self) -> Optional[float]:
+        return self.pos[0] if self.pos is not None else None
+
+    @x.setter
+    def x(self, value: float) -> None:
+        if self.pos is None:
+            self.pos = np.zeros(3, dtype=float)
+        self.pos[0] = value
+
+    @property
+    def y(self) -> Optional[float]:
+        return self.pos[1] if self.pos is not None else None
+
+    @y.setter
+    def y(self, value: float) -> None:
+        if self.pos is None:
+            self.pos = np.zeros(3, dtype=float)
+        self.pos[1] = value
+
+    @property
+    def z(self) -> Optional[float]:
+        return self.pos[2] if self.pos is not None else None
+
+    @z.setter
+    def z(self, value: float) -> None:
+        if self.pos is None:
+            self.pos = np.zeros(3, dtype=float)
+        self.pos[2] = value
+        
+    def coords(self) -> Optional[NDArray[np.float64]]:
+        return self.pos
+
+    def check(self, style: str = 'full') -> bool:
         if style == 'full':
             if self.x is None:
                 error_print('particle %s has no x coordinate' % self.tag)
@@ -108,7 +148,7 @@ class Particle(Item):
             error_print('style %s not supported yet' % style)
             return False
 
-    def delete_bonding(self, s):
+    def delete_bonding(self, s: 'System') -> None:
         """pysimm.system.Particle.delete_bonding
 
         Iterates through s.bonds, s.angles, s.dihedrals, and s.impropers and removes
@@ -156,7 +196,7 @@ class Particle(Item):
                 if self is i.a or self is i.b or self is i.c or self is i.d:
                     s.impropers.remove(i.tag)
                     
-    def translate(self, dx, dy, dz):
+    def translate(self, dx: float, dy: float, dz: float) -> None:
         """pysimm.system.Particle.translate
         
         Shifts Particle position by dx, dy, dz.
@@ -169,11 +209,10 @@ class Particle(Item):
         Returns:
             None
         """
-        self.x += dx
-        self.y += dy
-        self.z += dz
+        if self.pos is not None:
+            self.pos += np.array([dx, dy, dz])
 
-    def get_chem_element(self):
+    def get_chem_element(self) -> Optional[str]:
         """pysimm.system.get_chem_element()
         Method tries to guess chemical element of a particle basing on the rest possibly defined information about
         the particle
@@ -189,7 +228,7 @@ class Particle(Item):
             result = self.elem
         return result
 
-    def __sub__(self, other):
+    def __sub__(self, other: 'Particle') -> Optional[float]:
         """pysimm.system.Particle.__sub__
 
         Implements subtraction between :class:`~pysimm.system.Particle` objects to calculate distance.
@@ -205,8 +244,8 @@ class Particle(Item):
         else:
             return None
 
-    def __rsub__(self, other):
-        self.__sub__(other)
+    def __rsub__(self, other: 'Particle') -> Optional[float]:
+        return self.__sub__(other)
 
 
 class ParticleType(Item):
@@ -222,10 +261,10 @@ class ParticleType(Item):
         elem: element abbreviation, i.e. 'H' for Hydrogen, 'Cl' for Chlorine
         name: force field particle type name
     """
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         Item.__init__(self, **kwargs)
             
-    def form(self, style='lj_12-6', d_range=None):
+    def form(self, style: str = 'lj_12-6', d_range: Optional[NDArray[np.float64]] = None) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
         """pysimm.system.ParticleType.form
 
         Returns data to plot functional form for the potential energy with 
@@ -237,20 +276,21 @@ class ParticleType(Item):
         Returns:
             x, y for plotting functional form (energy vs distance)
         """
-        if not d_range:
+        if d_range is None:
             d_range = np.linspace(0.1, 8, 79)
         if style == 'lj_12-6':
-            e = np.array([calc.LJ_12_6(self, d) for d in d_range])
+            e = calc.LJ_12_6(self, d_range)
             return d_range, e
         elif style == 'lj_9-6':
-            e = np.array([calc.LJ_9_6(self, d) for d in d_range])
+            e = calc.LJ_9_6(self, d_range)
             return d_range, e
         elif style.startswith('buck'):
-            e = np.array([calc.buckingham(self, d) for d in d_range])
+            e = calc.buckingham(self, d_range)
             return d_range, e
+        raise PysimmError('style %s not supported yet' % style)
         
     @classmethod
-    def guess_style(cls, nparam):
+    def guess_style(cls, nparam: int) -> str:
         if nparam == 2:
             return 'lj'
         elif nparam == 3:
@@ -261,10 +301,10 @@ class ParticleType(Item):
             raise PysimmError('Cannot guess pair style')
     
     @classmethod
-    def parse_lammps(cls, line, style):
+    def parse_lammps(cls, line: str, style: str) -> 'ParticleType':
         tmp = line.split('#')
         data = tmp.pop(0).strip().split()
-        name = ','.join(re.split(',|\s+', tmp[0].strip())) if tmp else None
+        name = ','.join(re.split(',|\\s+', tmp[0].strip())) if tmp else None
         if style == 'mass':
             if len(data) != 2:
                 raise PysimmError('LAMMPS data improperly formatted for mass info')
@@ -301,7 +341,7 @@ class ParticleType(Item):
         else:
             raise PysimmError('LAMMPS pair style {} not supported yet'.format(style))
         
-    def write_lammps(self, style='lj'):
+    def write_lammps(self, style: str = 'lj') -> str:
         """pysimm.system.ParticleType.write_lammps
 
         Formats a string to define particle type coefficients for a LAMMPS 
@@ -357,16 +397,16 @@ class Bond(Item):
         b: :class:`~pysimm.system.Particle` object involved in bond
         type: BondType object reference
     """
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         Item.__init__(self, **kwargs)
         
-    def get_other_particle(self, p):
+    def get_other_particle(self, p: Particle) -> Optional[Particle]:
         if p is not self.a and p is not self.b:
             return None
         else:
             return self.a if p is self.b else self.b
 
-    def distance(self):
+    def distance(self) -> Optional[float]:
         """pysimm.system.Bond.distance
 
         Calculates distance between :class:`~pysimm.system.Particle` a and :class:`~pysimm.system.Particle` b in this Bond object.
@@ -397,13 +437,13 @@ class BondType(Item):
         r0: bond equilibrium distance (Angstrom)
         name: force field bond type name
     """
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         Item.__init__(self, **kwargs)
-        if self.name:
+        if hasattr(self, 'name') and self.name:
             self.rname = ','.join(reversed(self.name.split(',')))
         
     @classmethod
-    def guess_style(cls, nparam):
+    def guess_style(cls, nparam: int) -> str:
         if nparam == 2:
             return 'harmonic'
         elif nparam == 4:
@@ -412,10 +452,10 @@ class BondType(Item):
             raise PysimmError('Cannot guess bond style')
     
     @classmethod
-    def parse_lammps(cls, line, style):
+    def parse_lammps(cls, line: str, style: str) -> 'BondType':
         tmp = line.split('#')
         data = tmp.pop(0).strip().split()
-        name = ','.join(re.split(',|\s+', tmp[0].strip())) if tmp else None
+        name = ','.join(re.split(',|\\s+', tmp[0].strip())) if tmp else None
         if style.startswith('harm'):
             if len(data) != 3:
                 raise PysimmError('LAMMPS data improperly formatted for harmonic bond')
@@ -434,7 +474,7 @@ class BondType(Item):
         else:
             raise PysimmError('LAMMPS bond style {} not supported yet'.format(style))
             
-    def write_lammps(self, style='harmonic'):
+    def write_lammps(self, style: str = 'harmonic') -> str:
         """pysimm.system.BondType.write_lammps
 
         Formats a string to define bond type coefficients for a LAMMPS 
@@ -457,7 +497,7 @@ class BondType(Item):
         else:
             raise PysimmError('cannot understand pair style {}'.format(style))
 
-    def form(self, style='harmonic', d_range=None):
+    def form(self, style: str = 'harmonic', d_range: Optional[NDArray[np.float64]] = None) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
         """pysimm.system.BondType.form
 
         Returns data to plot functional form for the potential energy with 
@@ -469,14 +509,15 @@ class BondType(Item):
         Returns:
             x, y for plotting functional form (energy vs distance)
         """
-        if not d_range:
+        if d_range is None:
             d_range = np.linspace(self.r0-0.5, self.r0+0.5, 100)
         if style == 'harmonic':
-            e = np.array([calc.harmonic_bond(self, d) for d in d_range])
+            e = calc.harmonic_bond(self, d_range)
             return d_range, e
         elif style == 'class2':
-            e = np.array([calc.class2_bond(self, d) for d in d_range])
+            e = calc.class2_bond(self, d_range)
             return d_range, e
+        raise PysimmError('style %s not supported yet' % style)
 
 
 class Angle(Item):
@@ -496,10 +537,10 @@ class Angle(Item):
         c: :class:`~pysimm.system.Particle` object involved in angle
         type: AngleType object reference
     """
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         Item.__init__(self, **kwargs)
 
-    def angle(self, radians=False):
+    def angle(self, radians: bool = False) -> float:
         """pysimm.system.Angle.angle
 
         Calculate angle.
@@ -526,13 +567,13 @@ class AngleType(Item):
         theta0: angle equilibrium value (degrees)
         name: force field angle type name
     """
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         Item.__init__(self, **kwargs)
-        if self.name:
+        if hasattr(self, 'name') and self.name:
             self.rname = ','.join(reversed(self.name.split(',')))
         
     @classmethod
-    def guess_style(cls, nparam):
+    def guess_style(cls, nparam: int) -> str:
         if nparam == 2:
             return 'harmonic'
         elif nparam == 4:
@@ -541,10 +582,10 @@ class AngleType(Item):
             raise PysimmError('Cannot guess angle style')
     
     @classmethod
-    def parse_lammps(cls, line, style):
+    def parse_lammps(cls, line: str, style: str) -> 'AngleType':
         tmp = line.split('#')
         data = tmp.pop(0).strip().split()
-        name = ','.join(re.split(',|\s+', tmp[0].strip())) if tmp else None
+        name = ','.join(re.split(',|\\s+', tmp[0].strip())) if tmp else None
         if style.startswith('harm'):
             if len(data) != 3:
                 raise PysimmError('LAMMPS data improperly formatted for harmonic angle')
@@ -571,7 +612,7 @@ class AngleType(Item):
         else:
             raise PysimmError('LAMMPS angle style {} not supported yet'.format(style))
             
-    def write_lammps(self, style='harmonic', cross_term=None):
+    def write_lammps(self, style: str = 'harmonic', cross_term: Optional[str] = None) -> str:
         """pysimm.system.AngleType.write_lammps
 
         Formats a string to define angle type coefficients for a LAMMPS 
@@ -611,7 +652,7 @@ class AngleType(Item):
         else:
             raise PysimmError('cannot understand pair style {}'.format(style))
 
-    def form(self, style='harmonic', d_range=None):
+    def form(self, style: str = 'harmonic', d_range: Optional[NDArray[np.float64]] = None) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
         """pysimm.system.AngleType.form
 
         Returns data to plot functional form for the potential energy with 
@@ -623,17 +664,18 @@ class AngleType(Item):
         Returns:
             x, y for plotting functional form (energy vs angle)
         """
-        if not d_range:
+        if d_range is None:
             d_range = np.linspace(self.theta0-1, self.theta0+1, 100)
         if style == 'harmonic':
-            e = np.array([calc.harmonic_angle(self, d) for d in d_range])
+            e = calc.harmonic_angle(self, d_range)
             return d_range, e
         elif style == 'charmm':
-            e = np.array([calc.harmonic_angle(self, d) for d in d_range])
+            e = calc.harmonic_angle(self, d_range)
             return d_range, e
         elif style == 'class2':
-            e = np.array([calc.class2_angle(self, d) for d in d_range])
+            e = calc.class2_angle(self, d_range)
             return d_range, e
+        raise PysimmError('style %s not supported yet' % style)
 
 
 class Dihedral(Item):
@@ -654,7 +696,7 @@ class Dihedral(Item):
         d: :class:`~pysimm.system.Particle` object involved in dihedral
         type: :class:`~pysimm.system.DihedralType` object reference
     """
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         Item.__init__(self, **kwargs)
 
 
@@ -671,13 +713,13 @@ class DihedralType(Item):
         n: multiplicity (integer >= 0)
         name: force field dihedral type name
     """
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         Item.__init__(self, **kwargs)
-        if self.name:
+        if hasattr(self, 'name') and self.name:
             self.rname = ','.join(reversed(self.name.split(',')))
         
     @classmethod
-    def guess_style(cls, nparam):
+    def guess_style(cls, nparam: int) -> str:
         if nparam == 3:
             return 'harmonic'
         elif nparam % 3 == 1:
@@ -688,10 +730,10 @@ class DihedralType(Item):
             raise PysimmError('Cannot guess dihedral style')
     
     @classmethod
-    def parse_lammps(cls, line, style):
+    def parse_lammps(cls, line: str, style: str) -> 'DihedralType':
         tmp = line.split('#')
         data = tmp.pop(0).strip().split()
-        name = ','.join(re.split(',|\s+', tmp[0].strip())) if tmp else None
+        name = ','.join(re.split(',|\\s+', tmp[0].strip())) if tmp else None
         if style.startswith('harm'):
             if len(data) != 4:
                 raise PysimmError('LAMMPS data improperly formatted for harmonic dihedral')
@@ -744,7 +786,7 @@ class DihedralType(Item):
             raise PysimmError('LAMMPS dihedral style {} not supported yet'.format(style))
                     
         
-    def write_lammps(self, style='harmonic', cross_term=None):
+    def write_lammps(self, style: str = 'harmonic', cross_term: Optional[str] = None) -> str:
         """pysimm.system.DihedralType.write_lammps
 
         Formats a string to define dihedral type coefficients for a LAMMPS 
@@ -830,7 +872,7 @@ class DihedralType(Item):
         else:
             raise PysimmError('cannot understand pair style {}'.format(style))
 
-    def form(self, style='harmonic', d_range=None):
+    def form(self, style: str = 'harmonic', d_range: Optional[NDArray[np.float64]] = None) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
         """pysimm.system.DihedralType.form
 
         Returns data to plot functional form for the potential energy with 
@@ -842,20 +884,21 @@ class DihedralType(Item):
         Returns:
             x, y for plotting functional form (energy vs angle)
         """
-        if not d_range:
+        if d_range is None:
             d_range = np.linspace(-180, 180, 100)
         if style == 'harmonic':
-            e = np.array([calc.harmonic_dihedral(self, d) for d in d_range])
+            e = calc.harmonic_dihedral(self, d_range)
             return d_range, e
         elif style == 'fourier':
-            e = np.array([calc.fourier_dihedral(self, d) for d in d_range])
+            e = calc.fourier_dihedral(self, d_range)
             return d_range, e
         elif style == 'class2':
-            e = np.array([calc.class2_dihedral(self, d) for d in d_range])
+            e = calc.class2_dihedral(self, d_range)
             return d_range, e
         elif style == 'opls':
-            e = np.array([calc.opls_dihedral(self, d) for d in d_range])
+            e = calc.opls_dihedral(self, d_range)
             return d_range, e
+        raise PysimmError('style %s not supported yet' % style)
 
 
 class Improper(Item):
@@ -880,7 +923,7 @@ class Improper(Item):
         d: :class:`~pysimm.system.Particle` object involved in improper
         type: :class:`~pysimm.system.ImproperType` object reference
     """
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         Item.__init__(self, **kwargs)
 
 
@@ -896,14 +939,14 @@ class ImproperType(Item):
         x0: equilibrium value (degrees)
         name: force field improper type name
     """
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         Item.__init__(self, **kwargs)
-        if self.name:
+        if hasattr(self, 'name') and self.name:
             self.rname = ','.join(reversed(self.name.split(',')))
 
         
     @classmethod
-    def guess_style(cls, nparam):
+    def guess_style(cls, nparam: int) -> str:
         if nparam == 2:
             return 'harmonic'
         if nparam == 3:
@@ -912,10 +955,10 @@ class ImproperType(Item):
             raise PysimmError('Cannot guess improper style')
     
     @classmethod
-    def parse_lammps(cls, line, style):
+    def parse_lammps(cls, line: str, style: str) -> 'ImproperType':
         tmp = line.split('#')
         data = tmp.pop(0).strip().split()
-        name = ','.join(re.split(',|\s+', tmp[0].strip())) if tmp else None
+        name = ','.join(re.split(',|\\s+', tmp[0].strip())) if tmp else None
         if style.startswith('harm') or style.startswith('class2') or style.startswith('umbrella'):
             if len(data) != 3:
                 raise PysimmError('LAMMPS data improperly formatted for harmonic improper')
@@ -933,7 +976,7 @@ class ImproperType(Item):
         else:
             raise PysimmError('LAMMPS improper style {} not supported yet'.format(style))
             
-    def write_lammps(self, style='harmonic', cross_term=None):
+    def write_lammps(self, style: str = 'harmonic', cross_term: Optional[str] = None) -> str:
         """pysimm.system.ImproperType.write_lammps
 
         Formats a string to define improper type coefficients for a LAMMPS 
@@ -960,9 +1003,9 @@ class ImproperType(Item):
                 self.tag, self.k, self.d, self.n, self.name
             )
         elif style.startswith('class2'):
-            if self.k is None:
+            if not hasattr(self, 'k') or self.k is None:
                 self.k = 0.0
-            if self.x0 is None:
+            if not hasattr(self, 'x0') or self.x0 is None:
                 self.x0 = 0.0
             if not cross_term:
                 return '{:4}\t{}\t{}\t# {}\n'.format(
@@ -979,7 +1022,7 @@ class ImproperType(Item):
             raise PysimmError('cannot understand pair style {}'.format(style))
 
             
-    def form(self, style='harmonic', d_range=None):
+    def form(self, style: str = 'harmonic', d_range: Optional[NDArray[np.float64]] = None) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
         """pysimm.system.ImproperType.form
 
         Returns data to plot functional form for the potential energy with 
@@ -991,17 +1034,18 @@ class ImproperType(Item):
         Returns:
             x, y for plotting functional form (energy vs angle)
         """
-        if not d_range:
+        if d_range is None:
             d_range = np.linspace(-2, 2, 100)
         if style == 'harmonic':
-            e = np.array([calc.harmonic_improper(self, d) for d in d_range])
+            e = calc.harmonic_improper(self, d_range)
             return d_range, e
         elif style == 'cvff':
-            e = np.array([calc.cvff_improper(self, d) for d in d_range])
+            e = calc.cvff_improper(self, d_range)
             return d_range, e
         elif style == 'umbrella':
-            e = np.array([calc.umbrella_improper(self, d) for d in d_range])
+            e = calc.umbrella_improper(self, d_range)
             return d_range, e
+        raise PysimmError('style %s not supported yet' % style)
 
 
 class Dimension(Item):
@@ -1022,23 +1066,23 @@ class Dimension(Item):
         dy: distance in y dimension
         dz: distance in z dimension
     """
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         center = kwargs.get('center')
         Item.__init__(self, **kwargs)
         if center:
             self.translate(*center)
             del self.center
 
-    def check(self):
+    def check(self) -> bool:
         if self.dx is not None and self.dy is not None and self.dz is not None:
             return True
         else:
             return False
             
-    def size(self):
+    def size(self) -> Tuple[Optional[float], Optional[float], Optional[float]]:
         return (self.dx, self.dy, self.dz)
         
-    def translate(self, x, y, z):
+    def translate(self, x: float, y: float, z: float) -> None:
         """pysimm.system.Dimension.translate
         
         Shifts box bounds by x, y, z.
@@ -1059,51 +1103,51 @@ class Dimension(Item):
         self.zhi += z
         
     @property
-    def dx(self):
+    def dx(self) -> Optional[float]:
         if self.xhi is None or self.xlo is None:
             return None
         else:
             return self.xhi-self.xlo
         
     @dx.setter
-    def dx(self, dx):
+    def dx(self, dx: float) -> None:
         if dx is None:
             return
-        center = 0
+        center = 0.0
         if self.xlo is not None and self.xhi is not None:
             center = float(self.xhi + self.xlo)/2
         self.xlo = center - float(dx)/2
         self.xhi = center + float(dx)/2
         
     @property
-    def dy(self):
+    def dy(self) -> Optional[float]:
         if self.yhi is None or self.ylo is None:
             return None
         else:
             return self.yhi-self.ylo
         
     @dy.setter
-    def dy(self, dy):
+    def dy(self, dy: float) -> None:
         if dy is None:
             return
-        center = 0
+        center = 0.0
         if self.ylo is not None and self.yhi is not None:
             center = float(self.yhi + self.ylo)/2
         self.ylo = center - float(dy)/2
         self.yhi = center + float(dy)/2
         
     @property
-    def dz(self):
+    def dz(self) -> Optional[float]:
         if self.zhi is None or self.zlo is None:
             return None
         else:
             return self.zhi-self.zlo
         
     @dz.setter
-    def dz(self, dz):
+    def dz(self, dz: float) -> None:
         if dz is None:
             return
-        center = 0
+        center = 0.0
         if self.zlo is not None and self.zhi is not None:
             center = float(self.zhi + self.zlo)/2
         self.zlo = center - float(dz)/2
@@ -1131,44 +1175,44 @@ class System(object):
         molecules: :class:`~pysimm.utils.ItemContainer` for Molecule organization
 
     """
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
 
-        self.objectified = False
+        self.objectified: bool = False
 
-        self.name = kwargs.get('name', 'pySIMM System Object')
-        self.ff_class = kwargs.get('ff_class')
-        self.forcefield = kwargs.get('forcefield')
-        self.dim = Dimension(xlo=kwargs.get('xlo'), xhi=kwargs.get('xhi'),
+        self.name: str = kwargs.get('name', 'pySIMM System Object')
+        self.ff_class: Optional[str] = kwargs.get('ff_class')
+        self.forcefield: Optional[str] = kwargs.get('forcefield')
+        self.dim: Dimension = Dimension(xlo=kwargs.get('xlo'), xhi=kwargs.get('xhi'),
                              ylo=kwargs.get('ylo'), yhi=kwargs.get('yhi'),
                              zlo=kwargs.get('zlo'), zhi=kwargs.get('zhi'),
                              dx=kwargs.get('dx'), dy=kwargs.get('dy'),
                              dz=kwargs.get('dz'), center=kwargs.get('center'))
-        self.dim_check = self.dim.check()
-        self.mass = kwargs.get('mass', 0.0)
-        self.particle_types = kwargs.get('particle_types', ItemContainer())
-        self.bond_types = kwargs.get('bond_types', ItemContainer())
-        self.angle_types = kwargs.get('angle_types', ItemContainer())
-        self.dihedral_types = kwargs.get('dihedral_types', ItemContainer())
-        self.improper_types = kwargs.get('improper_types', ItemContainer())
-        self.molecule_types = kwargs.get('molecule_types', ItemContainer())
-        self.particles = kwargs.get('particles', ItemContainer())
-        self.bonds = kwargs.get('bonds', ItemContainer())
-        self.angles = kwargs.get('angles', ItemContainer())
-        self.dihedrals = kwargs.get('dihedrals', ItemContainer())
-        self.impropers = kwargs.get('impropers', ItemContainer())
-        self.molecules = kwargs.get('molecules', ItemContainer())
-        self.write_coeffs = kwargs.get('write_coeffs', True)
+        self.dim_check: bool = self.dim.check()
+        self.mass: float = kwargs.get('mass', 0.0)
+        self.particle_types: ItemContainer[ParticleType] = kwargs.get('particle_types', ItemContainer())
+        self.bond_types: ItemContainer[BondType] = kwargs.get('bond_types', ItemContainer())
+        self.angle_types: ItemContainer[AngleType] = kwargs.get('angle_types', ItemContainer())
+        self.dihedral_types: ItemContainer[DihedralType] = kwargs.get('dihedral_types', ItemContainer())
+        self.improper_types: ItemContainer[ImproperType] = kwargs.get('improper_types', ItemContainer())
+        self.molecule_types: ItemContainer['Molecule'] = kwargs.get('molecule_types', ItemContainer())
+        self.particles: ItemContainer[Particle] = kwargs.get('particles', ItemContainer())
+        self.bonds: ItemContainer[Bond] = kwargs.get('bonds', ItemContainer())
+        self.angles: ItemContainer[Angle] = kwargs.get('angles', ItemContainer())
+        self.dihedrals: ItemContainer[Dihedral] = kwargs.get('dihedrals', ItemContainer())
+        self.impropers: ItemContainer[Improper] = kwargs.get('impropers', ItemContainer())
+        self.molecules: ItemContainer['Molecule'] = kwargs.get('molecules', ItemContainer())
+        self.write_coeffs: bool = kwargs.get('write_coeffs', True)
 
         self.set_mass()
         self.set_volume()
         self.set_density()
         self.set_cog()
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         return None
 
-    def copy(self, rotate_x=None, rotate_y=None, rotate_z=None,
-             dx=0, dy=0, dz=0):
+    def copy(self, rotate_x: Optional[float] = None, rotate_y: Optional[float] = None, rotate_z: Optional[float] = None,
+             dx: float = 0, dy: float = 0, dz: float = 0) -> 'System':
         """pysimm.system.System.copy
 
         Create duplicate :class:`~pysimm.system.System` object. Default behavior does not modify particle positions.
@@ -1276,7 +1320,7 @@ class System(object):
 
         return new
 
-    def add(self, other, **kwargs):
+    def add(self, other: 'System', **kwargs: Any) -> None:
         """pysimm.system.System.add
 
         Add other :class:`~pysimm.system.System` to this. Optionally remove duplicate types (default behavior).
@@ -1345,7 +1389,7 @@ class System(object):
             if unique_types and p.type not in self.particle_types:
                 pt = self.particle_types.get(p.type.name)
                 if not pt or len(pt) > 1:
-                    error_print('ParticleType error')
+                    raise PysimmError('ParticleType error')
                 else:
                     p.type = pt[0]
             self.particles.add(p)
@@ -1354,7 +1398,7 @@ class System(object):
             if unique_types and b.type not in self.bond_types:
                 bt = self.bond_types.get(b.type.name)
                 if not bt or len(bt) > 1:
-                    error_print('BondType error')
+                    raise PysimmError('BondType error')
                 else:
                     b.type = bt[0]
             self.bonds.add(b)
@@ -1363,7 +1407,7 @@ class System(object):
             if unique_types and a.type not in self.angle_types:
                 at = self.angle_types.get(a.type.name)
                 if not at or len(at) > 1:
-                    error_print('AngleType error')
+                    raise PysimmError('AngleType error')
                 else:
                     a.type = at[0]
             self.angles.add(a)
@@ -1372,7 +1416,7 @@ class System(object):
             if unique_types and d.type not in self.dihedral_types:
                 dt = self.dihedral_types.get(d.type.name)
                 if not dt:
-                    error_print('DihedralType error')
+                    raise PysimmError('DihedralType error')
                 elif len(dt) > 1:
                     index = 0
                     x = 5
@@ -1389,7 +1433,7 @@ class System(object):
             if unique_types and i.type not in self.improper_types:
                 it = self.improper_types.get(i.type.name)
                 if not it:
-                    error_print('ImproperType error')
+                    raise PysimmError('ImproperType error')
                 else:
                     i.type = it[0]
             self.impropers.add(i)
@@ -1409,7 +1453,7 @@ class System(object):
             self.set_cog()
             self.set_velocity()
 
-    def distance(self, p1, p2):
+    def distance(self, p1: Particle, p2: Particle) -> float:
         """pysimm.system.System.distance
 
         Calculate distance between two particles considering pbc.
@@ -1423,7 +1467,7 @@ class System(object):
         """
         return calc.pbc_distance(self, p1, p2)
 
-    def wrap(self):
+    def wrap(self) -> None:
         """pysimm.system.System.wrap
 
         Wrap :class:`~pysimm.system.Particle` images into box defined by :class:`~pysimm.system.Dimension` object.
@@ -1435,22 +1479,17 @@ class System(object):
         Returns:
             None
         """
-        self.dim.check()
-        for p in self.particles:
-            while p.x > self.dim.xhi:
-                p.x -= self.dim.dx
-            while p.x < self.dim.xlo:
-                p.x += self.dim.dx
-            while p.y > self.dim.yhi:
-                p.y -= self.dim.dy
-            while p.y < self.dim.ylo:
-                p.y += self.dim.dy
-            while p.z > self.dim.zhi:
-                p.z -= self.dim.dz
-            while p.z < self.dim.zlo:
-                p.z += self.dim.dz
+        if not self.dim.check():
+            return
 
-    def unwrap(self):
+        box_dims = np.array([self.dim.dx, self.dim.dy, self.dim.dz])
+        box_lo = np.array([self.dim.xlo, self.dim.ylo, self.dim.zlo])
+
+        for p in self.particles:
+            if p.pos is not None:
+                p.pos = box_lo + (p.pos - box_lo) % box_dims
+
+    def unwrap(self) -> bool:
         """pysimm.system.System.unwrap()
 
         Unwraps :class:`~pysimm.system.Particle` images such that no bonds cross box edges.
@@ -1467,45 +1506,56 @@ class System(object):
         for p in self.particles:
             p.unwrapped = False
         for m in self.molecules:
-            for p0 in m.particles:
-                p0.unwrapped = True
-                next_to_unwrap.append(p0)
-                for p in next_to_unwrap:
+            # Find a starting particle for the molecule that hasn't been unwrapped
+            start_particle = None
+            for p_mol in m.particles:
+                if not p_mol.unwrapped:
+                    start_particle = p_mol
+                    break
+
+            if start_particle:
+                next_to_unwrap.append(start_particle)
+                start_particle.unwrapped = True
+
+                head = 0
+                while head < len(next_to_unwrap):
+                    p = next_to_unwrap[head]
+                    head += 1
+
                     for pb in p.bonded_to:
-                        if pb.unwrapped:
-                            continue
-                        next_to_unwrap.append(pb)
-                        pb.unwrapped = True
-                        dx = p.x - pb.x
-                        while abs(dx) > self.dim.dx / 2:
-                            if dx > 0:
-                                pb.x += self.dim.dx
-                            else:
-                                pb.x -= self.dim.dx
+                        if not pb.unwrapped:
                             dx = p.x - pb.x
-                        dy = p.y - pb.y
-                        while abs(dy) > self.dim.dy / 2:
-                            if dy > 0:
-                                pb.y += self.dim.dy
-                            else:
-                                pb.y -= self.dim.dy
+                            while abs(dx) > self.dim.dx / 2:
+                                if dx > 0:
+                                    pb.x += self.dim.dx
+                                else:
+                                    pb.x -= self.dim.dx
+                                dx = p.x - pb.x
                             dy = p.y - pb.y
-                        dz = p.z - pb.z
-                        while abs(dz) > self.dim.dz / 2:
-                            if dz > 0:
-                                pb.z += self.dim.dz
-                            else:
-                                pb.z -= self.dim.dz
+                            while abs(dy) > self.dim.dy / 2:
+                                if dy > 0:
+                                    pb.y += self.dim.dy
+                                else:
+                                    pb.y -= self.dim.dy
+                                dy = p.y - pb.y
                             dz = p.z - pb.z
+                            while abs(dz) > self.dim.dz / 2:
+                                if dz > 0:
+                                    pb.z += self.dim.dz
+                                else:
+                                    pb.z -= self.dim.dz
+                                dz = p.z - pb.z
+                            pb.unwrapped = True
+                            next_to_unwrap.append(pb)
 
         for b in self.bonds:
-            if b.distance() > 5:
-                print('unwrap probably failed')
-                return False
+            dist = b.distance()
+            if dist is not None and dist > 5: # A reasonable threshold for a bond length
+                warning_print('unwrap probably failed for bond %d between particles %d and %d with distance %f' % (b.tag, b.a.tag, b.b.tag, dist))
 
         return True
         
-    def particles_df(self, columns=['tag', 'x', 'y', 'z', 'q'], index='tag', extras=[]):
+    def particles_df(self, columns: List[str] = ['tag', 'x', 'y', 'z', 'q'], index: str = 'tag', extras: List[str] = []) -> DataFrame:
         if pd is None:
             raise PysimmError('pysimm.system.System.particles_df function requires pandas')
         data = [{c: getattr(p, c) for c in columns} for p in self.particles]
@@ -1520,7 +1570,7 @@ class System(object):
             df = df.set_index(index)
         return df
         
-    def unite_atoms(self):
+    def unite_atoms(self) -> None:
         for p in self.particles:
             p.implicit_h = 0
             if p.elem != 'C':
@@ -1533,7 +1583,7 @@ class System(object):
                     self.particles.remove(pb.tag, update=False)
         self.remove_spare_bonding()
 
-    def quality(self, tolerance=0.1):
+    def quality(self, tolerance: float = 0.1) -> int:
         """pysimm.system.System.quality
 
         Attemps to assess quality of :class:`~pysimm.system.System` based on bond lengths in unwrapped system.
@@ -1553,7 +1603,7 @@ class System(object):
         self.wrap()
         return bad_bonds
 
-    def shift_to_origin(self):
+    def shift_to_origin(self) -> None:
         """pysimm.system.System.shift_to_origin
 
         Shifts simulation box to begin at origin. i.e. xlo=ylo=zlo=0
@@ -1575,7 +1625,7 @@ class System(object):
         self.dim.ylo -= self.dim.ylo
         self.dim.zlo -= self.dim.zlo
 
-    def set_charge(self):
+    def set_charge(self) -> None:
         """pysimm.system.System.set_charge
 
         Sets total charge of all :class:`~pysimm.system.Particle` objects in System.particles
@@ -1590,7 +1640,7 @@ class System(object):
         for p in self.particles:
             self.charge += p.charge
 
-    def zero_charge(self):
+    def zero_charge(self) -> None:
         """pysimm.system.System.zero_charge
 
         Enforces total :class:`~pysimm.system.System` charge to be 0.0 by subtracting excess charge from last particle
@@ -1608,7 +1658,7 @@ class System(object):
             p.charge -= charge
         self.set_charge()
 
-    def check_items(self):
+    def check_items(self) -> None:
         """pysimm.system.System.check_items
 
         Checks particles, bonds, angles, dihedrals, impropers, and molecules containers and raises exception if the length of items in the container does not equal the count property
@@ -1632,7 +1682,7 @@ class System(object):
         if len(self.molecules) != self.molecules.count:
             raise PysimmError('molecules missing')
             
-    def update_ff_types_from_ac(self, ff, acname):
+    def update_ff_types_from_ac(self, ff: 'Forcefield', acname: str) -> None:
         """pysimm.system.System.update_ff_types_from_ac
 
         Updates :class:`~pysimm.system.ParticleType` objects in system using type names given in antechamber (ac) file. Retrieves type from System if possible, then searches force field provided by ff.
@@ -1659,7 +1709,7 @@ class System(object):
                     self.particles[tag].type = self.particle_types.get(tname)[0]
                     
 
-    def update_particle_types_from_forcefield(self, f):
+    def update_particle_types_from_forcefield(self, f: 'Forcefield') -> None:
         """pysimm.system.System.update_types_from_forcefield
 
         Updates :class:`~pysimm.system.ParticleType` data from :class:`~pysimm.forcefield.Forcefield` object f based on :class:`~pysimm.system.ParticleType`.name
@@ -1684,7 +1734,7 @@ class System(object):
                 self.particle_types.remove(pt.tag)
                 self.particle_types.add(new)
 
-    def make_linker_types(self):
+    def make_linker_types(self) -> None:
         """pysimm.system.System.make_linker_types
 
         Identifies linker particles and creates duplicate :class:`~pysimm.system.ParticleType objects with new names.
@@ -1723,7 +1773,7 @@ class System(object):
                     p.type.name = 'L@%s' % p.type.name
                     self.particle_types.add(p.type)
 
-    def remove_linker_types(self):
+    def remove_linker_types(self) -> None:
         """pysimm.system.System.remove_linker_types
 
         Reassigns :class:`~pysimm.system.Particle`.type references to original :class:`~pysimm.system.ParticleType` objects without linker prepend
@@ -1744,7 +1794,7 @@ class System(object):
                           % p.type.name)
             
                           
-    def read_lammps_dump(self, fname):
+    def read_lammps_dump(self, fname: str) -> None:
         """pysimm.system.System.read_lammps_dump
 
         Updates particle positions and box size from LAMMPS dump file.
@@ -1786,7 +1836,7 @@ class System(object):
                             p.vz = vz
                 line = f.readline()
 
-    def read_lammpstrj(self, trj, frame=1):
+    def read_lammpstrj(self, trj: str, frame: int = 1) -> None:
         """pysimm.system.System.read_lammpstrj
 
         Updates particle positions and box size from LAMMPS trajectory file at given frame.
@@ -1839,8 +1889,7 @@ class System(object):
                         elif len(line) == 8:
                             id_, type_, x, y, z, ix, iy, iz = map(float, line)
                         else:
-                            error_print('cannot understand lammpstrj formatting; exiting')
-                            return
+                            raise PysimmError('cannot understand lammpstrj formatting; exiting')
                         id_ = int(id_)
                         if self.particles[id_]:
                             updated += 1
@@ -1851,7 +1900,7 @@ class System(object):
 
         verbose_print('updated particle positions for %s of %s particles from trajectory' % (updated, nparticles))
 
-    def read_xyz(self, xyz, frame=1, quiet=False):
+    def read_xyz(self, xyz: str, frame: int = 1, quiet: bool = False) -> None:
         """pysimm.system.System.read_xyz
 
         Updates particle positions and box size from xyz file at given frame
@@ -1893,7 +1942,7 @@ class System(object):
                           % (self.particles.count, xyz))
                 line = f.readline()
 
-    def update_types(self, ptypes, btypes, atypes, dtypes, itypes):
+    def update_types(self, ptypes: ItemContainer[ParticleType], btypes: ItemContainer[BondType], atypes: ItemContainer[AngleType], dtypes: ItemContainer[DihedralType], itypes: ItemContainer[ImproperType]) -> None:
         """pysimm.system.System.update_types
 
         Updates type objects from a given list of types.
@@ -1950,7 +1999,7 @@ class System(object):
             for it in itypes:
                 self.improper_types.add(it)
 
-    def read_type_names(self, types_file):
+    def read_type_names(self, types_file: str) -> None:
         """pysimm.system.System.read_type_names
 
         Update :class:`~pysimm.system.ParticleType` names from file.
@@ -1961,38 +2010,38 @@ class System(object):
         Returns:
             None
         """
-        ptypes = dict()
-        btypes = dict()
-        atypes = dict()
-        dtypes = dict()
-        itypes = dict()
+        ptypes: Dict[int, str] = dict()
+        btypes: Dict[int, str] = dict()
+        atypes: Dict[int, str] = dict()
+        dtypes: Dict[int, str] = dict()
+        itypes: Dict[int, str] = dict()
 
         if os.path.isfile(types_file):
             f = open(types_file)
         elif isinstance(types_file, str):
             f = StringIO(types_file)
         for line in f:
-            line = line.split()
-            if line and line[0].lower() == 'atom':
+            line_split = line.split()
+            if line_split and line_split[0].lower() == 'atom':
                 for i in range(self.particle_types.count):
-                    line = next(f).split()
-                    ptypes[int(line[0])] = line[1]
-            elif line and line[0].lower() == 'bond':
+                    line_split = next(f).split()
+                    ptypes[int(line_split[0])] = line_split[1]
+            elif line_split and line_split[0].lower() == 'bond':
                 for i in range(self.bond_types.count):
-                    line = next(f).split()
-                    btypes[int(line[0])] = line[1]
-            elif line and line[0].lower() == 'angle':
+                    line_split = next(f).split()
+                    btypes[int(line_split[0])] = line_split[1]
+            elif line_split and line_split[0].lower() == 'angle':
                 for i in range(self.angle_types.count):
-                    line = next(f).split()
-                    atypes[int(line[0])] = line[1]
-            elif line and line[0].lower() == 'dihedral':
+                    line_split = next(f).split()
+                    atypes[int(line_split[0])] = line_split[1]
+            elif line_split and line_split[0].lower() == 'dihedral':
                 for i in range(self.dihedral_types.count):
-                    line = next(f).split()
-                    dtypes[int(line[0])] = line[1]
-            elif line and line[0].lower() == 'improper':
+                    line_split = next(f).split()
+                    dtypes[int(line_split[0])] = line_split[1]
+            elif line_split and line_split[0].lower() == 'improper':
                 for i in range(self.improper_types.count):
-                    line = next(f).split()
-                    itypes[int(line[0])] = line[1]
+                    line_split = next(f).split()
+                    itypes[int(line_split[0])] = line_split[1]
 
         for t in self.particle_types:
             t.name = ptypes[t.tag]
@@ -2015,7 +2064,7 @@ class System(object):
             t.name = itypes[t.tag]
             t.rname = ','.join(reversed(t.name.split(',')))
 
-    def remove_spare_bonding(self, update_tags=True):
+    def remove_spare_bonding(self, update_tags: bool = True) -> None:
         """pysimm.system.System.remove_spare_bonding
 
         Removes bonds, angles, dihedrals and impropers that reference particles not in :class:`~pysimm.system.System`.particles
@@ -2045,7 +2094,7 @@ class System(object):
         if update_tags:
             self.update_tags()
 
-    def update_tags(self):
+    def update_tags(self) -> None:
         """pysimm.system.System.update_tags
 
         Update Item tags in :class:`~pysimm.utils.ItemContainer` objects to preserve continuous tags. Removes all objects and then reinserts them.
@@ -2116,7 +2165,7 @@ class System(object):
             del it.tag
             self.improper_types.add(it)
 
-    def set_references(self):
+    def set_references(self) -> None:
         """pysimm.system.System.set_references
 
         Set object references when :class:`~pysimm.system.System` information read from text file.
@@ -2132,38 +2181,38 @@ class System(object):
             if isinstance(p.type, int) and self.particle_types[p.type]:
                 p.type = self.particle_types[p.type]
             elif isinstance(p.type, int) and not self.particle_types[p.type]:
-                error_print('error: Cannot find type with tag %s in system '
-                            'particles types' % p.type)
+                raise PysimmError('error: Cannot find type with tag %s in system '
+                                  'particles types' % p.type)
 
         for b in self.bonds:
             if isinstance(b.type, int) and self.bond_types[b.type]:
                 b.type = self.bond_types[b.type]
             elif isinstance(b.type, int) and not self.bond_types[b.type]:
-                error_print('error: Cannot find type with tag %s in system '
-                            'bond types' % b.type)
+                raise PysimmError('error: Cannot find type with tag %s in system '
+                                  'bond types' % b.type)
 
         for a in self.angles:
             if isinstance(a.type, int) and self.angle_types[a.type]:
                 a.type = self.angle_types[a.type]
-            elif isinstance(b.type, int) and not self.angle_types[a.type]:
-                error_print('error: Cannot find type with tag %s in system '
-                            'angle types' % a.type)
+            elif isinstance(a.type, int) and not self.angle_types[a.type]:
+                raise PysimmError('error: Cannot find type with tag %s in system '
+                                  'angle types' % a.type)
 
         for d in self.dihedrals:
             if isinstance(d.type, int) and self.dihedral_types[d.type]:
                 d.type = self.dihedral_types[d.type]
             elif isinstance(d.type, int) and not self.dihedral_types[d.type]:
-                error_print('error: Cannot find type with tag %s in system '
-                            'dihedral types' % d.type)
+                raise PysimmError('error: Cannot find type with tag %s in system '
+                                  'dihedral types' % d.type)
 
         for i in self.impropers:
             if isinstance(i.type, int) and self.improper_types[i.type]:
                 i.type = self.improper_types[i.type]
             elif isinstance(i.type, int) and not self.improper_types[i.type]:
-                error_print('error: Cannot find type with tag %s in system '
-                            'improper types' % i.type)
+                raise PysimmError('error: Cannot find type with tag %s in system '
+                                  'improper types' % i.type)
 
-    def objectify(self):
+    def objectify(self) -> Optional[str]:
         """pysimm.system.System.objectify
 
         Set references for :class:`~pysimm.system.Bond`, :class:`~pysimm.system.Angle`, :class:`~pysimm.system.Dihedral`, :class:`~pysimm.system.Improper` objects.
@@ -2196,7 +2245,7 @@ class System(object):
                     setattr(p, prop, ItemContainer())
 
         for b in self.bonds:
-            if type(b.a) == int:
+            if isinstance(b.a, int):
                 b.a = self.particles[b.a]
                 b.b = self.particles[b.b]
                 b.a.bonds.add(b)
@@ -2204,14 +2253,14 @@ class System(object):
                 if b.a.molecule:
                     b.a.molecule.bonds.add(b)
         for a in self.angles:
-            if type(a.a) == int:
+            if isinstance(a.a, int):
                 a.a = self.particles[a.a]
                 a.b = self.particles[a.b]
                 a.c = self.particles[a.c]
                 if a.a.molecule:
                     a.a.molecule.angles.add(a)
         for d in self.dihedrals:
-            if type(d.a) == int:
+            if isinstance(d.a, int):
                 d.a = self.particles[d.a]
                 d.b = self.particles[d.b]
                 d.c = self.particles[d.c]
@@ -2219,7 +2268,7 @@ class System(object):
                 if d.a.molecule:
                     d.a.molecule.dihedrals.add(d)
         for i in self.impropers:
-            if type(i.a) == int:
+            if isinstance(i.a, int):
                 i.a = self.particles[i.a]
                 i.b = self.particles[i.b]
                 i.c = self.particles[i.c]
@@ -2227,8 +2276,9 @@ class System(object):
                 if i.a.molecule:
                     i.a.molecule.impropers.add(i)
         self.objectified = True
+        return None
 
-    def add_particle_bonding(self):
+    def add_particle_bonding(self) -> None:
         """pysimm.system.System.add_particle_bonding
 
         Update :class:`~pysimm.system.Particle` objects such that :class:`~pysimm.system.Particle`.bonded_to contains other :class:`~pysimm.system.Particle` objects invloved in bonding
@@ -2248,7 +2298,7 @@ class System(object):
             b.b.bonded_to.add(b.a)
             b.b.bonds.add(b)
 
-    def set_excluded_particles(self, bonds=True, angles=True, dihedrals=True):
+    def set_excluded_particles(self, bonds: bool = True, angles: bool = True, dihedrals: bool = True) -> None:
         """pysimm.system.System.set_excluded_particles
 
         Updates :class:`~pysimm.system.Particle` object such that :class:`~pysimm.system.Particle`.excluded_particles contains other :class:`~pysimm.system.Particle` objects involved in
@@ -2312,7 +2362,7 @@ class System(object):
                 if d.d.tag < d.c.tag:
                     d.d.excluded_particles.add(d.c)
 
-    def set_atomic_numbers(self):
+    def set_atomic_numbers(self) -> None:
         """pysimm.system.System.set_atomic_numbers
 
         Updates :class:`~pysimm.system.ParticleType` objects with atomic number based on :class:`~pysimm.system.ParticleType`.elem
@@ -2369,7 +2419,7 @@ class System(object):
             elif pt.elem == 'I':
                 pt.atomic_number = 53
 
-    def add_particle_bonded_to(self, p, p0, f=None, sep=1.5):
+    def add_particle_bonded_to(self, p: Particle, p0: Particle, f: Optional['Forcefield'] = None, sep: float = 1.5) -> Particle:
         """pysimm.system.System.add_particle_bonded_to
 
         Add new :class:`~pysimm.system.Particle` to :class:`~pysimm.system.System` bonded to p0 and automatically update new forcefield types
@@ -2404,7 +2454,7 @@ class System(object):
                         self.add_dihedral(p_b, p_, p0, p, f)
         return p
 
-    def add_particle(self, p):
+    def add_particle(self, p: Particle) -> None:
         """pysimm.system.System.add_particle
 
         Add new :class:`~pysimm.system.Particle` to :class:`~pysimm.system.System`.
@@ -2417,7 +2467,7 @@ class System(object):
         """
         self.particles.add(p)
 
-    def rotate(self, around=None, theta_x=0, theta_y=0, theta_z=0, rot_matrix=None):
+    def rotate(self, around: Optional[Union[Particle, List[float]]] = None, theta_x: float = 0, theta_y: float = 0, theta_z: float = 0, rot_matrix: Optional[NDArray[np.float64]] = None) -> None:
         """pysimm.system.System.rotate
 
         *** REQUIRES NUMPY ***
@@ -2448,7 +2498,7 @@ class System(object):
         elif isinstance(around, Particle):
             around = [around.x, around.y, around.z]
         if (isinstance(around, list) and len(around) == 3 and
-                len(set([isinstance(x, float) for x in around])) == 1 and isinstance(around[0], float)):
+                all(isinstance(x, float) for x in around)):
             for p in self.particles:
                 p.x -= around[0]
                 p.y -= around[1]
@@ -2461,7 +2511,7 @@ class System(object):
                 p.y += around[1]
                 p.z += around[2]
 
-    def make_new_bonds(self, p1=None, p2=None, f=None, angles=True, dihedrals=True, impropers=True):
+    def make_new_bonds(self, p1: Particle, p2: Particle, f: Optional['Forcefield'] = None, angles: bool = True, dihedrals: bool = True, impropers: bool = True) -> None:
         """pysimm.system.System.make_new_bonds
 
         Makes new bond between two particles and updates new force field types
@@ -2540,7 +2590,7 @@ class System(object):
                     if unique:
                         self.add_improper(p2, perm[0], perm[1], perm[2], f)
 
-    def add_bond(self, a=None, b=None, f=None):
+    def add_bond(self, a: Particle, b: Particle, f: Optional['Forcefield'] = None) -> None:
         """pysimm.system.System.add_bond
 
         Add :class:`~pysimm.system.Bond` to system between two particles
@@ -2579,7 +2629,7 @@ class System(object):
                         % (a_name, b_name))
             return
 
-    def add_angle(self, a=None, b=None, c=None, f=None):
+    def add_angle(self, a: Particle, b: Particle, c: Particle, f: Optional['Forcefield'] = None) -> None:
         """pysimm.system.System.add_angle
 
         Add :class:`~pysimm.system.Angle` to system between three particles
@@ -2629,7 +2679,7 @@ class System(object):
                         % (a_name, b_name, c_name))
             return
 
-    def add_dihedral(self, a=None, b=None, c=None, d=None, f=None):
+    def add_dihedral(self, a: Particle, b: Particle, c: Particle, d: Particle, f: Optional['Forcefield'] = None) -> None:
         """pysimm.system.System.add_dihedral
 
         Add :class:`~pysimm.system.Dihedral` to system between four particles
@@ -2684,7 +2734,7 @@ class System(object):
             error_print('tags: %s %s %s %s' % (a.tag, b.tag, c.tag, d.tag))
             return
 
-    def add_improper(self, a=None, b=None, c=None, d=None, f=None):
+    def add_improper(self, a: Particle, b: Particle, c: Particle, d: Particle, f: Optional['Forcefield'] = None) -> None:
         """pysimm.system.System.add_improper
 
         Add :class:`~pysimm.system.Improper` to system between four particles
@@ -2738,7 +2788,7 @@ class System(object):
         else:
             return
 
-    def check_forcefield(self):
+    def check_forcefield(self) -> None:
         """pysimm.system.System.check_forcefield
 
         Iterates through particles and prints the following:
@@ -2763,8 +2813,8 @@ class System(object):
             p.nbonds = len(p.bond_elements)
             print(p.tag, p.type.name, p.type.elem, p.type.desc, p.bond_elements)
 
-    def apply_forcefield(self, f, charges='default', set_box=True, box_padding=10,
-                         update_ptypes=False, skip_ptypes=False):
+    def apply_forcefield(self, f: 'Forcefield', charges: str = 'default', set_box: bool = True, box_padding: float = 10,
+                         update_ptypes: bool = False, skip_ptypes: bool = False) -> None:
         """pysimm.system.System.apply_forcefield
 
         Applies force field data to :class:`~pysimm.system.System` based on typing rules defined in :class:`~pysimm.forcefield.Forcefield` object f
@@ -2800,7 +2850,7 @@ class System(object):
         if set_box:
             self.set_box(box_padding, center=False)
 
-    def apply_charges(self, f, charges='default'):
+    def apply_charges(self, f: 'Forcefield', charges: str = 'default') -> None:
         """pysimm.system.System.apply_charges
 
         Applies charges derived using method provided by user. Defaults to 'default'.
@@ -2815,7 +2865,7 @@ class System(object):
         """
         f.assign_charges(self, charges=charges)
         
-    def write_lammps_mol(self, out_data):
+    def write_lammps_mol(self, out_data: str) -> Optional[str]:
         """pysimm.system.System.write_lammps_mol
 
         Write :class:`~pysimm.system.System` data formatted as LAMMPS molecule template
@@ -2894,9 +2944,10 @@ class System(object):
             return s
         else:
             out_file.close()
+            return None
         
 
-    def write_lammps(self, out_data, **kwargs):
+    def write_lammps(self, out_data: str, **kwargs: Any) -> Optional[str]:
         """pysimm.system.System.write_lammps
 
         Write :class:`~pysimm.system.System` data formatted for LAMMPS
@@ -3101,8 +3152,9 @@ class System(object):
             return s
         else:
             out_file.close()
+            return None
             
-    def write_xyz(self, outfile='data.xyz', **kwargs):
+    def write_xyz(self, outfile: str = 'data.xyz', **kwargs: Any) -> Optional[str]:
         """pysimm.system.System.write_xyz
 
         Write :class:`~pysimm.system.System` data in xyz format
@@ -3138,8 +3190,9 @@ class System(object):
             return s
         else:
             out.close()
+            return None
 
-    def write_chemdoodle_json(self, outfile, **kwargs):
+    def write_chemdoodle_json(self, outfile: str, **kwargs: Any) -> Optional[str]:
         """pysimm.system.System.write_chemdoodle_json
 
         Write :class:`~pysimm.system.System` data in chemdoodle json format
@@ -3185,8 +3238,9 @@ class System(object):
             return s
         else:
             out.close()
+            return None
 
-    def write_mol(self, outfile='data.mol'):
+    def write_mol(self, outfile: str = 'data.mol') -> Optional[str]:
         """pysimm.system.System.write_mol
 
         Write :class:`~pysimm.system.System` data in mol format
@@ -3235,8 +3289,9 @@ class System(object):
             return s
         else:
             out.close()
+            return None
 
-    def write_pdb(self, outfile='data.pdb', type_names=True):
+    def write_pdb(self, outfile: str = 'data.pdb', type_names: bool = True) -> Optional[str]:
         """pysimm.system.System.write_pdb
 
         Write :class:`~pysimm.system.System` data in pdb format
@@ -3287,8 +3342,9 @@ class System(object):
             return s
         else:
             out.close()
+            return None
 
-    def write_yaml(self, file_):
+    def write_yaml(self, file_: str) -> Optional[str]:
         """pysimm.system.System.write_yaml
 
         Write :class:`~pysimm.system.System` data in yaml format
@@ -3329,8 +3385,9 @@ class System(object):
 
         with open(file_, 'w') as f:
             f.write(json.dumps(s, indent=4, separators=(',', ': ')))
+        return None
 
-    def write_cssr(self, outfile='data.cssr', **kwargs):
+    def write_cssr(self, outfile: str = 'data.cssr', **kwargs: Any) -> Optional[str]:
         """pysimm.system.System.write_cssr
 
         Write :class:`~pysimm.system.System` data in cssr format
@@ -3415,8 +3472,9 @@ class System(object):
             return s
         else:
             out.close()
+            return None
 
-    def consolidate_types(self):
+    def consolidate_types(self) -> None:
         """pysimm.system.System.consolidate_types
 
         Removes duplicate types and reassigns references
@@ -3467,7 +3525,7 @@ class System(object):
                             i.type = it
                     self.improper_types.remove(dup.tag)
 
-    def set_cog(self):
+    def set_cog(self) -> None:
         """pysimm.system.System.set_cog
 
         Calculate center of gravity of :class:`~pysimm.system.System` and assign to :class:`~pysimm.system.System`.cog
@@ -3478,15 +3536,16 @@ class System(object):
         Returns:
             None
         """
-        self.cog = [0, 0, 0]
-        for p in self.particles:
-            self.cog[0] += p.x
-            self.cog[1] += p.y
-            self.cog[2] += p.z
-        if self.particles.count:
-            self.cog = [c / self.particles.count for c in self.cog]
+        if self.particles.count > 0:
+            all_pos = np.array([p.pos for p in self.particles if p.pos is not None])
+            if all_pos.size > 0:
+                self.cog = np.mean(all_pos, axis=0).tolist()
+            else:
+                self.cog = [0., 0., 0.]
+        else:
+            self.cog = [0., 0., 0.]
         
-    def shift_particles(self, shiftx, shifty, shiftz):
+    def shift_particles(self, shiftx: float, shifty: float, shiftz: float) -> None:
         """pysimm.system.System.shift_particles
 
         Shifts all particles by shiftx, shifty, shiftz. Recalculates cog.
@@ -3503,7 +3562,7 @@ class System(object):
             p.translate(shiftx, shifty, shiftz)
         self.set_cog()
             
-    def center(self, what='particles', at=[0, 0, 0], move_both=True):
+    def center(self, what: str = 'particles', at: List[float] = [0, 0, 0], move_both: bool = True) -> None:
         """pysimm.system.System.center
 
         Centers particles center of geometry or simulation box at given coordinate. A vector is defined based on the current coordinate for the center of either the particles or the simulation box and the "at" parameter. This shift vector is applied to the entity defined by the "what" parameter. Optionally, both the particles and the box can be shifted by the same vector.
@@ -3532,7 +3591,7 @@ class System(object):
         else:
             error_print('can only choose to center "particles" or "box"')
 
-    def center_system(self):
+    def center_system(self) -> None:
         """pysimm.system.System.center_system
 
         DEPRECATED: Use :class:`~pysimm.system.System`.center('box', [0, 0, 0], True) instead
@@ -3545,7 +3604,7 @@ class System(object):
         warning_print("DEPRECATED: Use System.center('box', [0, 0, 0], True) instead of System.center_system())")
         self.center('box', [0, 0, 0], True)
 
-    def center_at_origin(self):
+    def center_at_origin(self) -> None:
         """pysimm.system.System.center_at_origin
 
         DEPRECATED: Use :class:`~pysimm.system.System`.center('particles', [0, 0, 0], True) instead
@@ -3559,7 +3618,7 @@ class System(object):
         warning_print("DEPRECATED: Use System.center('particles', [0, 0, 0], True) instead of System.center_at_origin())")
         self.center('particles', [0, 0, 0], True)
 
-    def set_mass(self):
+    def set_mass(self) -> None:
         """pysimm.system.System.set_mass
 
         Set total mass of particles in :class:`~pysimm.system.System`
@@ -3572,13 +3631,14 @@ class System(object):
         """
         self.mass = 0
         for p in self.particles:
-            if p.type.mass is None:
+            if p.type and p.type.mass is not None:
+                self.mass += p.type.mass
+            else:
                 self.mass = 0
                 warning_print('Some particles do not have a mass')
                 break
-            self.mass += p.type.mass
 
-    def set_volume(self):
+    def set_volume(self) -> None:
         """pysimm.system.System.set_volume
 
         Set volume of :class:`~pysimm.system.System` based on Dimension
@@ -3590,11 +3650,9 @@ class System(object):
             None
         """
         if self.dim.check():
-            self.volume = ((self.dim.xhi - self.dim.xlo) *
-                           (self.dim.yhi - self.dim.ylo) *
-                           (self.dim.zhi - self.dim.zlo))
+            self.volume = self.dim.dx * self.dim.dy * self.dim.dz
 
-    def set_density(self):
+    def set_density(self) -> None:
         """pysimm.system.System.set_density
 
         Calculate density of :class:`~pysimm.system.System` from mass and volume
@@ -3610,7 +3668,7 @@ class System(object):
         if self.mass and self.volume:
             self.density = self.mass / 6.02e23 / self.volume * 1e24
 
-    def set_velocity(self):
+    def set_velocity(self) -> None:
         """pysimm.system.System.set_velocity
 
         Calculate total velocity of particles in :class:`~pysimm.system.System`
@@ -3635,7 +3693,7 @@ class System(object):
                 p.vz = 0
             self.vz += p.vz
 
-    def zero_velocity(self):
+    def zero_velocity(self) -> None:
         """pysimm.system.System.zero_velocity
 
         Enforce zero shift velocity in :class:`~pysimm.system.System`
@@ -3661,7 +3719,7 @@ class System(object):
                 p.vz -= shift_z
         self.set_velocity()
 
-    def set_box(self, padding=0., center=True):
+    def set_box(self, padding: float = 0., center: bool = True) -> None:
         """pysimm.system.System.set_box
 
         Update :class:`~pysimm.system.System`.dim with user defined padding. Used to construct a simulation box if it doesn't exist, or adjust the size of the simulation box following system modifications.
@@ -3698,7 +3756,7 @@ class System(object):
         if center:
             self.center('particles', [0, 0, 0], True)
         
-    def set_mm_dist(self, molecules=None):
+    def set_mm_dist(self, molecules: Optional[ItemContainer['Molecule']] = None) -> None:
         """pysimm.system.System.set_mm_dist
 
         Calculate molecular mass distribution (mainly for polymer systems).
@@ -3727,7 +3785,7 @@ class System(object):
         self.dispersity = self.mw / self.mn
         self.pdi = self.mw / self.mn
 
-    def set_frac_free_volume(self, v_void=None):
+    def set_frac_free_volume(self, v_void: Optional[float] = None) -> None:
         """pysimm.system.System.set_frac_free_volume
 
         Calculates fractional free volume from void volume and bulk density
@@ -3750,7 +3808,7 @@ class System(object):
         if not self.frac_free_volume or self.frac_free_volume < 0:
             self.frac_free_volume = 0.0
 
-    def visualize(self, vis_exec='vmd', **kwargs):
+    def visualize(self, vis_exec: str = 'vmd', **kwargs: Any) -> None:
         """pysimm.system.System.visualize
 
         Visualize system in third party software with given executable. Software must accept pdb or xyz as first
@@ -3788,7 +3846,7 @@ class System(object):
 
         os.remove(name_)
 
-    def viz(self, **kwargs):
+    def viz(self, **kwargs: Any) -> None:
         self.visualize(vis_exec='vmd', unwrap=False, format='xyz', **kwargs)
 
 
@@ -3797,14 +3855,14 @@ class Molecule(System):
 
     Very similar to :class:`~pysimm.system.System`, but requires less information
     """
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         System.__init__(self, **kwargs)
         mt = kwargs.get('tag')
         if mt and isinstance(mt, int):
             self.tag = mt
 
 
-def read_yaml(file_, **kwargs):
+def read_yaml(file_: str, **kwargs: Any) -> 'System':
     """pysimm.system.read_yaml
 
     Interprets yaml file and creates :class:`~pysimm.system.System` object
@@ -3973,7 +4031,7 @@ def read_yaml(file_, **kwargs):
     return s
 
 
-def read_xyz(file_, **kwargs):
+def read_xyz(file_: str, **kwargs: Any) -> 'System':
     """pysimm.system.read_xyz
 
     Interprets xyz file and creates :class:`~pysimm.system.System` object
@@ -4022,7 +4080,7 @@ def read_xyz(file_, **kwargs):
 
     return s
     
-def read_chemdoodle_json(file_, **kwargs):
+def read_chemdoodle_json(file_: str, **kwargs: Any) -> 'System':
     """pysimm.system.read_chemdoodle_json
 
     Interprets ChemDoodle JSON (Java Script Object Notation) file and creates :class:`~pysimm.system.System` object
@@ -4064,7 +4122,7 @@ def read_chemdoodle_json(file_, **kwargs):
     return s
 
 
-def read_lammps(data_file, **kwargs):
+def read_lammps(data_file: str, **kwargs: Any) -> 'System':
     """pysimm.system.read_lammps
 
     Interprets LAMMPS data file and creates :class:`~pysimm.system.System` object
@@ -4120,37 +4178,37 @@ def read_lammps(data_file, **kwargs):
     nimpropers = nimproper_types = 0
 
     for line in f:
-        line = line.split()
-        if len(line) > 1 and line[1] == 'atoms':
-            nparticles = int(line[0])
-        elif len(line) > 1 and line[1] == 'atom':
-            nparticle_types = int(line[0])
-        elif len(line) > 1 and line[1] == 'bonds':
-            nbonds = int(line[0])
-        elif len(line) > 1 and line[1] == 'bond':
-            nbond_types = int(line[0])
-        elif len(line) > 1 and line[1] == 'angles':
-            nangles = int(line[0])
-        elif len(line) > 1 and line[1] == 'angle':
-            nangle_types = int(line[0])
-        elif len(line) > 1 and line[1] == 'dihedrals':
-            ndihedrals = int(line[0])
-        elif len(line) > 1 and line[1] == 'dihedral':
-            ndihedral_types = int(line[0])
-        elif len(line) > 1 and line[1] == 'impropers':
-            nimpropers = int(line[0])
-        elif len(line) > 1 and line[1] == 'improper':
-            nimproper_types = int(line[0])
-        elif len(line) > 3 and line[2] == 'xlo':
-            s.dim.xlo = float(line[0])
-            s.dim.xhi = float(line[1])
-        elif len(line) > 3 and line[2] == 'ylo':
-            s.dim.ylo = float(line[0])
-            s.dim.yhi = float(line[1])
-        elif len(line) > 3 and line[2] == 'zlo':
-            s.dim.zlo = float(line[0])
-            s.dim.zhi = float(line[1])
-        elif len(line) > 0 and line[0] == 'Masses':
+        line_split = line.split()
+        if len(line_split) > 1 and line_split[1] == 'atoms':
+            nparticles = int(line_split[0])
+        elif len(line_split) > 1 and line_split[1] == 'atom':
+            nparticle_types = int(line_split[0])
+        elif len(line_split) > 1 and line_split[1] == 'bonds':
+            nbonds = int(line_split[0])
+        elif len(line_split) > 1 and line_split[1] == 'bond':
+            nbond_types = int(line_split[0])
+        elif len(line_split) > 1 and line_split[1] == 'angles':
+            nangles = int(line_split[0])
+        elif len(line_split) > 1 and line_split[1] == 'angle':
+            nangle_types = int(line_split[0])
+        elif len(line_split) > 1 and line_split[1] == 'dihedrals':
+            ndihedrals = int(line_split[0])
+        elif len(line_split) > 1 and line_split[1] == 'dihedral':
+            ndihedral_types = int(line_split[0])
+        elif len(line_split) > 1 and line_split[1] == 'impropers':
+            nimpropers = int(line_split[0])
+        elif len(line_split) > 1 and line_split[1] == 'improper':
+            nimproper_types = int(line_split[0])
+        elif len(line_split) > 3 and line_split[2] == 'xlo':
+            s.dim.xlo = float(line_split[0])
+            s.dim.xhi = float(line_split[1])
+        elif len(line_split) > 3 and line_split[2] == 'ylo':
+            s.dim.ylo = float(line_split[0])
+            s.dim.yhi = float(line_split[1])
+        elif len(line_split) > 3 and line_split[2] == 'zlo':
+            s.dim.zlo = float(line_split[0])
+            s.dim.zhi = float(line_split[1])
+        elif len(line_split) > 0 and line_split[0] == 'Masses':
             next(f)
             for i in range(nparticle_types):
                 pt = ParticleType.parse_lammps(next(f), 'mass')
@@ -4161,9 +4219,9 @@ def read_lammps(data_file, **kwargs):
             if not quiet:
                 verbose_print('read masses for %s ParticleTypes'
                               % s.particle_types.count)
-        elif len(line) > 0 and line[0] == 'Pair':
+        elif len(line_split) > 0 and line_split[0] == 'Pair':
             if '#' in line and not pair_style:
-                line = ' '.join(line).split('#')
+                line = ' '.join(line_split).split('#')
                 pair_style = line[1].strip()
             next(f)
             for i in range(nparticle_types):
@@ -4182,7 +4240,7 @@ def read_lammps(data_file, **kwargs):
             verbose_print('read "%s" nonbonded parameters '
                           'for %s ParticleTypes'
                           % (pair_style, s.particle_types.count))
-        elif len(line) > 0 and line[0] == 'Bond':
+        elif len(line_split) > 0 and line_split[0] == 'Bond':
             next(f)
             for i in range(nbond_types):
                 line = next(f)
@@ -4196,7 +4254,7 @@ def read_lammps(data_file, **kwargs):
             verbose_print('read "%s" bond parameters '
                           'for %s BondTypes'
                           % (bond_style, s.bond_types.count))
-        elif len(line) > 0 and line[0] == 'Angle':
+        elif len(line_split) > 0 and line_split[0] == 'Angle':
             next(f)
             for i in range(nangle_types):
                 line = next(f)
@@ -4210,31 +4268,31 @@ def read_lammps(data_file, **kwargs):
             verbose_print('read "%s" angle parameters '
                           'for %s AngleTypes'
                           % (angle_style, s.angle_types.count))
-        elif len(line) > 0 and line[0] == 'BondBond':
+        elif len(line_split) > 0 and line_split[0] == 'BondBond':
             next(f)
             for i in range(nangle_types):
-                line = next(f).strip().split()
-                tag = int(line[0])
-                s.angle_types[tag].m = float(line[1])
-                s.angle_types[tag].r1 = float(line[2])
-                s.angle_types[tag].r2 = float(line[3])
+                line_split = next(f).strip().split()
+                tag = int(line_split[0])
+                s.angle_types[tag].m = float(line_split[1])
+                s.angle_types[tag].r1 = float(line_split[2])
+                s.angle_types[tag].r2 = float(line_split[3])
             verbose_print('read "%s" angle (bond-bond) '
                           'parameters for %s AngleTypes'
                           % (angle_style, s.angle_types.count))
-        elif len(line) > 0 and line[0] == 'BondAngle':
+        elif len(line_split) > 0 and line_split[0] == 'BondAngle':
             next(f)
             for i in range(nangle_types):
-                line = next(f).strip().split()
-                tag = int(line[0])
-                s.angle_types[tag].n1 = float(line[1])
-                s.angle_types[tag].n2 = float(line[2])
-                s.angle_types[tag].r1 = float(line[3])
-                s.angle_types[tag].r2 = float(line[4])
+                line_split = next(f).strip().split()
+                tag = int(line_split[0])
+                s.angle_types[tag].n1 = float(line_split[1])
+                s.angle_types[tag].n2 = float(line_split[2])
+                s.angle_types[tag].r1 = float(line_split[3])
+                s.angle_types[tag].r2 = float(line_split[4])
             if angle_style:
                 verbose_print('read "%s" angle (bond-angle) '
                               'parameters for %s AngleTypes'
                               % (angle_style, s.angle_types.count))
-        elif len(line) > 0 and line[0] == 'Dihedral':
+        elif len(line_split) > 0 and line_split[0] == 'Dihedral':
             next(f)
             for i in range(ndihedral_types):
                 line = next(f)
@@ -4250,83 +4308,83 @@ def read_lammps(data_file, **kwargs):
                           'for %s DihedralTypes'
                           % (dihedral_style, s.dihedral_types.count))
         
-        elif len(line) > 0 and line[0] == 'MiddleBondTorsion':
+        elif len(line_split) > 0 and line_split[0] == 'MiddleBondTorsion':
             next(f)
             for i in range(ndihedral_types):
-                line = next(f).strip().split()
-                tag = int(line[0])
-                s.dihedral_types[tag].a1 = float(line[1])
-                s.dihedral_types[tag].a2 = float(line[2])
-                s.dihedral_types[tag].a3 = float(line[3])
-                s.dihedral_types[tag].r2 = float(line[4])
+                line_split = next(f).strip().split()
+                tag = int(line_split[0])
+                s.dihedral_types[tag].a1 = float(line_split[1])
+                s.dihedral_types[tag].a2 = float(line_split[2])
+                s.dihedral_types[tag].a3 = float(line_split[3])
+                s.dihedral_types[tag].r2 = float(line_split[4])
             if dihedral_style:
                 verbose_print('read "%s" dihedral '
                               '(middle-bond-torsion parameters for '
                               '%s DihedralTypes'
                               % (dihedral_style, ndihedral_types))
-        elif len(line) > 0 and line[0] == 'EndBondTorsion':
+        elif len(line_split) > 0 and line_split[0] == 'EndBondTorsion':
             next(f)
             for i in range(ndihedral_types):
-                line = next(f).strip().split()
-                tag = int(line[0])
-                s.dihedral_types[tag].b1 = float(line[1])
-                s.dihedral_types[tag].b2 = float(line[2])
-                s.dihedral_types[tag].b3 = float(line[3])
-                s.dihedral_types[tag].c1 = float(line[4])
-                s.dihedral_types[tag].c2 = float(line[5])
-                s.dihedral_types[tag].c3 = float(line[6])
-                s.dihedral_types[tag].r1 = float(line[7])
-                s.dihedral_types[tag].r3 = float(line[8])
+                line_split = next(f).strip().split()
+                tag = int(line_split[0])
+                s.dihedral_types[tag].b1 = float(line_split[1])
+                s.dihedral_types[tag].b2 = float(line_split[2])
+                s.dihedral_types[tag].b3 = float(line_split[3])
+                s.dihedral_types[tag].c1 = float(line_split[4])
+                s.dihedral_types[tag].c2 = float(line_split[5])
+                s.dihedral_types[tag].c3 = float(line_split[6])
+                s.dihedral_types[tag].r1 = float(line_split[7])
+                s.dihedral_types[tag].r3 = float(line_split[8])
             if dihedral_style:
                 verbose_print('read "%s" dihedral '
                               '(end-bond-torsion parameters for '
                               '%s DihedralTypes'
                               % (dihedral_style, ndihedral_types))
-        elif len(line) > 0 and line[0] == 'AngleTorsion':
+        elif len(line_split) > 0 and line_split[0] == 'AngleTorsion':
             next(f)
             for i in range(ndihedral_types):
-                line = next(f).strip().split()
-                tag = int(line[0])
-                s.dihedral_types[tag].d1 = float(line[1])
-                s.dihedral_types[tag].d2 = float(line[2])
-                s.dihedral_types[tag].d3 = float(line[3])
-                s.dihedral_types[tag].e1 = float(line[4])
-                s.dihedral_types[tag].e2 = float(line[5])
-                s.dihedral_types[tag].e3 = float(line[6])
-                s.dihedral_types[tag].theta1 = float(line[7])
-                s.dihedral_types[tag].theta2 = float(line[8])
+                line_split = next(f).strip().split()
+                tag = int(line_split[0])
+                s.dihedral_types[tag].d1 = float(line_split[1])
+                s.dihedral_types[tag].d2 = float(line_split[2])
+                s.dihedral_types[tag].d3 = float(line_split[3])
+                s.dihedral_types[tag].e1 = float(line_split[4])
+                s.dihedral_types[tag].e2 = float(line_split[5])
+                s.dihedral_types[tag].e3 = float(line_split[6])
+                s.dihedral_types[tag].theta1 = float(line_split[7])
+                s.dihedral_types[tag].theta2 = float(line_split[8])
             if dihedral_style:
                     verbose_print('read "%s" dihedral '
                                   '(angle-torsion parameters for '
                                   '%s DihedralTypes'
                                   % (dihedral_style, ndihedral_types))
-        elif len(line) > 0 and line[0] == 'AngleAngleTorsion':
+        elif len(line_split) > 0 and line_split[0] == 'AngleAngleTorsion':
             next(f)
             for i in range(ndihedral_types):
-                line = next(f).strip().split()
-                tag = int(line[0])
-                s.dihedral_types[tag].m = float(line[1])
-                s.dihedral_types[tag].theta1 = float(line[2])
-                s.dihedral_types[tag].theta2 = float(line[3])
+                line_split = next(f).strip().split()
+                tag = int(line_split[0])
+                s.dihedral_types[tag].m = float(line_split[1])
+                s.dihedral_types[tag].theta1 = float(line_split[2])
+                s.dihedral_types[tag].theta2 = float(line_split[3])
             if dihedral_style:
                 verbose_print('read "%s" dihedral '
                               '(angle-angle-torsion parameters for '
                               '%s DihedralTypes'
                               % (dihedral_style, ndihedral_types))
-        elif len(line) > 0 and line[0] == 'BondBond13':
+        elif len(line_split) > 0 and line_split[0] == 'BondBond13':
             next(f)
             for i in range(ndihedral_types):
-                line = next(f).strip().split()
-                tag = int(line[0])
-                s.dihedral_types[tag].n = float(line[1])
-                s.dihedral_types[tag].r1 = float(line[2])
-                s.dihedral_types[tag].r3 = float(line[3])
+                line_split = next(f).strip().split()
+                tag = int(line_split[0])
+                s.dihedral_types[tag].n = float(line_split[1])
+                s.dihedral_types[tag].r1 = float(line_split[2])
+                s.dihedral_types[tag].r3 = float(line_split[3])
             if dihedral_style:
                 verbose_print('read "%s" dihedral '
                               '(bond-bond-1-3 parameters for '
                               '%s DihedralTypes'
                               % (dihedral_style, ndihedral_types))
-        elif len(line) > 0 and line[0] == 'Improper':
+        elif len(line_split) > 0 and line_split[0] == 'Improper':
             next(f)
             for i in range(nimproper_types):
                 line = next(f)
@@ -4342,34 +4400,34 @@ def read_lammps(data_file, **kwargs):
             verbose_print('read "%s" improper parameters '
                           'for %s ImproperTypes'
                           % (improper_style, s.improper_types.count))
-        elif len(line) > 0 and line[0] == 'AngleAngle':
+        elif len(line_split) > 0 and line_split[0] == 'AngleAngle':
             improper_style = 'class2'
             next(f)
             for i in range(nimproper_types):
-                line = next(f).strip().split()
-                tag = int(line[0])
-                s.improper_types[tag].m1 = float(line[1])
-                s.improper_types[tag].m2 = float(line[2])
-                s.improper_types[tag].m3 = float(line[3])
-                s.improper_types[tag].theta1 = float(line[4])
-                s.improper_types[tag].theta2 = float(line[5])
-                s.improper_types[tag].theta3 = float(line[6])
+                line_split = next(f).strip().split()
+                tag = int(line_split[0])
+                s.improper_types[tag].m1 = float(line_split[1])
+                s.improper_types[tag].m2 = float(line_split[2])
+                s.improper_types[tag].m3 = float(line_split[3])
+                s.improper_types[tag].theta1 = float(line_split[4])
+                s.improper_types[tag].theta2 = float(line_split[5])
+                s.improper_types[tag].theta3 = float(line_split[6])
             if improper_style:
                 verbose_print('read "%s" improper '
                               '(angle-angle parameters for '
                               '%s ImproperTypes'
                               % (improper_style, nimproper_types))
-        elif len(line) > 0 and line[0] == 'Atoms':
+        elif len(line_split) > 0 and line_split[0] == 'Atoms':
             next(f)
             for i in range(nparticles):
-                line = next(f).strip().split()
-                tag = int(line[0])
+                line_split = next(f).strip().split()
+                tag = int(line_split[0])
                 if not atom_style:
-                    if len(line) == 7:
+                    if len(line_split) == 7:
                         atom_style = 'full'
-                    elif len(line) == 6:
+                    elif len(line_split) == 6:
                         try:
-                            int(line[2])
+                            int(line_split[2])
                             atom_style = 'molecular'
                         except:
                             atom_style = 'charge'
@@ -4377,16 +4435,16 @@ def read_lammps(data_file, **kwargs):
                         warning_print('cannot determine atom_style; assuming atom_style "full"')
                         atom_style = 'full'
                 if atom_style == 'full':
-                    d_ = {'tag': tag, 'molecule': int(line[1]), 'type': int(line[2]),
-                          'charge': float(line[3]), 'x': float(line[4]),
-                          'y': float(line[5]), 'z': float(line[6])}
+                    d_ = {'tag': tag, 'molecule': int(line_split[1]), 'type': int(line_split[2]),
+                          'charge': float(line_split[3]), 'x': float(line_split[4]),
+                          'y': float(line_split[5]), 'z': float(line_split[6])}
                 elif atom_style == 'charge':
-                    d_ = {'tag': tag, 'molecule': 0, 'type': int(line[1]),
-                          'charge': float(line[2]), 'x': float(line[3]),
-                          'y': float(line[4]), 'z': float(line[5])}
+                    d_ = {'tag': tag, 'molecule': 0, 'type': int(line_split[1]),
+                          'charge': float(line_split[2]), 'x': float(line_split[3]),
+                          'y': float(line_split[4]), 'z': float(line_split[5])}
                 elif atom_style == 'molecular':
-                    d_ = {'tag': tag, 'molecule': int(line[1]), 'type': int(line[2]),
-                          'charge': 0., 'x': float(line[3]), 'y': float(line[4]), 'z': float(line[5])}
+                    d_ = {'tag': tag, 'molecule': int(line_split[1]), 'type': int(line_split[2]),
+                          'charge': 0., 'x': float(line_split[3]), 'y': float(line_split[4]), 'z': float(line_split[5])}
                 if s.particles[tag]:
                     p = s.particles[tag]
                     p.set(**d_)
@@ -4398,67 +4456,67 @@ def read_lammps(data_file, **kwargs):
                 p.frac_z = p.z / s.dim.dz
             if not quiet:
                 verbose_print('read %s particles' % nparticles)
-        elif len(line) > 0 and line[0] == 'Velocities':
+        elif len(line_split) > 0 and line_split[0] == 'Velocities':
             next(f)
             for i in range(nparticles):
-                line = next(f).strip().split()
-                tag = int(line[0])
+                line_split = next(f).strip().split()
+                tag = int(line_split[0])
                 if s.particles[tag]:
                     p = s.particles[tag]
-                    d_ = {'vx': float(line[1]), 'vy': float(line[2]),
-                          'vz': float(line[3])}
+                    d_ = {'vx': float(line_split[1]), 'vy': float(line_split[2]),
+                          'vz': float(line_split[3])}
                     p.set(**d_)
                 else:
-                    p = Particle(tag=tag, vx=float(line[1]), vy=float(line[2]),
-                                 vz=float(line[3]))
+                    p = Particle(tag=tag, vx=float(line_split[1]), vy=float(line_split[2]),
+                                 vz=float(line_split[3]))
                     s.particles.add(p)
             if not quiet:
                 verbose_print('read velocities for %s particles' % nparticles)
-        elif len(line) > 0 and line[0] == 'Bonds':
+        elif len(line_split) > 0 and line_split[0] == 'Bonds':
             next(f)
             for i in range(nbonds):
-                line = next(f).strip().split()
-                tag = int(line[0])
-                b = Bond(tag=tag, type=int(line[1]),
-                         a=int(line[2]), b=int(line[3]))
+                line_split = next(f).strip().split()
+                tag = int(line_split[0])
+                b = Bond(tag=tag, type=int(line_split[1]),
+                         a=int(line_split[2]), b=int(line_split[3]))
                 s.bonds.add(b)
             if not quiet:
                 verbose_print('read %s bonds' % nbonds)
-        elif len(line) > 0 and line[0] == 'Angles':
+        elif len(line_split) > 0 and line_split[0] == 'Angles':
             next(f)
             for i in range(nangles):
-                line = next(f).strip().split()
-                tag = int(line[0])
-                a = Angle(tag=tag, type=int(line[1]),
-                          a=int(line[2]), b=int(line[3]), c=int(line[4]))
+                line_split = next(f).strip().split()
+                tag = int(line_split[0])
+                a = Angle(tag=tag, type=int(line_split[1]),
+                          a=int(line_split[2]), b=int(line_split[3]), c=int(line_split[4]))
                 s.angles.add(a)
             if not quiet:
                 verbose_print('read %s angles' % nangles)
-        elif len(line) > 0 and line[0] == 'Dihedrals':
+        elif len(line_split) > 0 and line_split[0] == 'Dihedrals':
             next(f)
             for i in range(ndihedrals):
-                line = next(f).strip().split()
-                tag = int(line[0])
-                d = Dihedral(tag=tag, type=int(line[1]),
-                             a=int(line[2]), b=int(line[3]),
-                             c=int(line[4]), d=int(line[5]))
+                line_split = next(f).strip().split()
+                tag = int(line_split[0])
+                d = Dihedral(tag=tag, type=int(line_split[1]),
+                             a=int(line_split[2]), b=int(line_split[3]),
+                             c=int(line_split[4]), d=int(line_split[5]))
                 s.dihedrals.add(d)
             if not quiet:
                 verbose_print('read %s dihedrals' % ndihedrals)
-        elif len(line) > 0 and line[0] == 'Impropers':
+        elif len(line_split) > 0 and line_split[0] == 'Impropers':
             next(f)
             for i in range(nimpropers):
-                line = next(f).strip().split()
-                tag = int(line[0])
-                if (s.ff_class == '2' or improper_style == 'class2' or (s.improper_types[1] and s.improper_types[1].m1
+                line_split = next(f).strip().split()
+                tag = int(line_split[0])
+                if (s.ff_class == '2' or improper_style == 'class2' or (s.improper_types[1] and hasattr(s.improper_types[1], 'm1') and s.improper_types[1].m1
                         is not None)):
-                    s.impropers.add(Improper(tag=tag, type=int(line[1]),
-                                             a=int(line[3]), b=int(line[2]),
-                                             c=int(line[4]), d=int(line[5])))
+                    s.impropers.add(Improper(tag=tag, type=int(line_split[1]),
+                                             a=int(line_split[3]), b=int(line_split[2]),
+                                             c=int(line_split[4]), d=int(line_split[5])))
                 else:
-                    s.impropers.add(Improper(tag=tag, type=int(line[1]),
-                                             a=int(line[2]), b=int(line[3]),
-                                             c=int(line[4]), d=int(line[5])))
+                    s.impropers.add(Improper(tag=tag, type=int(line_split[1]),
+                                             a=int(line_split[2]), b=int(line_split[3]),
+                                             c=int(line_split[4]), d=int(line_split[5])))
             if not quiet:
                 verbose_print('read %s impropers' % nimpropers)
     f.close()
@@ -4475,14 +4533,14 @@ def read_lammps(data_file, **kwargs):
             verbose_print('improper style not set explicitly '
                           'but impropers exist in system, guessing style '
                           'based on other forcefield styles...')
-        if (s.bond_style.startswith('harm') or
-                s.angle_style.startswith('harm') or
-                s.dihedral_style.startswith('harm')):
+        if (s.bond_style and s.bond_style.startswith('harm')) or \
+                (s.angle_style and s.angle_style.startswith('harm')) or \
+                (s.dihedral_style and s.dihedral_style.startswith('harm')):
             improper_style = 'harmonic'
             s.improper_style = 'harmonic'
-        elif (s.bond_style.startswith('class2') or
-                s.angle_style.startswith('class2') or
-                s.dihedral_style.startswith('class2')):
+        elif (s.bond_style and s.bond_style.startswith('class2')) or \
+                (s.angle_style and s.angle_style.startswith('class2')) or \
+                (s.dihedral_style and s.dihedral_style.startswith('class2')):
             improper_style = 'class2'
             s.improper_style = 'class2'
         if s.improper_style:
@@ -4518,12 +4576,12 @@ def read_lammps(data_file, **kwargs):
         s.objectify()
 
     for pt in s.particle_types:
-        if pt.name and pt.name.find('@') >= 0:
+        if hasattr(pt, 'name') and pt.name and pt.name.find('@') >= 0:
             if pt.name.split('@')[-1][0].upper() in ['H', 'C', 'N', 'O', 'F', 'S']:
                 pt.elem = pt.name.split('@')[-1][0].upper()
-        if pt.name and pt.name[0] == 'L' and pt.name[1] != 'i':
+        if hasattr(pt, 'name') and pt.name and pt.name[0] == 'L' and pt.name[1] != 'i':
             pt.elem = pt.name[1].upper()
-        elif pt.name:
+        elif hasattr(pt, 'name') and pt.name:
             pt.elem = pt.name[0:2]
             if pt.name[1:3] == 'Na':
                 pt.elem = 'Na'
@@ -4549,7 +4607,7 @@ def read_lammps(data_file, **kwargs):
     return s
 
 
-def read_pubchem_smiles(smiles, quiet=False, type_with=None):
+def read_pubchem_smiles(smiles: str, quiet: bool = False, type_with: Optional['Forcefield'] = None) -> 'System':
     """pysimm.system.read_pubchem_smiles
 
     Interface with pubchem restful API to create molecular system from SMILES format
@@ -4574,9 +4632,10 @@ def read_pubchem_smiles(smiles, quiet=False, type_with=None):
         return read_mol(resp.read().decode('utf-8'), type_with=type_with)
     except (HTTPError, URLError):
         print('Could not retrieve pubchem entry for smiles %s' % smiles)
+        return None
         
         
-def read_pubchem_cid(cid, type_with=None):
+def read_pubchem_cid(cid: str, type_with: Optional['Forcefield'] = None) -> 'System':
     """pysimm.system.read_pubchem_smiles
 
     Interface with pubchem restful API to create molecular system from SMILES format
@@ -4599,9 +4658,10 @@ def read_pubchem_cid(cid, type_with=None):
         return read_mol(resp.read().decode('utf-8'), type_with=type_with)
     except (HTTPError, URLError):
         print('Could not retrieve pubchem entry for cid %s' % cid)
+        return None
 
 
-def read_cml(cml_file, **kwargs):
+def read_cml(cml_file: str, **kwargs: Any) -> 'System':
     """pysimm.system.read_cml
 
     Interprets cml file and creates :class:`~pysimm.system.System` object
@@ -4666,7 +4726,7 @@ def read_cml(cml_file, **kwargs):
     return s
 
 
-def read_mol(mol_file, type_with=None, version='V2000'):
+def read_mol(mol_file: str, type_with: Optional['Forcefield'] = None, version: str = 'V2000') -> 'System':
     """pysimm.system.read_mol
 
     Interprets mol file and creates :class:`~pysimm.system.System` object
@@ -4753,7 +4813,7 @@ def read_mol(mol_file, type_with=None, version='V2000'):
     return s
     
 
-def read_mol2(mol2_file, type_with=None):
+def read_mol2(mol2_file: str, type_with: Optional['Forcefield'] = None) -> 'System':
     """pysimm.system.read_mol2
 
     Interprets .mol2 file and creates :class:`~pysimm.system.System` object
@@ -4822,7 +4882,7 @@ def read_mol2(mol2_file, type_with=None):
     return s
 
 
-def read_prepc(prec_file):
+def read_prepc(prec_file: str) -> 'System':
     """pysimm.system.read_prepc
 
     Interprets prepc file and creates :class:`~pysimm.system.System` object
@@ -4867,7 +4927,7 @@ def read_prepc(prec_file):
     
     return s
     
-def read_ac(ac_file):
+def read_ac(ac_file: str) -> 'System':
     """pysimm.system.read_ac
 
     Interprets ac file and creates :class:`~pysimm.system.System` object
@@ -4916,7 +4976,7 @@ def read_ac(ac_file):
     return s
 
 
-def read_pdb(pdb_file, str_file=None, **kwargs):
+def read_pdb(pdb_file: str, str_file: Optional[str] = None, **kwargs: Any) -> 'System':
     """pysimm.system.read_pdb
 
     Interprets pdb file and creates :class:`~pysimm.system.System` object
@@ -4958,7 +5018,7 @@ def read_pdb(pdb_file, str_file=None, **kwargs):
             elem = line[76:78].strip()
             if len(elem) < 1:
                 if len(name) > 0:
-                    elem = re.split('\d+?', name)[0]
+                    elem = re.split('\\d+?', name)[0]
 
             p = Particle(tag=tag, name=name, resname=resname, chainid=chainid,
                          resid=resid, x=x, y=y, z=z, elem=elem, molecule=1)
@@ -5011,7 +5071,7 @@ def read_pdb(pdb_file, str_file=None, **kwargs):
     return s
 
 
-def compare(s1, s2):
+def compare(s1: 'System', s2: 'System') -> None:
     print('Particle Types:\n')
     for pt in s1.particle_types:
         s2_pt = s2.particle_types.get(pt.name)
@@ -5048,7 +5108,7 @@ def compare(s1, s2):
             print('%s\n%s\n' % (vars(it), vars(s2_it)))
 
 
-def get_types(*arg, **kwargs):
+def get_types(*arg: 'System', **kwargs: Any) -> Tuple[ItemContainer[ParticleType], ItemContainer[BondType], ItemContainer[AngleType], ItemContainer[DihedralType], ItemContainer[ImproperType]]:
     """pysimm.system.get_types
 
     Get unique type names from list of systems
@@ -5112,7 +5172,7 @@ def get_types(*arg, **kwargs):
     return ptypes, btypes, atypes, dtypes, itypes
 
 
-def distance_to_origin(p):
+def distance_to_origin(p: Particle) -> float:
     """pysimm.system.distance_to_origin
 
     Calculates distance of particle to origin.
@@ -5125,7 +5185,7 @@ def distance_to_origin(p):
     return sqrt(pow(p.x, 2) + pow(p.y, 2) + pow(p.z, 2))
 
 
-def replicate(ref, nrep, s_=None, density=0.3, rand=True, print_insertions=True):
+def replicate(ref: Union['System', List['System']], nrep: Union[int, List[int]], s_: Optional['System'] = None, density: float = 0.3, rand: bool = True, print_insertions: bool = True) -> 'System':
     """pysimm.system.replicate
 
     Replicates list of :class:`~pysimm.system.System` objects into new (or exisintg) :class:`~pysimm.system.System`.
